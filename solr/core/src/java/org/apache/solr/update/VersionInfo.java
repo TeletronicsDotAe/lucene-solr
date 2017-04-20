@@ -37,6 +37,7 @@ import org.apache.solr.index.SlowCompositeReaderWrapper;
 import org.apache.solr.schema.IndexSchema;
 import org.apache.solr.schema.SchemaField;
 import org.apache.solr.search.SolrIndexSearcher;
+import org.apache.solr.update.statistics.UpdateLogStats.LookupVersionStatsEntries;
 import org.apache.solr.util.RefCounted;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -189,29 +190,36 @@ public class VersionInfo {
     return buckets[slot];
   }
 
-  public Long lookupVersion(BytesRef idBytes) {
-    return ulog.lookupVersion(idBytes);
+  public Long lookupVersion(BytesRef idBytes, LookupVersionStatsEntries lookupVersionStatsEntries) {
+	// here we want version even though it originate from a delete - because this
+	// is used for reorder check
+    return ulog.lookupVersion(idBytes, lookupVersionStatsEntries);
   }
 
   /**
    * Returns the latest version from the index, searched by the given id (bytes) as seen from the realtime searcher.
    * Returns null if no document can be found in the index for the given id.
    */
-  public Long getVersionFromIndex(BytesRef idBytes) {
+  public Long getVersionFromIndex(BytesRef idBytes, LookupVersionStatsEntries lookupVersionStatsEntries) {
     // TODO: we could cache much of this and invalidate during a commit.
     // TODO: most DocValues classes are threadsafe - expose which.
 
     RefCounted<SolrIndexSearcher> newestSearcher = ulog.uhandler.core.getRealtimeSearcher();
     try {
       SolrIndexSearcher searcher = newestSearcher.get();
+      final long startTimeIndexNanosec = System.nanoTime();
       long lookup = searcher.lookupId(idBytes);
-      if (lookup < 0) return null; // this means the doc doesn't exist in the index yet
+      if (lookup < 0) { // this means the doc doesn't exist in the index yet
+        if (lookupVersionStatsEntries != null) lookupVersionStatsEntries.registerIndexDocNotFound(startTimeIndexNanosec);
+        return null;
+      }
 
       ValueSource vs = versionField.getType().getValueSource(versionField, null);
       Map context = ValueSource.newContext(searcher);
       vs.createWeight(context, searcher);
       FunctionValues fv = vs.getValues(context, searcher.getTopReaderContext().leaves().get((int) (lookup >> 32)));
       long ver = fv.longVal((int) lookup);
+      if (lookupVersionStatsEntries != null) lookupVersionStatsEntries.registerIndexDocFound(startTimeIndexNanosec);
       return ver;
 
     } catch (IOException e) {
@@ -223,6 +231,7 @@ public class VersionInfo {
     }
   }
 
+  // FIXME VERSIONCACHE - Do we need to instrument this method too?
   /**
    * Returns the highest version from the index, or 0L if no versions can be found in the index.
    */

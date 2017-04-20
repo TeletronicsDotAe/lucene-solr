@@ -32,13 +32,16 @@ import java.util.Set;
  *
  * @since solr 1.3
  */
-public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInputDocument> implements Iterable<SolrInputField>
+public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInputDocument> implements Iterable<SolrInputField>, RequestPart
 {
+	public static final String VERSION_FIELD="_version_";
   private final Map<String,SolrInputField> _fields;
   private float _documentBoost = 1.0f;
   private List<SolrInputDocument> _childDocuments;
-  
+  private RequestPartImpl partImpl;
+
   public SolrInputDocument(String... fields) {
+    partImpl = new RequestPartImpl();
     _fields = new LinkedHashMap<>();
     assert fields.length % 2 == 0;
     for (int i = 0; i < fields.length; i += 2) {
@@ -47,6 +50,7 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
   }
   
   public SolrInputDocument(Map<String,SolrInputField> fields) {
+    partImpl = new RequestPartImpl();
     _fields = fields;
   }
   
@@ -62,11 +66,25 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
     _childDocuments = null;
   }
 
+  public void copyExceptUniquePartRef( SolrInputDocument to )
+  {
+    for( SolrInputField field : this ) {
+      to.addField( field.getName(), field.getValue(), field.getBoost() );
+    }
+    to.setDocumentBoost(this.getDocumentBoost());
+  }
+
+
   ///////////////////////////////////////////////////////////////////
   // Add / Set fields
   ///////////////////////////////////////////////////////////////////
 
-  /** 
+  public String getUniquePartRef()
+  {
+  	return partImpl.getUniquePartRef();
+  }
+
+  /**
    * Add a field with implied null value for boost.
    * 
    * The class type of value and the name parameter should match schema.xml. 
@@ -211,6 +229,16 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
     return _documentBoost;
   }
 
+  //FIXME MERGE - Is this used at all..? Merged just to be sure
+  public Long getVersion() {
+    SolrInputField versionField = getField(VERSION_FIELD);
+    if (versionField != null) {
+      Object o = versionField.getValue();
+      return (o instanceof Number)?((Number)o).longValue():Long.parseLong(o.toString());
+    }
+    return null;
+  }
+
   /**
    * Set the document boost.
    * @deprecated Index-time boosts are deprecated. You should instead index
@@ -231,7 +259,7 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
   }
   
   public SolrInputDocument deepCopy() {
-    SolrInputDocument clone = new SolrInputDocument();
+    SolrInputDocument clone = new SolrInputDocument(getUniquePartRef());
     Set<Entry<String,SolrInputField>> entries = _fields.entrySet();
     for (Map.Entry<String,SolrInputField> fieldEntry : entries) {
       clone._fields.put(fieldEntry.getKey(), fieldEntry.getValue().deepCopy());

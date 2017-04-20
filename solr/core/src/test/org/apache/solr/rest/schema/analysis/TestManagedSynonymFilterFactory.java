@@ -99,7 +99,7 @@ public class TestManagedSynonymFilterFactory extends RestTestBase {
 
     // does not exist
     assertJQ(endpoint+"/sad", 
-             "/error/code==404");
+             404, "sad not found in /schema/analysis/synonyms/english");
     
     // verify the user can update the ignoreCase initArg
     assertJPut(endpoint, 
@@ -134,16 +134,14 @@ public class TestManagedSynonymFilterFactory extends RestTestBase {
     
     // should fail with 404 as foo doesn't exist
     assertJDelete(endpoint+"/foo",
-                  "/error/code==404");
+                  404, "foo not found in /schema/analysis/synonyms/english");
     
     // verify that a newly added synonym gets expanded on the query side after core reload
     
     String newFieldName = "managed_en_field";
     // make sure the new field doesn't already exist
     assertQ("/schema/fields/" + newFieldName + "?indent=on&wt=xml",
-            "count(/response/lst[@name='field']) = 0",
-            "/response/lst[@name='responseHeader']/int[@name='status'] = '404'",
-            "/response/lst[@name='error']/int[@name='code'] = '404'");
+            404, "Field '" + newFieldName + "' not found.");
 
     // add the new field
     assertJPost("/schema", "{ add-field :  { name: managed_en_field, type : managed_en}}",
@@ -229,7 +227,7 @@ public class TestManagedSynonymFilterFactory extends RestTestBase {
 
     // does not exist
     assertJQ(endpoint+"/fröhlich",
-        "/error/code==404");
+        404, "fröhlich not found in /schema/analysis/synonyms/german");
 
     Map<String,List<String>> syns = new HashMap<>();
 
@@ -250,6 +248,6 @@ public class TestManagedSynonymFilterFactory extends RestTestBase {
 
     // was it really deleted?
     assertJDelete(endpoint+"/fröhlich",
-        "/error/code==404");
+        404, "fröhlich not found in /schema/analysis/synonyms/german");
   }
 }

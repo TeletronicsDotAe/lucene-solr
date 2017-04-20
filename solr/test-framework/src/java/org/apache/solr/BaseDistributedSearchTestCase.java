@@ -213,6 +213,8 @@ public abstract class BaseDistributedSearchTestCase extends SolrTestCaseJ4 {
 
   protected JettySolrRunner controlJetty;
   protected List<SolrClient> clients = new ArrayList<>();
+  // FIXME MERGE - Figure out if we still need this downedClients thing..?
+  protected List<SolrClient> downedClients = new ArrayList<SolrClient>();
   protected List<JettySolrRunner> jettys = new ArrayList<>();
   
   protected String context;
@@ -491,7 +493,7 @@ public abstract class BaseDistributedSearchTestCase extends SolrTestCaseJ4 {
 
     int which = (doc.getField(id).toString().hashCode() & 0x7fffffff) % clients.size();
     SolrClient client = clients.get(which);
-    client.add(doc);
+    client.add(doc, -1);
   }
   
   /**
@@ -537,16 +539,16 @@ public abstract class BaseDistributedSearchTestCase extends SolrTestCaseJ4 {
     for (int i = 0; i < fields.length; i += 2) {
       doc.addField((String) (fields[i]), fields[i + 1]);
     }
-    controlClient.add(doc);
+    controlClient.add(doc, -1);
 
     SolrClient client = clients.get(serverNumber);
-    client.add(doc);
+    client.add(doc, -1);
   }
 
   protected void del(String q) throws Exception {
-    controlClient.deleteByQuery(q);
+    controlClient.deleteByQuery(q, -1);
     for (SolrClient client : clients) {
-      client.deleteByQuery(q);
+      client.deleteByQuery(q, -1);
     }
   }// serial commit...
 
@@ -559,9 +561,12 @@ public abstract class BaseDistributedSearchTestCase extends SolrTestCaseJ4 {
 
   protected QueryResponse queryServer(ModifiableSolrParams params) throws SolrServerException, IOException {
     // query a random server
-    int which = r.nextInt(clients.size());
-    SolrClient client = clients.get(which);
-    QueryResponse rsp = client.query(params);
+    SolrClient client;
+    do {
+      int which = r.nextInt(clients.size());
+      client = clients.get(which);
+    } while (downedClients.contains(client));
+    QueryResponse rsp = client.query(params, authCredentials);
     return rsp;
   }
 

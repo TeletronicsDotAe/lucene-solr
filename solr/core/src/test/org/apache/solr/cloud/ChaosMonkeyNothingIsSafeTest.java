@@ -333,7 +333,7 @@ public class ChaosMonkeyNothingIsSafeTest extends AbstractFullDistribZkTestBase 
               50,
               t1,
               "Saxon heptarchies that used to rip around so in old times and raise Cain.  My, you ought to seen old Henry the Eight when he was in bloom.  He WAS a blossom.  He used to marry a new wife every day, and chop off her head next morning.  And he would do it just as indifferent as if ");
-          cusc.add(doc);
+          cusc.add(doc, -1);
         } catch (Exception e) {
           changeUrlOnError(e);
           fails.incrementAndGet();

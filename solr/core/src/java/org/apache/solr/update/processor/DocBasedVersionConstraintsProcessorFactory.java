@@ -261,7 +261,8 @@ public class DocBasedVersionConstraintsProcessorFactory extends UpdateRequestPro
       SolrInputDocument oldDoc = null;
 
       if (useFieldCache) {
-        oldDoc = RealTimeGetComponent.getInputDocumentFromTlog(core, indexedDocId, null, null, true);
+        //FIXME MERGE - Old code had s null added as the final parameter. We likely need to add an overrided method on RealTimeGetComponent..?
+        oldDoc = RealTimeGetComponent.getInputDocumentFromTlog(core, indexedDocId, null, null, true, null);
         if (oldDoc == RealTimeGetComponent.DELETED) {
           return true;
         }
@@ -299,7 +300,8 @@ public class DocBasedVersionConstraintsProcessorFactory extends UpdateRequestPro
       } else {
         // stored fields only...
 
-        oldDoc = RealTimeGetComponent.getInputDocument(core, indexedDocId);
+        //FIXME MERGE _ Do we need this override with null..?
+        oldDoc = RealTimeGetComponent.getInputDocument(core, indexedDocId, null /* TODO */);
 
         if (null == oldDoc) {
           // log.info("VERSION no doc found, returning true");

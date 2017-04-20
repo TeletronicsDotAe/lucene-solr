@@ -20,6 +20,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.apache.solr.util.AbstractSolrTestCase;
 import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.request.SolrRequestInfo;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.update.processor.UpdateRequestProcessorChain;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
@@ -78,8 +79,9 @@ public class TestSearchPerf extends AbstractSolrTestCase {
   void createIndex2(int nDocs, String... fields) throws IOException {
     Set<String> fieldSet = new HashSet<>(Arrays.asList(fields));
 
-    SolrQueryRequest req = lrf.makeRequest();
-    SolrQueryResponse rsp = new SolrQueryResponse();
+    SolrRequestInfo reqInfo = lrf.makeRequestInfo();
+    SolrQueryRequest req = reqInfo.getReq();
+    SolrQueryResponse rsp = reqInfo.getRsp();
     UpdateRequestProcessorChain processorChain = req.getCore().getUpdateProcessingChain(null);
     UpdateRequestProcessor processor = processorChain.createProcessor(req, rsp);
 
@@ -128,14 +130,14 @@ public class TestSearchPerf extends AbstractSolrTestCase {
 
     assertU(commit());
 
-    req = lrf.makeRequest();
+    req = lrf.makeRequestInfo().getReq();
     assertEquals(nDocs, req.getSearcher().maxDoc());
     req.close();
   }
 
 
   int doSetGen(int iter, Query q) throws Exception {
-    SolrQueryRequest req = lrf.makeRequest();
+    SolrQueryRequest req = lrf.makeRequestInfo().getReq();
 
     SolrIndexSearcher searcher = req.getSearcher();
 
@@ -156,7 +158,7 @@ public class TestSearchPerf extends AbstractSolrTestCase {
   }
 
   int doListGen(int iter, Query q, List<Query> filt, boolean cacheQuery, boolean cacheFilt) throws Exception {
-    SolrQueryRequest req = lrf.makeRequest();
+    SolrQueryRequest req = lrf.makeRequestInfo().getReq();
 
     SolrIndexSearcher searcher = req.getSearcher();
 
@@ -198,7 +200,7 @@ public class TestSearchPerf extends AbstractSolrTestCase {
     String l=t(0);
     String u=t((int)(indexSize*10*fractionCovered));   
 
-    SolrQueryRequest req = lrf.makeRequest();
+    SolrQueryRequest req = lrf.makeRequestInfo().getReq();
     QParser parser = QParser.getParser("foomany_s:[" + l + " TO " + u + "]", req);
     Query range = parser.getQuery();
                                      
@@ -223,7 +225,7 @@ public class TestSearchPerf extends AbstractSolrTestCase {
     String l=t(0);
     String u=t((int)(indexSize*10*fractionCovered));
 
-    SolrQueryRequest req = lrf.makeRequest();
+    SolrQueryRequest req = lrf.makeRequestInfo().getReq();
 
     QParser parser = QParser.getParser("foomany_s:[" + l + " TO " + u + "]", req);
     Query rangeQ = parser.getQuery();

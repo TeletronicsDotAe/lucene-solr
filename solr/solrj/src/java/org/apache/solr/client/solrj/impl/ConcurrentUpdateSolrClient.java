@@ -317,36 +317,16 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
             msg.append("\n\n\n\n");
             msg.append("request: ").append(method.getURI());
 
-            SolrException solrExc;
-            NamedList<String> metadata = null;
-            // parse out the metadata from the SolrException
-            try {
-              String encoding = "UTF-8"; // default
-              if (response.getEntity().getContentType().getElements().length > 0) {
-                NameValuePair param = response.getEntity().getContentType().getElements()[0].getParameterByName("charset");
-                if (param != null)  {
-                  encoding = param.getValue();
-                }
-              }
-              NamedList<Object> resp = client.parser.processResponse(rspBody, encoding);
-              NamedList<Object> error = (NamedList<Object>) resp.get("error");
-              if (error != null) {
-                metadata = (NamedList<String>) error.get("metadata");
-                String remoteMsg = (String) error.get("msg");
-                if (remoteMsg != null) {
-                  msg.append("\nRemote error message: ");
-                  msg.append(remoteMsg);
-                }
-              }
-            } catch (Exception exc) {
-              // don't want to fail to report error if parsing the response fails
-              log.warn("Failed to parse error response from " + client.getBaseURL() + " due to: " + exc);
-            } finally {
-              solrExc = new HttpSolrClient.RemoteSolrException(client.getBaseURL(), statusCode, msg.toString(), null);
-              if (metadata != null) {
-                solrExc.setMetadata(metadata);
-              }
+            String charset = EntityUtils.getContentCharSet(response.getEntity());
+            // Read the contents
+            InputStream respBody = response.getEntity().getContent();
+            byte[] rawPayload = IOUtils.toByteArray(respBody);
+            ResponseParser responseParser = updateRequest.getResponseParser();
+            if (responseParser == null) {
+              responseParser = client.getParser();
             }
+            NamedList<Object> payload = (response.getFirstHeader(HttpSolrClient.HTTP_EXPLICIT_BODY_INCLUDED_HEADER_KEY) != null)?HttpSolrClient.getProcessedResponse(responseParser, new ByteArrayInputStream(rawPayload), charset, statusCode, false):null;
+            SolrException solrExc = SolrException.decodeFromHttpMethod(response, "UTF-8", msg.toString(), payload, rawPayload);
 
             handleError(solrExc);
           } else {

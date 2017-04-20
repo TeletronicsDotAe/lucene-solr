@@ -119,20 +119,31 @@ abstract public class BaseTestHarness {
 
   /**
    * A helper that creates an xml &lt;doc&gt; containing all of the
-   * fields and values specified
+   * attributes and fields specified
    *
-   * @param fieldsAndValues 0 and Even numbered args are fields names odds are field values.
+   * @param fieldsAndValues 0 and even numbered args are fields names odds are field values.
    */
   public static String makeSimpleDoc(String... fieldsAndValues) {
+    return makeSimpleDoc(null, fieldsAndValues);
+  }
+    
+  /**
+   * A helper that creates an xml &lt;doc&gt; containing all of the
+   * attributes and fields specified
+   *
+   * @param attributesAndValues 0 and even numbered args are attribute names odds are attribute values.
+   * @param fieldsAndValues 0 and even numbered args are fields names odds are field values.
+   */
+  public static String makeSimpleDoc(String[] attributesAndValues, String... fieldsAndValues) {
 
     try {
-      StringWriter w = new StringWriter();
-      w.append("<doc>");
+      StringWriter content = new StringWriter();
       for (int i = 0; i < fieldsAndValues.length; i+=2) {
-        XML.writeXML(w, "field", fieldsAndValues[i + 1], "name",
+        XML.writeXML(content, "field", fieldsAndValues[i + 1], "name",
             fieldsAndValues[i]);
       }
-      w.append("</doc>");
+      StringWriter w = new StringWriter();
+      XML.writeUnescapedXML(w, "doc", content.toString(), attributesAndValues);
       return w.toString();
     } catch (IOException e) {
       throw new RuntimeException
@@ -202,12 +213,7 @@ abstract public class BaseTestHarness {
     try {
       StringWriter r = new StringWriter();
 
-      // this is annoying
-      if (null == args || 0 == args.length) {
-        XML.writeXML(r, tag, null);
-      } else {
-        XML.writeXML(r, tag, null, (Object[])args);
-      }
+      XML.writeXML(r, tag, null, args);
       return r.getBuffer().toString();
     } catch (IOException e) {
       throw new RuntimeException
@@ -259,12 +265,12 @@ abstract public class BaseTestHarness {
    * @param xml The XML of the update
    * @return null if successful, otherwise the XML response to the update
    */
-  public String validateErrorUpdate(String xml) throws SAXException {
+  public Object validateErrorUpdate(String xml) throws SAXException {
     try {
       return checkUpdateStatus(xml, "1");
     } catch (SolrException e) {
       // return ((SolrException)e).getMessage();
-      return null;  // success
+      return e;  // success
     }
   }
 

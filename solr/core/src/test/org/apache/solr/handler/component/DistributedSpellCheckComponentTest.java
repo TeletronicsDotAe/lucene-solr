@@ -16,6 +16,8 @@
  */
 package org.apache.solr.handler.component;
 
+import static org.apache.solr.client.solrj.embedded.JettySolrRunner.SEARCH_CREDENTIALS;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -64,13 +66,13 @@ public class DistributedSpellCheckComponentTest extends BaseDistributedSearchTes
       params.add(q[i].toString(), q[i + 1].toString());
     }
 
-    controlClient.query(params);
+    controlClient.query(params, SEARCH_CREDENTIALS);
 
     // query a random server
     params.set("shards", shards);
     int which = r.nextInt(clients.size());
     SolrClient client = clients.get(which);
-    client.query(params);
+    client.query(params, SEARCH_CREDENTIALS);
   }
   
   @Override

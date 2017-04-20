@@ -82,6 +82,7 @@ import org.apache.solr.security.PKIAuthenticationPlugin;
 import org.apache.solr.security.SecurityPluginHolder;
 import org.apache.solr.update.SolrCoreState;
 import org.apache.solr.update.UpdateShardHandler;
+import org.apache.solr.update.RecentlyLookedUpOrUpdatedDocumentsHandler;
 import org.apache.solr.util.DefaultSolrThreadFactory;
 import org.apache.solr.util.stats.MetricUtils;
 import org.apache.zookeeper.KeeperException;
@@ -458,6 +459,9 @@ public class CoreContainer {
         coreContainerWorkExecutor,
         metricManager.registry(SolrMetricManager.getRegistryName(SolrInfoMBean.Group.node)),
         SolrMetricManager.mkName("coreContainerWorkExecutor", SolrInfoMBean.Category.CONTAINER.toString(), "threadPool"));
+
+    PluginInfo recentlyLookedUpOrUpdatedDocumentsCachePluginInfo = cfg.getRecentlyLookedUpOrUpdatedDocumentsCachePluginInfo();
+    RecentlyLookedUpOrUpdatedDocumentsHandler.setRecentlyLookedUpOrUpdatedDocuments(recentlyLookedUpOrUpdatedDocumentsCachePluginInfo, loader);
 
     shardHandlerFactory = ShardHandlerFactory.newInstance(cfg.getShardHandlerFactoryPluginInfo(), loader);
     if (shardHandlerFactory instanceof SolrMetricProducer) {

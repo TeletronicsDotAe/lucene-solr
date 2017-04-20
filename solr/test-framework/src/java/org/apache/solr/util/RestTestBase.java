@@ -68,27 +68,29 @@ abstract public class RestTestBase extends SolrJettyTestBase {
 
   /** Validates an update XML String failed
    */
-  public static void assertFailedU(String update) {
-    assertFailedU(null, update);
+  public static SolrException assertFailedU(String update) {
+    return assertFailedU(null, update);
   }
 
   /** Validates an update XML String failed
    */
-  public static void assertFailedU(String message, String update) {
-    checkUpdateU(message, update, false);
+  public static SolrException assertFailedU(String message, String update) {
+    return checkUpdateU(message, update, false);
   }
 
   /** Checks the success or failure of an update message
    */
-  private static void checkUpdateU(String message, String update, boolean shouldSucceed) {
+  private static SolrException checkUpdateU(String message, String update, boolean shouldSucceed) {
     try {
       String m = (null == message) ? "" : message + " ";
       if (shouldSucceed) {
         String response = restTestHarness.validateUpdate(update);
         if (response != null) fail(m + "update was not successful: " + response);
+        return null;
       } else {
-        String response = restTestHarness.validateErrorUpdate(update);
-        if (response != null) fail(m + "update succeeded, but should have failed: " + response);
+        Object response = restTestHarness.validateErrorUpdate(update);
+        if (response instanceof String) fail(m + "update succeeded, but should have failed: " + response);
+        return (SolrException)response;
       }
     } catch (SAXException e) {
       throw new RuntimeException("Invalid XML", e);

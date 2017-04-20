@@ -33,6 +33,7 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.Diagnostics;
 import org.apache.solr.update.processor.DistributedUpdateProcessor;
 import org.apache.solr.update.processor.DistributedUpdateProcessor.RequestReplicationTracker;
+import org.apache.solr.security.InterSolrNodeAuthCredentialsFactory.AuthCredentialsSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +65,7 @@ public class SolrCmdDistributor {
   private final List<Error> allErrors = new ArrayList<>();
   private final List<Error> errors = Collections.synchronizedList(new ArrayList<Error>());
   private final ExecutorService updateExecutor;
+  private AuthCredentialsSource authCredentialsSource;
   
   private final CompletionService<Object> completionService;
   private final Set<Future<Object>> pending = new HashSet<>();
@@ -72,18 +74,20 @@ public class SolrCmdDistributor {
     public boolean abortCheck();
   }
   
-  public SolrCmdDistributor(UpdateShardHandler updateShardHandler) {
+  public SolrCmdDistributor(UpdateShardHandler updateShardHandler, AuthCredentialsSource authCredentialsSource) {
     this.clients = new StreamingSolrClients(updateShardHandler);
     this.updateExecutor = updateShardHandler.getUpdateExecutor();
     this.completionService = new ExecutorCompletionService<>(updateExecutor);
+    this.authCredentialsSource = authCredentialsSource;
   }
   
-  public SolrCmdDistributor(StreamingSolrClients clients, int maxRetriesOnForward, int retryPause) {
+  public SolrCmdDistributor(StreamingSolrClients clients, int maxRetriesOnForward, int retryPause, AuthCredentialsSource authCredentialsSource) {
     this.clients = clients;
     this.maxRetriesOnForward = maxRetriesOnForward;
     this.retryPause = retryPause;
     this.updateExecutor = clients.getUpdateExecutor();
     completionService = new ExecutorCompletionService<>(updateExecutor);
+    this.authCredentialsSource = authCredentialsSource;
   }
   
   public void finish() {    
@@ -95,6 +99,11 @@ public class SolrCmdDistributor {
     } finally {
       clients.shutdown();
     }
+  }
+  
+  boolean exceptionWorthRetrying(Exception e) {
+    // No need to retry on partial error(s). 
+    return (!(e instanceof SolrException) || (((SolrException)e).worthRetrying()));
   }
 
   private void doRetriesIfNeeded() {
@@ -134,7 +143,7 @@ public class SolrCmdDistributor {
             doRetry = true;
           }
           
-          if (err.req.retries < maxRetriesOnForward && doRetry) {
+          if (err.req.retries < maxRetriesOnForward && doRetry && exceptionWorthRetrying(err.e)) {
             err.req.retries++;
             
             SolrException.log(SolrCmdDistributor.log, "forwarding update to "
@@ -182,6 +191,7 @@ public class SolrCmdDistributor {
       UpdateRequest uReq = new UpdateRequest();
       uReq.setParams(params);
       uReq.setCommitWithin(cmd.commitWithin);
+      uReq.setAuthCredentials(authCredentialsSource.getAuthCredentials());
       if (cmd.isDeleteById()) {
         uReq.deleteById(cmd.getId(), cmd.getRoute(), cmd.getVersion());
       } else {
@@ -206,7 +216,8 @@ public class SolrCmdDistributor {
       if (cmd.isLastDocInBatch)
         uReq.lastDocInBatch();
       uReq.setParams(params);
-      uReq.add(cmd.solrDoc, cmd.commitWithin, cmd.overwrite);
+      uReq.setAuthCredentials(authCredentialsSource.getAuthCredentials());
+      uReq.add(cmd.solrDoc, cmd.commitWithin, cmd.classicOverwrite);
       if (cmd.isInPlaceUpdate()) {
         params.set(DistributedUpdateProcessor.DISTRIB_INPLACE_PREVVERSION, String.valueOf(cmd.prevVersion));
       }
@@ -223,7 +234,7 @@ public class SolrCmdDistributor {
     
     UpdateRequest uReq = new UpdateRequest();
     uReq.setParams(params);
-    
+    uReq.setAuthCredentials(authCredentialsSource.getAuthCredentials());
     addCommit(uReq, cmd);
     
     log.debug("Distrib commit to: {} params: {}", nodes, params);

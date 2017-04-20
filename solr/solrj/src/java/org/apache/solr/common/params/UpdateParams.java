@@ -33,7 +33,9 @@ public interface UpdateParams
 
   public static String SOFT_COMMIT = "softCommit";
   
-  /** overwrite indexing fields */
+  /** 
+   * overwrite indexing document - only used when running semanticsMode "classic" (or "classic-consistency-hybrid")
+   */
   public static String OVERWRITE = "overwrite";
   
   /** Commit everything after the command completes */
@@ -65,6 +67,8 @@ public interface UpdateParams
   public static final String MAX_OPTIMIZE_SEGMENTS = "maxSegments";
 
   public static final String EXPUNGE_DELETES = "expungeDeletes";
+
+  public static final String REQ_SEMANTICS_MODE = "semanticsMode";
 
   /** Return versions of updates? */
   public static final String VERSIONS = "versions";

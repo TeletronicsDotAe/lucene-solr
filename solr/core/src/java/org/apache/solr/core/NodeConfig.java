@@ -19,6 +19,7 @@ package org.apache.solr.core;
 import java.nio.file.Path;
 import java.util.Properties;
 
+import org.apache.lucene.uninverting.FieldCache;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.logging.LogWatcherConfig;
 import org.apache.solr.update.UpdateShardHandlerConfig;
@@ -58,6 +59,10 @@ public class NodeConfig {
 
   private final String managementPath;
 
+  private final PluginInfo recentlyLookedUpOrUpdatedDocumentsCachePluginInfo;
+
+  private final FieldCache fieldCache;
+
   private final PluginInfo[] backupRepositoryPlugins;
 
   private final PluginInfo[] metricReporterPlugins;
@@ -67,7 +72,9 @@ public class NodeConfig {
                      String coreAdminHandlerClass, String collectionsAdminHandlerClass,
                      String infoHandlerClass, String configSetsHandlerClass,
                      LogWatcherConfig logWatcherConfig, CloudConfig cloudConfig, Integer coreLoadThreads,
-                     int transientCacheSize, boolean useSchemaCache, String managementPath, SolrResourceLoader loader,
+                     int transientCacheSize, boolean useSchemaCache, String managementPath,
+                     PluginInfo recentlyLookedUpOrUpdatedDocumentsCachePluginInfo, FieldCache fieldCache,
+                     SolrResourceLoader loader,
                      Properties solrProperties, PluginInfo[] backupRepositoryPlugins,
                      PluginInfo[] metricReporterPlugins) {
     this.nodeName = nodeName;
@@ -86,6 +93,8 @@ public class NodeConfig {
     this.transientCacheSize = transientCacheSize;
     this.useSchemaCache = useSchemaCache;
     this.managementPath = managementPath;
+    this.recentlyLookedUpOrUpdatedDocumentsCachePluginInfo = recentlyLookedUpOrUpdatedDocumentsCachePluginInfo;
+    this.fieldCache = fieldCache;
     this.loader = loader;
     this.solrProperties = solrProperties;
     this.backupRepositoryPlugins = backupRepositoryPlugins;
@@ -163,6 +172,14 @@ public class NodeConfig {
     return transientCacheSize;
   }
 
+  public PluginInfo getRecentlyLookedUpOrUpdatedDocumentsCachePluginInfo() {
+    return recentlyLookedUpOrUpdatedDocumentsCachePluginInfo;
+  }
+
+  public FieldCache getFieldCache() {
+    return fieldCache;
+  }
+
   protected final SolrResourceLoader loader;
   protected final Properties solrProperties;
 
@@ -199,6 +216,8 @@ public class NodeConfig {
     private int transientCacheSize = DEFAULT_TRANSIENT_CACHE_SIZE;
     private boolean useSchemaCache = false;
     private String managementPath;
+    private PluginInfo recentlyLookedUpOrUpdatedDocumentsCachePluginInfo;
+    private FieldCache fieldCache;
     private Properties solrProperties = new Properties();
     private PluginInfo[] backupRepositoryPlugins;
     private PluginInfo[] metricReporterPlugins;
@@ -299,6 +318,16 @@ public class NodeConfig {
       return this;
     }
 
+    public NodeConfigBuilder setRecentlyLookedUpOrUpdatedDocumentsCachePluginInfo(PluginInfo recentlyLookedUpOrUpdatedDocumentsCachePluginInfo) {
+      this.recentlyLookedUpOrUpdatedDocumentsCachePluginInfo = recentlyLookedUpOrUpdatedDocumentsCachePluginInfo;
+      return this;
+    }
+
+    public NodeConfigBuilder setFieldCache(FieldCache fieldCache) {
+      this.fieldCache = fieldCache;
+      return this;
+    }
+
     public NodeConfigBuilder setSolrProperties(Properties solrProperties) {
       this.solrProperties = solrProperties;
       return this;
@@ -317,7 +346,9 @@ public class NodeConfig {
     public NodeConfig build() {
       return new NodeConfig(nodeName, coreRootDirectory, configSetBaseDirectory, sharedLibDirectory, shardHandlerFactoryConfig,
                             updateShardHandlerConfig, coreAdminHandlerClass, collectionsAdminHandlerClass, infoHandlerClass, configSetsHandlerClass,
-                            logWatcherConfig, cloudConfig, coreLoadThreads, transientCacheSize, useSchemaCache, managementPath, loader, solrProperties,
+                            logWatcherConfig, cloudConfig, coreLoadThreads, transientCacheSize, useSchemaCache, managementPath,
+                            recentlyLookedUpOrUpdatedDocumentsCachePluginInfo, fieldCache,
+                            loader, solrProperties,
                             backupRepositoryPlugins, metricReporterPlugins);
     }
   }

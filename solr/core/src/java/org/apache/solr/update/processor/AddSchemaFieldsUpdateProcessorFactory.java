@@ -139,7 +139,7 @@ public class AddSchemaFieldsUpdateProcessorFactory extends UpdateRequestProcesso
   public UpdateRequestProcessor getInstance(SolrQueryRequest req, 
                                             SolrQueryResponse rsp, 
                                             UpdateRequestProcessor next) {
-    return new AddSchemaFieldsUpdateProcessor(next);
+    return new AddSchemaFieldsUpdateProcessor(next, req, rsp);
   }
 
   @Override
@@ -260,8 +260,8 @@ public class AddSchemaFieldsUpdateProcessorFactory extends UpdateRequestProcesso
   }
 
   private class AddSchemaFieldsUpdateProcessor extends UpdateRequestProcessor {
-    public AddSchemaFieldsUpdateProcessor(UpdateRequestProcessor next) {
-      super(next);
+    public AddSchemaFieldsUpdateProcessor(UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
+      super(next, req, rsp);
     }
     
     @Override

@@ -70,7 +70,7 @@ public class DefaultValueUpdateProcessorFactory
   public UpdateRequestProcessor getInstance(SolrQueryRequest req, 
                                             SolrQueryResponse rsp, 
                                             UpdateRequestProcessor next ) {
-    return new DefaultValueUpdateProcessor(fieldName, next) {
+    return new DefaultValueUpdateProcessor(fieldName, next, req, rsp) {
       @Override
       public Object getDefaultValue() { return defaultValue; }
     };

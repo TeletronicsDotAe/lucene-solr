@@ -757,6 +757,11 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
       d = documentCache.get(i);
       if (d != null) return d;
     }
+    
+    // This is an optimization - no need to go into store when only asking for score
+    if (fields != null && fields.size() == 1 && fields.contains(SolrReturnFields.SCORE)) {
+      return new Document(); // score is added later by the transformer
+    }
 
     final DirectoryReader reader = getIndexReader();
     if (documentCache != null && !enableLazyFieldLoading) {

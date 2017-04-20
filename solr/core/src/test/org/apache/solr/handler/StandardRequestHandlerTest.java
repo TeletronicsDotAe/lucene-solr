@@ -33,7 +33,7 @@ public class StandardRequestHandlerTest extends AbstractSolrTestCase {
   
   @Override public void setUp() throws Exception {
     super.setUp();
-    lrf = h.getRequestFactory("standard", 0, 20 );
+    lrf = h.getRequestInfoFactory("standard", 0, 20 );
   }
   
   public void testSorting() throws Exception {

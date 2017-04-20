@@ -58,6 +58,7 @@ import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.ShardParams;
 import org.apache.solr.common.params.SolrParams;
+import org.apache.solr.common.util.Hash;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.util.StrUtils;
 import org.apache.solr.core.SolrCore;
@@ -77,7 +78,13 @@ import org.apache.solr.search.SyntaxError;
 import org.apache.solr.update.DocumentBuilder;
 import org.apache.solr.update.IndexFingerprint;
 import org.apache.solr.update.PeerSync;
+import org.apache.solr.update.RecentlyLookedUpOrUpdatedDocumentsHandler;
+import org.apache.solr.update.RecentlyLookedUpOrUpdatedDocumentsHandler.FoundLocation;
 import org.apache.solr.update.UpdateLog;
+import org.apache.solr.update.UpdateLog.LookupResult;
+import org.apache.solr.update.VersionBucket;
+import org.apache.solr.update.VersionInfo;
+import org.apache.solr.update.statistics.RealtimeGetComponentStats.GetInputDocumentStatsEntries;
 import org.apache.solr.update.processor.DistributedUpdateProcessor;
 import org.apache.solr.util.RefCounted;
 import org.slf4j.Logger;
@@ -96,6 +103,7 @@ public class RealTimeGetComponent extends SearchComponent
   }
 
 
+  private static final VersionBucket dummySynchBucket = new VersionBucket();
   @Override
   public void process(ResponseBuilder rb) throws IOException
   {
@@ -207,10 +215,39 @@ public class RealTimeGetComponent extends SearchComponent
 
    try {
 
-
+    //FIXME MERGE - this whole block and logic needs an extra pass and very critical eyes. It likely doesn't work at all
      BytesRefBuilder idBytes = new BytesRefBuilder();
      for (String idStr : reqIds.allIds) {
        fieldType.readableToIndexed(idStr, idBytes);
+
+       // FIXME MERGE - needs to be added for our recently looked up documents performance thing to work
+       /*
+       VersionInfo vinfo = (ulog != null)?ulog.getVersionInfo():null;
+       int bucketHash = Hash.murmurhash3_x86_32(idBytes.get().bytes, idBytes.get().offset, idBytes.get().length, 0);
+
+       VersionBucket bucket = (vinfo != null)?vinfo.bucket(bucketHash):dummySynchBucket;
+
+       // This lock is to make sure that no deleteByQuery etc (see VersionInfo.blockUpdates) is running while we are
+       // finding and more importantly adding to cache.
+       // We can potentially make a less "limiting" synchronizing
+       // This code also exists in eDR CacheImpl.getCompleteCacheEntry, so change code both places if we change
+       if (vinfo != null) vinfo.lockForUpdate();
+       try {
+       // This synchronized is to make sure that no update request is modifying the document while we are finding
+       // and more importantly adding it to cache. See DistributedUpdateProcessor.versionAdd and .versionDelete
+       // We can potentially make a less "limiting" synchronizing
+       // This code also exists in eDR CacheImpl.getCompleteCacheEntry, so change code both places if we change
+       synchronized (bucket) {
+       */
+
+       // FIXME MERGE - This was previously most of the logic, but we didn't have inplace updates etc. back then.
+       // Redo our implementation!
+       /*
+           LookupResult lr = ulog.lookup(idBytes.get(), null, true);
+           if (lr.getSid() != null) {
+             SolrDocument doc = toSolrDoc(lr.getSid(), core.getLatestSchema());
+
+        */
        if (ulog != null) {
          Object o = ulog.lookup(idBytes.get());
          if (o != null) {
@@ -257,6 +294,8 @@ public class RealTimeGetComponent extends SearchComponent
            }
            if (o != null) continue;
          }
+         //FIXME MERGE - needs to be added for our recently looked up documents performance thing to work
+         // if (!lr.isMaybeInIndex()) continue;
        }
 
        // didn't find it in the update log, so it should be in the newest searcher opened
@@ -297,6 +336,13 @@ public class RealTimeGetComponent extends SearchComponent
          transformer.transform(doc, docid, 0);
        }
        docList.add(doc);
+
+       SolrInputDocument sid = toSolrInputDocument(luceneDocument, core.getLatestSchema());
+
+       RecentlyLookedUpOrUpdatedDocumentsHandler.getRecentlyLookedUpOrUpdatedDocuments().addDocument(ulog, idBytes.get(), sid, FoundLocation.Index);
+       }} finally {
+         if (vinfo != null) vinfo.unlockForUpdate();
+       }
      }
 
    } finally {
@@ -503,11 +549,18 @@ public class RealTimeGetComponent extends SearchComponent
    *                  back prevPointer/prevVersion)?
    */
   public static SolrInputDocument getInputDocumentFromTlog(SolrCore core, BytesRef idBytes, AtomicLong versionReturned,
-      Set<String> onlyTheseNonStoredDVs, boolean resolveFullDocument) {
+      Set<String> onlyTheseNonStoredDVs, boolean resolveFullDocument, GetInputDocumentStatsEntries getInputDocumentStatsEntries) {
 
     UpdateLog ulog = core.getUpdateHandler().getUpdateLog();
 
     if (ulog != null) {
+      //FIXME MERGE - Remerge and validate this. Our old code replaced all the below, but that was before inplace updates
+      /*
+      LookupResult lr = ulog.lookup(idBytes, getInputDocumentStatsEntries.getLookupStatsEntries(), true);
+      if (lr.getSid() != null) return lr.getSid();
+      return lr.isMaybeInIndex()?null:DELETED;
+       */
+
       Object o = ulog.lookup(idBytes);
       if (o != null) {
         // should currently be a List<Oper,Ver,Doc/Id>
@@ -579,12 +632,13 @@ public class RealTimeGetComponent extends SearchComponent
    *                  back prevPointer/prevVersion)?
    */
   public static SolrInputDocument getInputDocument(SolrCore core, BytesRef idBytes, AtomicLong versionReturned, boolean avoidRetrievingStoredFields,
-      Set<String> onlyTheseNonStoredDVs, boolean resolveFullDocument) throws IOException {
+      Set<String> onlyTheseNonStoredDVs, boolean resolveFullDocument, GetInputDocumentStatsEntries getInputDocumentStatsEntries) throws IOException {
+    long startTimeNanosecs = System.nanoTime();
     SolrInputDocument sid = null;
     RefCounted<SolrIndexSearcher> searcherHolder = null;
     try {
       SolrIndexSearcher searcher = null;
-      sid = getInputDocumentFromTlog(core, idBytes, versionReturned, onlyTheseNonStoredDVs, resolveFullDocument);
+      sid = getInputDocumentFromTlog(core, idBytes, versionReturned, onlyTheseNonStoredDVs, resolveFullDocument, getInputDocumentStatsEntries);
       if (sid == DELETED) {
         return null;
       }
@@ -599,8 +653,12 @@ public class RealTimeGetComponent extends SearchComponent
         // SolrCore.verbose("RealTimeGet using searcher ", searcher);
         SchemaField idField = core.getLatestSchema().getUniqueKeyField();
 
+        final long startTimeIndexNanosec = System.nanoTime();
         int docid = searcher.getFirstMatch(new Term(idField.getName(), idBytes));
-        if (docid < 0) return null;
+        if (docid < 0) {
+          getInputDocumentStatsEntries.registerIndexDocNotFound(startTimeIndexNanosec);
+          return null;
+        }
         
         if (avoidRetrievingStoredFields) {
           sid = new SolrInputDocument();
@@ -613,11 +671,15 @@ public class RealTimeGetComponent extends SearchComponent
         } else {
           searcher.decorateDocValueFields(sid, docid, searcher.getNonStoredDVsWithoutCopyTargets());
         }
+        //FIXME MERGE - We need to consider how to handle the case where store fields are _not_ retrieved (as well as nonStoredDocValues)
+        UpdateLog ulog = core.getUpdateHandler().getUpdateLog();
+        RecentlyLookedUpOrUpdatedDocumentsHandler.getRecentlyLookedUpOrUpdatedDocuments().addDocument(ulog, idBytes, sid, FoundLocation.Index);
       }
     } finally {
       if (searcherHolder != null) {
         searcherHolder.decref();
       }
+      getInputDocumentStatsEntries.registerTotal(startTimeNanosecs);
     }
 
     if (versionReturned != null) {
@@ -628,6 +690,7 @@ public class RealTimeGetComponent extends SearchComponent
     return sid;
   }
 
+  //FIXME MERGE - We had this public..?
   private static SolrInputDocument toSolrInputDocument(Document doc, IndexSchema schema) {
     SolrInputDocument out = new SolrInputDocument();
     for( IndexableField f : doc.getFields() ) {
@@ -675,6 +738,7 @@ public class RealTimeGetComponent extends SearchComponent
     return out;
   }
 
+  //FIXME MERGE - We had this public..?
   private static SolrDocument toSolrDoc(Document doc, IndexSchema schema) {
     SolrDocument out = new SolrDocument();
     for( IndexableField f : doc.getFields() ) {
@@ -1010,10 +1074,18 @@ public class RealTimeGetComponent extends SearchComponent
     boolean cantReachIsSuccess = rb.req.getParams().getBool("cantReachIsSuccess", false);
     
     PeerSync peerSync = new PeerSync(rb.req.getCore(), replicas, nVersions, cantReachIsSuccess, true);
+
+    try {
     boolean success = peerSync.sync().isSuccess();
     
     // TODO: more complex response?
     rb.rsp.add("sync", success);
+    } catch (RuntimeException re) {
+      log.warn("RESOURCE LEAK! PeerSync was not properly closed, until we fixed it!");
+      throw re;
+    } finally {
+      peerSync.close();
+    }
   }
   
 

@@ -49,6 +49,14 @@ public class TestFieldResource extends SolrRestletTestBase {
         "count(/response/lst[@name='field']) = 0",
         "/response/lst[@name='responseHeader']/int[@name='status'] = '404'",
         "/response/lst[@name='error']/int[@name='code'] = '404'");
+    // FIXME MERGE - This is the old stuff we had - don't know if it's needed:
+    /*
+        assertQ("/schema/fields/not_in_there?indent=on&wt=xml",
+        "count(/response/lst[@name='field']) = 0",
+        "/response/lst[@name='responseHeader']/int[@name='status'] = '404'",
+        "/response/lst[@name='error']/int[@name='code'] = '404'");
+        404, "Field 'not_in_there' not found");
+     */
   }
 
   @Test

@@ -23,6 +23,7 @@ import org.apache.solr.cloud.AbstractFullDistribZkTestBase;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrException.ErrorCode;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.exceptions.PartialErrors;
 import org.apache.solr.util.BaseTestHarness;
 import org.apache.solr.util.RestTestHarness;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -37,6 +38,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -161,9 +163,32 @@ public class TestCloudSchemaless extends AbstractFullDistribZkTestBase {
       try {
         randomClient.add(docs);
         randomClient.commit();
-        fail("Expected Bad Request Exception");
+        fail("Expected Exception " + i);
       } catch (SolrException se) {
-        assertEquals(ErrorCode.BAD_REQUEST, ErrorCode.getErrorCode(se.code()));
+        PartialErrors pe = (PartialErrors)se;
+        // Both docs has been handled even though one of them fails
+        assertEquals(docs.size(), pe.getSpecializedResponse().getHandledPartsRef().size());
+        Map<String, SolrException> exceptionMap = pe.getSpecializedResponse().getPartialErrors();
+        // Only one fails
+        assertEquals(1, exceptionMap.size());
+
+        SolrException dateDocException = exceptionMap.get(dateDoc.getUniquePartRef());
+        SolrException intDocException = exceptionMap.get(intDoc.getUniquePartRef());
+        assertEquals(1, ((dateDocException == null)?0:1) + ((intDocException == null)?0:1));
+        String expectedMsg;
+        SolrException exception;
+        if (dateDocException != null) {
+          exception = dateDocException;
+          expectedMsg = "Error adding field 'longOrDateField" + i + "'";
+        } else {
+          exception = intDocException;
+          expectedMsg = "Invalid Date String:'123'";
+        }
+        assertNotNull(exception);
+        // It failed with code 400...
+        assertEquals(400, exception.code());
+        // ...and this error-message
+        assertTrue("'" + exception.getMessage() + "' does not contain '" + expectedMsg + "'", exception.getMessage().contains(expectedMsg));
       }
 
       try {

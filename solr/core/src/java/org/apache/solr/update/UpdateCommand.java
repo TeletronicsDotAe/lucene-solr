@@ -16,6 +16,7 @@
  */
 package org.apache.solr.update;
 
+import org.apache.solr.common.params.UpdateParams;
 import org.apache.solr.request.SolrQueryRequest;
 
 
@@ -25,7 +26,9 @@ import org.apache.solr.request.SolrQueryRequest;
  */
 public abstract class UpdateCommand implements Cloneable {
   protected SolrQueryRequest req;
-  protected long version;
+  protected long version = 0;
+  protected long requestVersion = 0;
+  protected boolean leaderLogic = true;
   protected String route;
   protected int flags;
 
@@ -40,6 +43,10 @@ public abstract class UpdateCommand implements Cloneable {
   }
 
   public abstract String name();
+
+  public UpdateSemanticsMode getSemanticsMode() {
+    return UpdateSemanticsMode.fromString(req.getParams().get(UpdateParams.REQ_SEMANTICS_MODE));
+  }
 
   @Override
   public String toString() {
@@ -71,6 +78,21 @@ public abstract class UpdateCommand implements Cloneable {
 
   public void setRoute (String route) {
     this.route = route;
+  }
+
+  public long getRequestVersion() {
+    return requestVersion;
+  }
+  public void setRequestVersion(long requestVersion) {
+    this.requestVersion = requestVersion;
+  }
+
+  public boolean isLeaderLogic() {
+  	return leaderLogic;
+  }
+
+  public void setLeaderLogic(boolean leaderLogic) {
+	this.leaderLogic = leaderLogic;
   }
 
   public void setFlags(int flags) {

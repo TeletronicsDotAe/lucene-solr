@@ -116,8 +116,14 @@ public class HttpShardHandler extends ShardHandler {
   private List<String> getURLs(String shard) {
     List<String> urls = shardToURLs.get(shard);
     if (urls == null) {
-      urls = httpShardHandlerFactory.buildURLList(shard);
-      shardToURLs.put(shard, urls);
+      // Multiple threads might want to modify shardToURLs concurrently. Make it thread-safe
+      synchronized (shardToURLs) {
+        urls = shardToURLs.get(shard);
+        if (urls==null) {
+          urls = httpShardHandlerFactory.makeURLList(shard);
+          shardToURLs.put(shard, urls);
+        }
+      }
     }
     return urls;
   }
@@ -237,7 +243,7 @@ public class HttpShardHandler extends ShardHandler {
     while (pending.size() > 0) {
       try {
         Future<ShardResponse> future = completionService.take();
-        pending.remove(future);
+        if (pending.remove(future)) {
         ShardResponse rsp = future.get();
         if (bailOnError && rsp.getException() != null) return rsp; // if exception, return immediately
         // add response to the response list... we do this after the take() and
@@ -247,6 +253,9 @@ public class HttpShardHandler extends ShardHandler {
         rsp.getShardRequest().responses.add(rsp);
         if (rsp.getShardRequest().responses.size() == rsp.getShardRequest().actualShards.length) {
           return rsp;
+        }
+        } else {
+          // the future just taken from the completionService was canceled = not in pending
         }
       } catch (InterruptedException e) {
         throw new SolrException(SolrException.ErrorCode.SERVER_ERROR, e);
@@ -265,6 +274,8 @@ public class HttpShardHandler extends ShardHandler {
     for (Future<ShardResponse> future : pending) {
       future.cancel(false);
     }
+    pending.clear();
+    // Ought to also remove the task/future from the completionService, so that we will never take it, but it does not seem possible
   }
 
   @Override

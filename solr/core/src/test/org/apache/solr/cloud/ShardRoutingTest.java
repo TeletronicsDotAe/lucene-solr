@@ -17,9 +17,11 @@
 package org.apache.solr.cloud;
 
 import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.embedded.JettySolrRunner;
 import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.ShardParams;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -234,64 +236,91 @@ public class ShardRoutingTest extends AbstractFullDistribZkTestBase {
   }
 
 
-  public void doTestNumRequests() throws Exception {
+  private void doTestNumRequests() throws Exception {
     log.info("### STARTING doTestNumRequests");
 
-    List<CloudJettyRunner> runners = shardToJetty.get(bucket1);
-    CloudJettyRunner leader = shardToLeaderJetty.get(bucket1);
-    CloudJettyRunner replica =  null;
-    for (CloudJettyRunner r : runners) {
-      if (r != leader) replica = r;
+    // This part of the test is explicitly testing DQA. Make sure we run with the real DefaultProvider
+    switchToOriginalDQADefaultProvider();
+    try {
+      List<CloudJettyRunner> runners = shardToJetty.get(bucket1);
+      CloudJettyRunner leader = shardToLeaderJetty.get(bucket1);
+      CloudJettyRunner replica =  null;
+      for (CloudJettyRunner r : runners) {
+        if (r != leader) replica = r;
+      }
+
+      long nStart = getNumRequests();
+      leader.client.solrClient.add( sdoc("id","b!doc1"), -1, UPDATE_CREDENTIALS );
+      long nEnd = getNumRequests();
+      assertEquals(2, nEnd - nStart);   // one request to leader, which makes another to a replica
+
+
+      nStart = getNumRequests();
+      replica.client.solrClient.add( sdoc("id","b!doc1"), -1, UPDATE_CREDENTIALS );
+      nEnd = getNumRequests();
+      assertEquals(3, nEnd - nStart);   // orig request + replica forwards to leader, which forward back to replica.
+
+      nStart = getNumRequests();
+      replica.client.solrClient.add( sdoc("id","b!doc1"), -1, UPDATE_CREDENTIALS );
+      nEnd = getNumRequests();
+      assertEquals(3, nEnd - nStart);   // orig request + replica forwards to leader, which forward back to replica.
+
+      CloudJettyRunner leader2 = shardToLeaderJetty.get(bucket2);
+
+
+      doTestNumRequestsCase(replica, 0, params("q","*:*", "shards",bucket1)); // short circuit should prevent distrib search
+      doTestNumRequestsCase(replica, 0, params("q","*:*", ShardParams._ROUTE_, "b!")); // short circuit should prevent distrib search
+
+      for (ShardParams.DQA dqa : ShardParams.DQA.values()) {
+        doTestNumRequestsCase(leader2, 1, params("q","*:*",ShardParams._ROUTE_,"b!"), dqa, false, false); // original + X phase distrib search.
+        doTestNumRequestsCase(leader2, 4, params("q","*:*"), dqa, false, false); // original + X phase distrib search * 4 shards.
+        doTestNumRequestsCase(leader2, 2, params("q","*:*", ShardParams._ROUTE_,"b!,d!"), dqa, false, false); // original + X phase distrib search * 2 shards.
+        doTestNumRequestsCase(leader2, 2, params("q","*:*", ShardParams._ROUTE_,"b!,f1!f2!"), dqa, false, false); // original + X phase distrib search * 2 shards.
+
+        doTestNumRequestsCase(leader2, 1, params("q","*:*", ShardParams._ROUTE_,"b!"), dqa, true, false); // original + (X-1) phase distrib search.
+        doTestNumRequestsCase(leader2, 4, params("q","*:*"), dqa, true, false); // original + (X-1) phase distrib search * 4 shards.
+        doTestNumRequestsCase(leader2, 2, params("q","*:*", ShardParams._ROUTE_,"b!,d!"), dqa, true, false); // original + (X-1) phase distrib search * 2 shards.
+        doTestNumRequestsCase(leader2, 2, params("q","*:*", ShardParams._ROUTE_,"b!,f1!f2!"), dqa, true, false); // original + (X-1) phase distrib search * 2 shards.
+
+        doTestNumRequestsCase(leader2, 1, params("q","*:*", ShardParams._ROUTE_,"b!"), dqa, false, true); // original + (X-1) phase distrib search.
+        doTestNumRequestsCase(leader2, 4, params("q","*:*"), dqa, false, true); // original + (X-1) phase distrib search * 4 shards.
+        doTestNumRequestsCase(leader2, 2, params("q","*:*", ShardParams._ROUTE_,"b!,d!"), dqa, false, true); // original + (X-1) phase distrib search * 2 shards.
+        doTestNumRequestsCase(leader2, 2, params("q","*:*", ShardParams._ROUTE_,"b!,f1!f2!"), dqa, false, true); // original + (X-1) phase distrib search * 2 shards.
+      }
+    } finally {
+      // Switch back for the rest of the test
+      switchToTestDQADefaultProvider();
     }
+  }
 
+  private void doTestNumRequestsCase(CloudJettyRunner runner, int shards, ModifiableSolrParams params) throws SolrServerException, IOException {
+    doTestNumRequestsCase(runner, shards, params, null, false, false);
+  }
+
+  private void doTestNumRequestsCase(CloudJettyRunner runner, int shards, ModifiableSolrParams params, ShardParams.DQA dqa, boolean forceSkipGetIds, boolean forceNotSkipGetIds) throws SolrServerException, IOException {
+    String dqaId;
+    int expectedDistRequests;
+    if (dqa != null) {
+      dqaId = dqa.getId();
+      dqa.apply(params);
+      if (forceSkipGetIds) {
+        params.set(ShardParams.DQA.FORCE_SKIP_GET_IDS_PARAM, "true");
+      }
+      if (forceNotSkipGetIds) {
+        params.set(ShardParams.DQA.FORCE_SKIP_GET_IDS_PARAM, "false");
+      }
+      expectedDistRequests = dqa.getDistributedSteps();
+      if (dqa.forceSkipGetIds(params)) {
+        expectedDistRequests--;
+      }
+    } else {
+      dqaId = "none";
+      expectedDistRequests = 0;
+    }
     long nStart = getNumRequests();
-    leader.client.solrClient.add( sdoc("id","b!doc1") );
+    runner.client.solrClient.query(params, SEARCH_CREDENTIALS);
     long nEnd = getNumRequests();
-    assertEquals(2, nEnd - nStart);   // one request to leader, which makes another to a replica
-
-
-    nStart = getNumRequests();
-    replica.client.solrClient.add( sdoc("id","b!doc1") );
-    nEnd = getNumRequests();
-    assertEquals(3, nEnd - nStart);   // orig request + replica forwards to leader, which forward back to replica.
-
-    nStart = getNumRequests();
-    replica.client.solrClient.add( sdoc("id","b!doc1") );
-    nEnd = getNumRequests();
-    assertEquals(3, nEnd - nStart);   // orig request + replica forwards to leader, which forward back to replica.
-
-    CloudJettyRunner leader2 = shardToLeaderJetty.get(bucket2);
-
-
-    nStart = getNumRequests();
-    replica.client.solrClient.query( params("q","*:*", "shards",bucket1) );
-    nEnd = getNumRequests();
-    assertEquals(1, nEnd - nStart);   // short circuit should prevent distrib search
-
-    nStart = getNumRequests();
-    replica.client.solrClient.query( params("q","*:*", ShardParams._ROUTE_, "b!") );
-    nEnd = getNumRequests();
-    assertEquals(1, nEnd - nStart);   // short circuit should prevent distrib search
-
-    nStart = getNumRequests();
-    leader2.client.solrClient.query( params("q","*:*", ShardParams._ROUTE_, "b!") );
-    nEnd = getNumRequests();
-    assertEquals(3, nEnd - nStart);   // original + 2 phase distrib search.  we could improve this!
-
-    nStart = getNumRequests();
-    leader2.client.solrClient.query( params("q","*:*") );
-    nEnd = getNumRequests();
-    assertEquals(9, nEnd - nStart);   // original + 2 phase distrib search * 4 shards.
-
-    nStart = getNumRequests();
-    leader2.client.solrClient.query( params("q","*:*", ShardParams._ROUTE_, "b!,d!") );
-    nEnd = getNumRequests();
-    assertEquals(5, nEnd - nStart);   // original + 2 phase distrib search * 2 shards.
-
-    nStart = getNumRequests();
-    leader2.client.solrClient.query( params("q","*:*", ShardParams._ROUTE_, "b!,f1!f2!") );
-    nEnd = getNumRequests();
-    assertEquals(5, nEnd - nStart);
+    assertEquals("DQA " + dqaId, 1 + (expectedDistRequests*shards), nEnd - nStart);
   }
 
   public void doAtomicUpdate() throws Exception {
@@ -301,10 +330,10 @@ public class ShardRoutingTest extends AbstractFullDistribZkTestBase {
 
     int expectedVal = 0;
     for (SolrClient client : clients) {
-      client.add(sdoc("id", "b!doc", "foo_i", map("inc",1)));
+      client.add(sdoc("id", "b!doc", "foo_i", map("inc",1)), -1, UPDATE_CREDENTIALS);
       expectedVal++;
 
-      QueryResponse rsp = client.query(params("qt","/get", "id","b!doc"));
+      QueryResponse rsp = client.query(params("qt","/get", "id","b!doc"), SEARCH_CREDENTIALS);
       Object val = ((Map)rsp.getResponse().get("doc")).get("foo_i");
       assertEquals((Integer)expectedVal, val);
     }
@@ -334,6 +363,7 @@ public class ShardRoutingTest extends AbstractFullDistribZkTestBase {
     UpdateRequest req = new UpdateRequest();
     req.deleteByQuery(q);
     req.setParams(params(reqParams));
+    req.setAuthCredentials(UPDATE_CREDENTIALS);
     req.process(cloudClient);
   }
 

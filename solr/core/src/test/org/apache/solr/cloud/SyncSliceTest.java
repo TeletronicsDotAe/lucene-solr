@@ -286,7 +286,7 @@ public class SyncSliceTest extends AbstractFullDistribZkTestBase {
     addFields(doc, fields);
     addFields(doc, "rnd_b", true);
     
-    controlClient.add(doc);
+    controlClient.add(doc, -1);
     
     UpdateRequest ureq = new UpdateRequest();
     ureq.add(doc);

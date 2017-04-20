@@ -555,7 +555,9 @@ public class JavaBinCodec implements PushWriter {
   public SolrInputDocument readSolrInputDocument(DataInputInputStream dis) throws IOException {
     int sz = readVInt(dis);
     float docBoost = (Float)readVal(dis);
-    SolrInputDocument sdoc = new SolrInputDocument(new LinkedHashMap<>(sz));
+    String uniquePartRef = (String)readVal(dis);
+    // FIXME MERGE - verify that uniquepartref can be passed as second parameter
+    SolrInputDocument sdoc = new SolrInputDocument(new LinkedHashMap<>(sz), uniquePartRef);
     sdoc.setDocumentBoost(docBoost);
     for (int i = 0; i < sz; i++) {
       float boost = 1.0f;
@@ -581,6 +583,7 @@ public class JavaBinCodec implements PushWriter {
     int sz = sdoc.size() + (children==null ? 0 : children.size());
     writeTag(SOLRINPUTDOC, sz);
     writeFloat(sdoc.getDocumentBoost());
+    writeStr(sdoc.getUniquePartRef());
     for (SolrInputField inputField : sdoc.values()) {
       if (inputField.getBoost() != 1.0f) {
         writeFloat(inputField.getBoost());

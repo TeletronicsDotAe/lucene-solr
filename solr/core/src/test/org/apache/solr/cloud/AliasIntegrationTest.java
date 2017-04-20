@@ -44,12 +44,14 @@ public class AliasIntegrationTest extends SolrCloudTestCase {
     waitForState("Expected collection1 to be created with 2 shards and 1 replica", "collection1", clusterShape(2, 1));
     waitForState("Expected collection2 to be created with 1 shard and 1 replica", "collection2", clusterShape(1, 1));
 
+    // FIXME MERGE - figure out how to add the "-1" atomic update param, like : "client.add(doc8, -1)"
     new UpdateRequest()
         .add("id", "6", "a_t", "humpty dumpy sat on a wall")
         .add("id", "7", "a_t", "humpty dumpy3 sat on a walls")
         .add("id", "8", "a_t", "humpty dumpy2 sat on a walled")
         .commit(cluster.getSolrClient(), "collection1");
 
+    // FIXME MERGE - Figure out how to add the "-1" atomic update param, like : "client.add(doc8, -1)"
     new UpdateRequest()
         .add("id", "9", "a_t", "humpty dumpy sat on a wall")
         .add("id", "10", "a_t", "humpty dumpy3 sat on a walls")
@@ -131,6 +133,7 @@ public class AliasIntegrationTest extends SolrCloudTestCase {
     CollectionAdminRequest.createAlias("testalias2", "collection2").process(cluster.getSolrClient());
 
     try (HttpSolrClient client = getHttpSolrClient(jetty.getBaseUrl().toString() + "/testalias")) {
+      // FIXME MERGE - Figure out how to add the "-1" atomic update pram, like : "client.add(doc8, -1)"
       new UpdateRequest()
           .add("id", "11", "a_t", "humpty dumpy4 sat on a walls")
           .commit(cluster.getSolrClient(), "testalias");

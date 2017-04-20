@@ -161,7 +161,7 @@ public class TestRankQueryPlugin extends QParserPlugin {
 
     }
 
-    public void merge(ResponseBuilder rb, ShardRequest sreq) {
+    public void merge(ResponseBuilder rb) {
 
       // id to shard mapping, to eliminate any accidental dups
       HashMap<Object,String> uniqueDoc = new HashMap<>();
@@ -181,7 +181,7 @@ public class TestRankQueryPlugin extends QParserPlugin {
       boolean partialResults = false;
       List<ShardDoc> shardDocs = new ArrayList();
 
-      for (ShardResponse srsp : sreq.responses) {
+      for (ShardResponse srsp : rb.stageResponses) {
         SolrDocumentList docs = null;
 
         if(shardInfo!=null) {
@@ -477,7 +477,7 @@ public class TestRankQueryPlugin extends QParserPlugin {
       }
     }
 
-    public void merge(ResponseBuilder rb, ShardRequest sreq) {
+    public void merge(ResponseBuilder rb) {
 
       // id to shard mapping, to eliminate any accidental dups
       HashMap<Object,String> uniqueDoc = new HashMap<>();
@@ -497,7 +497,7 @@ public class TestRankQueryPlugin extends QParserPlugin {
       boolean partialResults = false;
       List<ShardDoc> shardDocs = new ArrayList();
 
-      for (ShardResponse srsp : sreq.responses) {
+      for (ShardResponse srsp : rb.stageResponses) {
         SolrDocumentList docs = null;
 
         if(shardInfo!=null) {

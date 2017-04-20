@@ -35,7 +35,8 @@ import java.util.List;
 public class CompositeIdRouter extends HashBasedRouter {
   public static final String NAME = "compositeId";
 
-  public static final String SEPARATOR = "!";
+  public static char SEPARATOR = '!';
+  public static byte SEPARATOR_AS_UTF8_BYTESREF = (byte)SEPARATOR;
 
   // separator used to optionally specify number of bits to allocate toward first part.
   public static final int bitsSeparator = '/';
@@ -173,6 +174,41 @@ public class CompositeIdRouter extends HashBasedRouter {
     }
 
     return ranges;
+  }
+
+  public static class Positions {
+    
+    public int offset;
+    public int length;
+    
+    public Positions(int offset, int length) {
+      this.offset = offset;
+      this.length = length;
+    }
+    
+  }
+  
+  public static Positions getRouteFromId(byte[] bytes, Positions positions) {
+    if(positions.length == 0) return null;
+    int end = positions.offset + positions.length;
+    for (int i = positions.offset; i < end; i++) {
+      if (bytes[i] == SEPARATOR_AS_UTF8_BYTESREF) {
+        int start = positions.offset;
+        return (i == start) ? null : new Positions(start, i - start);
+      }
+    }
+    return positions;
+  }
+  
+  public static Positions getIdWithoutRouteFromId(byte[] bytes, Positions positions) {
+    int end = positions.offset + positions.length;
+    for (int i = positions.offset; i < end; i++) {
+      if ((bytes[i] == SEPARATOR_AS_UTF8_BYTESREF) && (i != (end - 1))) {
+        int start = i + 1;
+        return new Positions(start, end - start);
+      }
+    }
+    return null;
   }
 
   /**

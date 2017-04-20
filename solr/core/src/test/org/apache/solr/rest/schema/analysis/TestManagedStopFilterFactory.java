@@ -105,9 +105,9 @@ public class TestManagedStopFilterFactory extends RestTestBase {
     // test requesting a specific stop word that exists / does not exist
     assertJQ(endpoint + "/the", "/the=='the'");
     // not exist - 404
-    assertJQ(endpoint + "/foo", "/error/code==404");
+    assertJQ(endpoint + "/foo", 404, "foo not found in /schema/analysis/stopwords/english");
     // wrong case - 404
-    assertJQ(endpoint + "/An", "/error/code==404");
+    assertJQ(endpoint + "/An", 404, "An not found in /schema/analysis/stopwords/english");
     
     // update the ignoreCase initArg to true and make sure case is ignored
     String updateIgnoreCase = 
@@ -135,9 +135,7 @@ public class TestManagedStopFilterFactory extends RestTestBase {
     String newFieldName = "managed_en_field";
     // make sure the new field doesn't already exist
     assertQ("/schema/fields/" + newFieldName + "?indent=on&wt=xml",
-            "count(/response/lst[@name='field']) = 0",
-            "/response/lst[@name='responseHeader']/int[@name='status'] = '404'",
-            "/response/lst[@name='error']/int[@name='code'] = '404'");
+            404, "Field '" + newFieldName + "' not found.");
 
     // add the new field
     assertJPost("/schema/fields", "{add-field : { name :managed_en_field, type : managed_en}}",
@@ -187,7 +185,7 @@ public class TestManagedStopFilterFactory extends RestTestBase {
              "/wordSet/managedList==['a','an','of']");
     
     // should fail with 404 as foo doesn't exist
-    assertJDelete(endpoint + "/foo", "/error/code==404");
+    assertJDelete(endpoint + "/foo", 404, "foo not found in /schema/analysis/stopwords/english");
   }
 
   /**
@@ -198,7 +196,7 @@ public class TestManagedStopFilterFactory extends RestTestBase {
     String endpoint = "/schema/analysis/stopwords/german";
 
     //initially it should not exist
-    assertJQ(endpoint + "/schön", "/error/code==404");
+    assertJQ(endpoint + "/schön", 404, "schön not found in /schema/analysis/stopwords/german");
 
     //now we put a stopword with an umlaut
     assertJPut(endpoint,
@@ -212,6 +210,6 @@ public class TestManagedStopFilterFactory extends RestTestBase {
     assertJDelete(endpoint + "/schön", "/responseHeader/status==0");
 
     //and of it is unavailable again
-    assertJQ(endpoint + "/schön", "/error/code==404");
+    assertJQ(endpoint + "/schön", 404, "schön not found in /schema/analysis/stopwords/german");
   }
 }

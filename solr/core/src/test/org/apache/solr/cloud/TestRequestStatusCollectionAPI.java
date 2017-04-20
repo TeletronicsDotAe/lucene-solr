@@ -189,6 +189,11 @@ public class TestRequestStatusCollectionAPI extends BasicDistributedZkTest {
     String baseUrl = ((HttpSolrClient) shardToJetty.get(SHARD1).get(0).client.solrClient).getBaseURL();
     baseUrl = baseUrl.substring(0, baseUrl.length() - "collection1".length());
 
+    //FIXME MERGE - What is the right one..? The new one I would assume is good enough
+    /*
+        Stock 5.1:   try (HttpSolrClient baseServer = new HttpSolrClient(baseUrl)) {
+        Voyager 5.1: try (HttpSolrClient baseServer = createNewSolrClientBase(baseUrl)) {
+     */
     try (HttpSolrClient baseServer = getHttpSolrClient(baseUrl)) {
       baseServer.setConnectionTimeout(15000);
       return baseServer.request(request);

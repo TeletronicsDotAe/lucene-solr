@@ -45,7 +45,7 @@ import org.apache.solr.common.cloud.ZkCoreNodeProps;
 import org.apache.solr.common.cloud.ZkStateReader;
 import org.apache.solr.common.util.StrUtils;
 
-
+// TODO STREAMING - Do we need to override SolrClientFactory anymore?
 public abstract class TupleStream implements Closeable, Serializable, MapWriter {
 
   private static final long serialVersionUID = 1;

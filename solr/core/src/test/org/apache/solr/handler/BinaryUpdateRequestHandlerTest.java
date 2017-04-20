@@ -47,18 +47,18 @@ public class BinaryUpdateRequestHandlerTest extends SolrTestCaseJ4 {
     ureq.setParam(UpdateParams.OVERWRITE, Boolean.toString(false));
 
     BinaryRequestWriter brw = new BinaryRequestWriter();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     SolrQueryResponse rsp = new SolrQueryResponse();
     UpdateRequestHandler handler = new UpdateRequestHandler();
     handler.init(new NamedList());
     SolrQueryRequest req = req();
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
     ContentStreamLoader csl = handler.newLoader(req, p);
 
     csl.load(req, rsp, brw.getContentStream(ureq), p);
 
     AddUpdateCommand add = p.addCommands.get(0);
     System.out.println(add.solrDoc);
-    assertEquals(false, add.overwrite);
+    assertEquals(false, add.classicOverwrite);
     assertEquals(100, add.commitWithin);
 
     req.close();

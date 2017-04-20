@@ -52,7 +52,7 @@ public class FieldNameMutatingUpdateProcessorFactory  extends UpdateRequestProce
 
   @Override
   public UpdateRequestProcessor getInstance(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next) {
-    return new UpdateRequestProcessor(next) {
+    return new UpdateRequestProcessor(next, req, rsp) {
       @Override
       public void processAdd(AddUpdateCommand cmd) throws IOException {
         final SolrInputDocument doc = cmd.getSolrInputDocument();

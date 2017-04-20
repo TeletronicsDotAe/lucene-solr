@@ -300,7 +300,7 @@ public final class DocExpirationUpdateProcessorFactory
       // nothing to do, shortcircut ourselves out of the chain.
       return next;
     } else {
-      return new TTLUpdateProcessor(defaultTtl, expireField, ttlField, next);
+      return new TTLUpdateProcessor(defaultTtl, expireField, ttlField, next, req, rsp);
     }
   }
 
@@ -312,8 +312,9 @@ public final class DocExpirationUpdateProcessorFactory
     public TTLUpdateProcessor(final String defaultTtl,
                               final String expireField,
                               final String ttlField,
-                              final UpdateRequestProcessor next) {
-      super(next);
+                              final UpdateRequestProcessor next,
+                              SolrQueryRequest req, SolrQueryResponse rsp) {
+      super(next, req, rsp);
       this.defaultTtl = defaultTtl;
       this.expireField = expireField;
       this.ttlField = ttlField;

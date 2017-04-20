@@ -42,6 +42,7 @@ import org.apache.lucene.util.TestUtil;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrRequest;
+import org.apache.solr.client.solrj.SolrResponse;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.embedded.JettySolrRunner;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
@@ -61,6 +62,7 @@ import org.apache.solr.common.cloud.Slice;
 import org.apache.solr.common.cloud.ZkCoreNodeProps;
 import org.apache.solr.common.cloud.ZkNodeProps;
 import org.apache.solr.common.cloud.ZkStateReader;
+import org.apache.solr.common.exceptions.PartialErrors;
 import org.apache.solr.common.params.CollectionParams.CollectionAction;
 import org.apache.solr.common.params.CoreAdminParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
@@ -77,6 +79,7 @@ import org.junit.Test;
 
 import static org.apache.solr.common.cloud.ZkStateReader.CORE_NAME_PROP;
 import static org.apache.solr.common.cloud.ZkStateReader.REPLICATION_FACTOR;
+import static org.apache.solr.client.solrj.embedded.JettySolrRunner.*;
 
 /**
  * Tests the Cloud Collections API.
@@ -307,7 +310,8 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
     CollectionAdminResponse resp = CollectionAdminRequest.createCollection("halfcollection", "conf", 2, 1)
         .setCreateNodeSet(nn1 + "," + nn2)
         .process(cluster.getSolrClient());
-    
+
+    /*
     SimpleOrderedMap success = (SimpleOrderedMap) resp.getResponse().get("success");
     SimpleOrderedMap failure = (SimpleOrderedMap) resp.getResponse().get("failure");
 
@@ -317,6 +321,25 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
     String val1 = success.getVal(0).toString();
     String val2 = failure.getVal(0).toString();
     assertTrue(val1.contains("SolrException") || val2.contains("SolrException"));
+    */
+    // FIXME MERGE - check that this compiles
+    try {
+      makeRequest(baseUrl, request);;
+    } catch (SolrException e) {
+      gotExp = true;
+      assertTrue(e.getClass().getCanonicalName(), e instanceof PartialErrors);
+      SolrResponse solrResp = ((PartialErrors)e).getSpecializedResponse();
+      List<String> handledPartsRef = solrResp.getHandledPartsRef();
+      assertEquals(2, handledPartsRef.size());
+      assertTrue(handledPartsRef.get(0).contains("halfcollection_shard1_replica1") || handledPartsRef.get(1).contains("halfcollection_shard1_replica1"));
+      assertTrue(handledPartsRef.get(0).contains("halfcollection_shard2_replica1") || handledPartsRef.get(1).contains("halfcollection_shard2_replica1"));
+      Map<String, SolrException> partsRefToPartialErrorMap = solrResp.getPartialErrors();
+      assertEquals(1, partsRefToPartialErrorMap.size());
+      Map.Entry<String, SolrException> partRefToException = partsRefToPartialErrorMap.entrySet().iterator().next();
+      assertTrue(partRefToException.getKey(), partRefToException.getKey().contains("halfcollection_shard1_replica1"));
+      assertTrue(partRefToException.getValue().getMessage(), partRefToException.getValue().getMessage().contains("Core with name 'halfcollection_shard1_replica1' already exists"));
+    }
+    assertTrue(gotExp);
   }
 
   @Test
@@ -515,6 +538,7 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
     String collectionName = createRequests[random().nextInt(createRequests.length)].getCollectionName();
 
     new UpdateRequest()
+        //FIXME DUPLICATE CHECKING - add the usual -1 thing?
         .add("id", "6")
         .add("id", "7")
         .add("id", "8")

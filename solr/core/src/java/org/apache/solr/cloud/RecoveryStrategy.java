@@ -209,7 +209,7 @@ public class RecoveryStrategy extends Thread implements Closeable {
     
     if (replicationHandler == null) {
       throw new SolrException(ErrorCode.SERVICE_UNAVAILABLE,
-          "Skipping recovery, no " + ReplicationHandler.PATH + " handler found");
+          "Skipping recovery, no " + ReplicationHandler.PATH + " handler found. core=" + coreName);
     }
     
     ModifiableSolrParams solrParams = new ModifiableSolrParams();
@@ -219,7 +219,7 @@ public class RecoveryStrategy extends Thread implements Closeable {
     boolean success = replicationHandler.doFetch(solrParams, false);
     
     if (!success) {
-      throw new SolrException(ErrorCode.SERVER_ERROR, "Replication for recovery failed.");
+      throw new SolrException(ErrorCode.SERVER_ERROR, "Replication for recovery failed. core=" + coreName);
     }
     
     // solrcloud_debug
@@ -284,10 +284,10 @@ public class RecoveryStrategy extends Thread implements Closeable {
         doRecovery(core);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        SolrException.log(LOG, "", e);
+        SolrException.log(LOG, "core=" + coreName, e);
         throw new ZooKeeperException(SolrException.ErrorCode.SERVER_ERROR, "", e);
       } catch (Exception e) {
-        LOG.error("", e);
+        LOG.error("core=" + coreName, e);
         throw new ZooKeeperException(SolrException.ErrorCode.SERVER_ERROR, "", e);
       }
     } finally {
@@ -303,7 +303,7 @@ public class RecoveryStrategy extends Thread implements Closeable {
     UpdateLog ulog;
     ulog = core.getUpdateHandler().getUpdateLog();
     if (ulog == null) {
-      SolrException.log(LOG, "No UpdateLog found - cannot recover.");
+      SolrException.log(LOG, "No UpdateLog found - cannot recover: core=" + coreName);
       recoveryFailed(core, zkController, baseUrl, coreZkNodeName,
           core.getCoreDescriptor());
       return;
@@ -315,7 +315,7 @@ public class RecoveryStrategy extends Thread implements Closeable {
     try (UpdateLog.RecentUpdates recentUpdates = ulog.getRecentUpdates()) {
       recentVersions = recentUpdates.getVersions(ulog.getNumRecordsToKeep());
     } catch (Exception e) {
-      SolrException.log(LOG, "Corrupt tlog - ignoring.", e);
+      SolrException.log(LOG, "Corrupt tlog - ignoring. core=" + coreName, e);
       recentVersions = new ArrayList<>(0);
     }
 
@@ -331,11 +331,11 @@ public class RecoveryStrategy extends Thread implements Closeable {
         }
         
         if (oldIdx > 0) {
-          LOG.info("####### Found new versions added after startup: num=[{}]", oldIdx);
-          LOG.info("###### currentVersions=[{}]",recentVersions);
+          LOG.info("####### Found new versions added after startup: core=[{}] num=[{}]", coreName, oldIdx);
+          LOG.info("###### core=" + coreName + " currentVersions=[{}]",recentVersions);
         }
         
-        LOG.info("###### startupVersions=[{}]", startingVersions);
+        LOG.info("###### core=[{}] startupVersions=[{}]", coreName, startingVersions);
       } catch (Exception e) {
         SolrException.log(LOG, "Error getting recent versions.", e);
         recentVersions = new ArrayList<>(0);
@@ -435,6 +435,8 @@ public class RecoveryStrategy extends Thread implements Closeable {
           // + " i am:" + zkController.getNodeName());
           PeerSync peerSync = new PeerSync(core,
               Collections.singletonList(leaderUrl), ulog.getNumRecordsToKeep(), false, false);
+          // FIXME MERGE - do we still need to close PeerSync?
+          try {
           peerSync.setStartingVersions(recentVersions);
           boolean syncSuccess = peerSync.sync().isSuccess();
           if (syncSuccess) {
@@ -454,6 +456,9 @@ public class RecoveryStrategy extends Thread implements Closeable {
             // sync success
             successfulRecovery = true;
             return;
+          }
+          } finally {
+            peerSync.close();
           }
 
           LOG.info("PeerSync Recovery was not successful - trying replication.");
@@ -494,7 +499,7 @@ public class RecoveryStrategy extends Thread implements Closeable {
         }
 
       } catch (Exception e) {
-        SolrException.log(LOG, "Error while trying to recover. core=" + coreName, e);
+        SolrException.log(LOG, "Error while trying to recover. Core=" + coreName, e);
       } finally {
         if (!replayed) {
           // dropBufferedUpdate()s currently only supports returning to ACTIVE state, which risks additional updates

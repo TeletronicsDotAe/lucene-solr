@@ -53,6 +53,12 @@ public class SolrRequestInfo {
   public static void setRequestInfo(SolrRequestInfo info) {
     // TODO: temporary sanity check... this can be changed to just an assert in the future
     SolrRequestInfo prev = threadLocal.get();
+    try {
+      throw new Exception(Thread.currentThread().getName() + " trying to set request-info. Already set: " + (prev != null));
+    } catch (Exception e) {
+      e.printStackTrace(System.out);
+    }
+
     if (prev != null) {
       log.error("Previous SolrRequestInfo was not closed!  req=" + prev.req.getOriginalParams().toString());
       log.error("prev == info : {}", prev.req == info.req);

@@ -64,9 +64,12 @@ import org.apache.http.util.EntityUtils;
 import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrRequest;
+import org.apache.solr.client.solrj.SolrResponse;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.RequestWriter;
 import org.apache.solr.common.SolrException;
+import org.apache.solr.common.SolrException.ErrorCode;
+import org.apache.solr.common.exceptions.SolrExceptionCausedByException;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.SolrParams;
@@ -79,6 +82,8 @@ import org.apache.solr.common.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+
+// FIXME - Check imports
 
 /**
  * A SolrClient implementation that talks directly to a Solr server via HTTP
@@ -107,6 +112,8 @@ public class HttpSolrClient extends SolrClient {
   private static final String DEFAULT_PATH = "/select";
   private static final long serialVersionUID = -946812319974801896L;
   
+  public static final String HTTP_EXPLICIT_BODY_INCLUDED_HEADER_KEY = SolrResponse.HTTP_HEADER_KEY_PREFIX + "explicit-body-included";
+
   /**
    * User-Agent String.
    */
@@ -531,6 +538,8 @@ public class HttpSolrClient extends SolrClient {
         case HttpStatus.SC_OK:
         case HttpStatus.SC_BAD_REQUEST:
         case HttpStatus.SC_CONFLICT:  // 409
+        case HttpStatus.SC_PRECONDITION_FAILED:
+        case HttpStatus.SC_UNPROCESSABLE_ENTITY:
           break;
         case HttpStatus.SC_MOVED_PERMANENTLY:
         case HttpStatus.SC_MOVED_TEMPORARILY:
@@ -547,13 +556,25 @@ public class HttpSolrClient extends SolrClient {
           }
       }
       if (processor == null || processor instanceof InputStreamResponseParser) {
-        
+
         // no processor specified, return raw stream
         NamedList<Object> rsp = new NamedList<>();
         rsp.add("stream", respBody);
         // Only case where stream should not be closed
         shouldClose = false;
         return rsp;
+      }
+
+      // Deal with errors before checking content-type. Content-type is only reliable if request was successfull
+      String charset = EntityUtils.getContentCharSet(response.getEntity());
+      if (httpStatus != HttpStatus.SC_OK) {
+        StringBuilder additionalMsg = new StringBuilder();
+        additionalMsg.append( "\n\n" );
+        additionalMsg.append( "request: "+method.getURI() );
+        byte[] rawPayload = IOUtils.toByteArray(respBody);
+        NamedList<Object> payload = (response.getFirstHeader(HTTP_EXPLICIT_BODY_INCLUDED_HEADER_KEY) != null)?getProcessedResponse(processor, new ByteArrayInputStream(rawPayload), charset, httpStatus, false):null;
+        SolrException ex = SolrException.decodeFromHttpMethod(response, "UTF-8", additionalMsg.toString(), payload, rawPayload);
+        throw ex;
       }
       
       String procCt = processor.getContentType();
@@ -611,7 +632,8 @@ public class HttpSolrClient extends SolrClient {
         if (metadata != null) rss.setMetadata(metadata);
         throw rss;
       }
-      return rsp;
+      //return rsp;
+      return getProcessedResponse(processor, respBody, charset, httpStatus, true);
     } catch (ConnectException e) {
       throw new SolrServerException("Server refused connection at: "
           + getBaseURL(), e);
@@ -628,7 +650,23 @@ public class HttpSolrClient extends SolrClient {
       }
     }
   }
-  
+
+  // FIXME MERGE - Do we need this method still..?
+  public static NamedList<Object> getProcessedResponse(final ResponseParser processor, InputStream respBody, String charset, int httpStatus, boolean throwExceptioOnProcessError) {
+    try {
+      return processor.processResponse(respBody, charset);
+    } catch (Exception e) {
+      if (throwExceptioOnProcessError) {
+        if (e instanceof SolrException) throw (SolrException)e;
+        throw new SolrExceptionCausedByException(ErrorCode.getErrorCode(httpStatus), e.getMessage(), e);
+      } else {
+        NamedList<Object> result = new NamedList<Object>();
+        result.add("processException", e);
+        return result;
+      }
+    }
+  }
+
   // -------------------------------------------------------------------
   // -------------------------------------------------------------------
   

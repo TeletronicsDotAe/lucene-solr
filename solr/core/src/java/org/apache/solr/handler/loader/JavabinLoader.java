@@ -85,7 +85,7 @@ public class JavabinLoader extends ContentStreamLoader {
           addCmd.commitWithin = commitWithin;
         }
         if (overwrite != null) {
-          addCmd.overwrite = overwrite;
+          addCmd.classicOverwrite = overwrite;
         }
 
         if (updateRequest.isLastDocInBatch()) {
@@ -119,7 +119,7 @@ public class JavabinLoader extends ContentStreamLoader {
     // since we can give a hint to the leader that the end of a batch is being processed, it's OK to have a larger
     // pollQueueTime than the default 0 since we can optimize around not waiting unnecessarily
     addCmd.pollQueueTime = pollQueueTime;
-    addCmd.overwrite = params.getBool(UpdateParams.OVERWRITE, true);
+    addCmd.classicOverwrite = params.getBool(UpdateParams.OVERWRITE, true);
     addCmd.commitWithin = params.getInt(UpdateParams.COMMIT_WITHIN, -1);
     return addCmd;
   }

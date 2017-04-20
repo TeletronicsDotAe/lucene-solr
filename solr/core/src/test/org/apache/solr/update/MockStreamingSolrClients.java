@@ -67,7 +67,7 @@ public class MockStreamingSolrClients extends StreamingSolrClients {
     }
     
     @Override
-    public NamedList<Object> request(SolrRequest request, String collection)
+    public NamedList<Object> doRequest(SolrRequest request, String collection)
         throws SolrServerException, IOException {
       if (exp != null) {
         if (LuceneTestCase.random().nextBoolean()) {

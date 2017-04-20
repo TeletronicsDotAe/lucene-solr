@@ -87,7 +87,9 @@ public class DistributedExpandComponentTest extends BaseDistributedSearchTestCas
     //Test zero results
     query("q", "test_ti:5434343", "fq", "{!collapse field="+group+"}", "defType", "edismax", "bf", "field(test_ti)", "expand", "true", "expand.sort", "test_tl desc", "expand.rows", "1", "fl","*,score");
     //Test page 2
+    switchToOriginalDQADefaultProvider(); // todo SOLR-6813: dqa.forceSkipGetIds does not work for this request. Therefore force dqa=find-id-relevance_fetch-by-ids (default) which does not use dqa.forceSkipGetIds by default
     query("q", "*:*", "start","1", "rows", "1", "fq", "{!collapse field="+group+"}", "defType", "edismax", "bf", "field(test_ti)", "expand", "true", "fl","*,score");
+    switchToTestDQADefaultProvider();
 
 
     //First basic test case.

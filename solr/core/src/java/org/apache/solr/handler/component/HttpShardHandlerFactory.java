@@ -161,6 +161,7 @@ public class HttpShardHandlerFactory extends ShardHandlerFactory implements org.
   public void init(PluginInfo info) {
     StringBuilder sb = new StringBuilder();
     NamedList args = info.initArgs;
+    // FIXME MERGE - make sure to set SO_TIMEOUT parameter in the shard handler config in solr.xml(?)
     this.soTimeout = getParameter(args, HttpClientUtil.PROP_SO_TIMEOUT, soTimeout,sb);
     this.scheme = getParameter(args, INIT_URL_SCHEME, null,sb);
     if(StringUtils.endsWith(this.scheme, "://")) {

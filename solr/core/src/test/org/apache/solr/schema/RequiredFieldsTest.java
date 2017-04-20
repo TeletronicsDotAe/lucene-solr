@@ -122,8 +122,8 @@ public class RequiredFieldsTest extends SolrTestCaseJ4 {
             "</add>");
     assertU(commit());    
 
-    // Check that only docs before the error should be in the index
-    assertQ("should find one", req("name:baddef") ,"//result[@numFound=1]" );
+    // Check that all docs without errors are in the index
+    assertQ("should find one", req("name:baddef") ,"//result[@numFound=2]" );
 
     ignoreException("missing required field");
     // Add three documents at once, with the middle one missing a required field that has no default
@@ -136,7 +136,7 @@ public class RequiredFieldsTest extends SolrTestCaseJ4 {
 
     assertU(commit());
 
-    // Check that only docs before the error should be in the index
-    assertQ("should find one", req("name:noname") ,"//result[@numFound=1]" );
+    // Check that all docs without errors are in the index
+    assertQ("should find one", req("name:noname") ,"//result[@numFound=2]" );
   }  
 }

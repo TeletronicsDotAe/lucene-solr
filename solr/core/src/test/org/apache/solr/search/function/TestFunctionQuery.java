@@ -225,7 +225,7 @@ public class TestFunctionQuery extends SolrTestCaseJ4 {
     assertTrue(orig == FileFloatSource.onlyForTesting);
 
     makeExternalFile(field, "0=1");
-    assertU(h.query("/reloadCache",lrf.makeRequest("","")));
+    assertU(h.query("/reloadCache",lrf.makeRequestInfo("","").getReq()));
     singleTest(field, "sqrt(\0)");
     assertTrue(orig != FileFloatSource.onlyForTesting);
 
@@ -261,7 +261,7 @@ public class TestFunctionQuery extends SolrTestCaseJ4 {
       makeExternalFile(field, sb.toString());
 
       // make it visible
-      assertU(h.query("/reloadCache",lrf.makeRequest("","")));
+      assertU(h.query("/reloadCache",lrf.makeRequestInfo("","").getReq()));
 
       // test it
       float[] answers = new float[ids.length*2];

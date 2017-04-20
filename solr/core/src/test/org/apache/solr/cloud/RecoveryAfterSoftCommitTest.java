@@ -23,6 +23,7 @@ import org.apache.solr.SolrTestCaseJ4;
 import org.apache.solr.client.solrj.embedded.JettySolrRunner;
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest;
 import org.apache.solr.client.solrj.request.UpdateRequest;
+import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.cloud.Replica;
 import org.junit.AfterClass;
@@ -93,7 +94,18 @@ public class RecoveryAfterSoftCommitTest extends AbstractFullDistribZkTestBase {
       SolrInputDocument document = new SolrInputDocument();
       document.addField("id", String.valueOf(i));
       document.addField("a_t", "text_" + i);
-      cloudClient.add(document);
+      try {
+        cloudClient.add(document);
+      } catch (SolrException e) {
+        // Apache Solr does not propagate "Connection refused" the exception for add, so it continues
+        // adding. We want it to do the same, even though the exception is propagated to client and thrown
+        if (e.code() == SolrException.ErrorCode.PRECONDITION_FAILED.code &&
+            e.getMessage().contains("Connection refused")) {
+          // ignore - expected
+        } else {
+          throw e;
+        }
+      }
     }
 
     // Have the partition last at least 1 sec

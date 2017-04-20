@@ -6,6 +6,12 @@
 **/dist
 **/lib
 **/test-lib
+/classes
+/build
+/idea-build
+/eclipse-build
+/maven-build
+/dist
 /*~
 /velocity.log
 /build.properties

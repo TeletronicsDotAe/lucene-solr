@@ -38,7 +38,7 @@ public class RunUpdateProcessorFactory extends UpdateRequestProcessorFactory
   @Override
   public UpdateRequestProcessor getInstance(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next) 
   {
-    return new RunUpdateProcessor(req, next);
+    return new RunUpdateProcessor(req, rsp, next);
   }
 }
 
@@ -49,8 +49,8 @@ class RunUpdateProcessor extends UpdateRequestProcessor
 
   private boolean changesSinceCommit = false;
 
-  public RunUpdateProcessor(SolrQueryRequest req, UpdateRequestProcessor next) {
-    super( next );
+  public RunUpdateProcessor(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next) {
+    super( next, req, rsp );
     this.req = req;
     this.updateHandler = req.getCore().getUpdateHandler();
   }

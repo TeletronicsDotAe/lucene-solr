@@ -364,7 +364,7 @@ public class StatelessScriptUpdateProcessorFactory extends UpdateRequestProcesso
     private List<EngineInfo> engines;
 
     private ScriptUpdateProcessor(SolrQueryRequest req, SolrQueryResponse res, List<EngineInfo> engines, UpdateRequestProcessor next) {
-      super(next);
+      super(next, req, res);
       this.engines = engines;
     }
 

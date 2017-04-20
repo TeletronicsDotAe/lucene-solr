@@ -29,6 +29,7 @@ import org.apache.solr.common.util.ContentStreamBase;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.handler.UpdateRequestHandler;
 import org.apache.solr.request.SolrQueryRequestBase;
+import org.apache.solr.request.SolrRequestInfo;
 import org.apache.solr.response.SolrQueryResponse;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -109,13 +110,17 @@ public class UniqFieldsUpdateProcessorFactoryTest extends SolrTestCaseJ4 {
     SolrQueryRequestBase req = new SolrQueryRequestBase(h.getCore(),
         (SolrParams) mmparams) {
     };
-
+    SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req, new SolrQueryResponse()));
+    try {
     UpdateRequestHandler handler = new UpdateRequestHandler();
     handler.init(null);
     ArrayList<ContentStream> streams = new ArrayList<>(2);
     streams.add(new ContentStreamBase.StringStream(doc));
     req.setContentStreams(streams);
-    handler.handleRequestBody(req, new SolrQueryResponse());
+      handler.handleRequestBody(req, SolrRequestInfo.getRequestInfo().getRsp());
     req.close();
+    } finally {
+    	SolrRequestInfo.clearRequestInfo();
+    }
   }
 }

@@ -46,6 +46,13 @@ public class TestDynamicFieldResource extends SolrRestletTestBase {
             "count(/response/lst[@name='dynamicField']) = 0",
             "/response/lst[@name='responseHeader']/int[@name='status'] = '404'",
             "/response/lst[@name='error']/int[@name='code'] = '404'");
+    //FIXME MERGE - What is the right one..?
+    /*
+            "count(/response/lst[@name='dynamicField']) = 0",
+            "/response/lst[@name='responseHeader']/int[@name='status'] = '404'",
+            "/response/lst[@name='error']/int[@name='code'] = '404'");
+            404, "Dynamic field '*not_in_there' not found");
+     */
   } 
   
   @Test

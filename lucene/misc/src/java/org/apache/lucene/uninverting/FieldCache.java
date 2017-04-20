@@ -45,7 +45,7 @@ import org.apache.lucene.util.RamUsageEstimator;
  *
  * @lucene.internal
  */
-interface FieldCache {
+public interface FieldCache {
 
   /**
    * Placeholder indicating creation of this cache is currently in-progress.
@@ -94,7 +94,7 @@ interface FieldCache {
   }
 
   /** Expert: The cache used internally by sorting and range query classes. */
-  public static FieldCache DEFAULT = new FieldCacheImpl();
+  public static FieldCache DEFAULT = FieldCacheContainer.getTheFieldCacheContainer().getFieldCache();
 
   /**
    * A parser instance for int values encoded by {@link org.apache.lucene.util.NumericUtils}, e.g. when indexed

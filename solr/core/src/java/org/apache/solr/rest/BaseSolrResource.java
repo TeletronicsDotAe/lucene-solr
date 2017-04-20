@@ -35,10 +35,14 @@ import org.apache.solr.servlet.ResponseUtils;
 import org.restlet.data.MediaType;
 import org.restlet.data.Method;
 import org.restlet.data.Status;
+import org.restlet.ext.servlet.ServletUtils;
 import org.restlet.representation.OutputRepresentation;
 import org.restlet.resource.ResourceException;
 import org.restlet.resource.ServerResource;
 import org.slf4j.Logger;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import static org.apache.solr.common.params.CommonParams.JSON;
 
@@ -159,9 +163,9 @@ public abstract class BaseSolrResource extends ServerResource {
     /** Called by Restlet to get the response body */
     @Override
     public void write(OutputStream outputStream) throws IOException {
-      if (getRequest().getMethod() != Method.HEAD) {
-        QueryResponseWriterUtil.writeQueryResponse(outputStream, responseWriter, solrRequest, solrResponse, contentType);
-      }
+      HttpServletRequest req = ServletUtils.getRequest(getRequest());
+      HttpServletResponse resp = ServletUtils.getResponse(getResponse());
+      ResponseUtils.writeResponse(solrResponse, ServletUtils.getResponse(getResponse()), responseWriter, solrRequest, org.apache.solr.servlet.cache.Method.getMethod(req.getMethod()));
     }
   }
 
@@ -170,9 +174,7 @@ public abstract class BaseSolrResource extends ServerResource {
    * and log the accumulated messages on the SolrResponse.
    */
   protected void handlePostExecution(Logger log) {
-    
-    handleException(log);
-    
+
     // TODO: should status=0 (success?) be left as-is in the response header?
     SolrCore.postDecorateResponse(null, solrRequest, solrResponse);
     addDeprecatedWarning();

@@ -59,6 +59,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.lucene.util.Version;
 import org.apache.solr.api.V2HttpCall;
+import org.apache.solr.common.params.MapSolrParams;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrException.ErrorCode;
 import org.apache.solr.common.cloud.SolrZkClient;
@@ -71,9 +72,11 @@ import org.apache.solr.core.SolrResourceLoader;
 import org.apache.solr.core.SolrXmlConfig;
 import org.apache.solr.metrics.OperatingSystemMetricSet;
 import org.apache.solr.metrics.SolrMetricManager;
+import org.apache.solr.request.SolrQueryRequestBase;
 import org.apache.solr.request.SolrRequestInfo;
 import org.apache.solr.security.AuthenticationPlugin;
 import org.apache.solr.security.PKIAuthenticationPlugin;
+import org.apache.solr.update.statistics.StatisticsAndPrimitiveProfilingHandler;
 import org.apache.solr.util.SolrFileCleaningTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,6 +111,9 @@ public class SolrDispatchFilter extends BaseSolrFilter {
     PASSTHROUGH, FORWARD, RETURN, RETRY, ADMIN, REMOTEQUERY, PROCESS
   }
   
+  private static final String STATS_AND_PRIM_PROF_AUTO_LOGGING_SYS_PROP = "STATS_AND_PRIM_PROF_AUTO_LOGGING";
+  public static final StatisticsAndPrimitiveProfilingHandler statsAndPrimProfHandler = new StatisticsAndPrimitiveProfilingHandler(true);
+
   public SolrDispatchFilter() {
     // turn on test mode when running tests
     assert testMode = true;
@@ -171,6 +177,7 @@ public class SolrDispatchFilter extends BaseSolrFilter {
       this.httpClient = cores.getUpdateShardHandler().getHttpClient();
       setupJvmMetrics();
       log.debug("user.dir=" + System.getProperty("user.dir"));
+      if (Boolean.getBoolean(STATS_AND_PRIM_PROF_AUTO_LOGGING_SYS_PROP)) statsAndPrimProfHandler.startAutomatiLogging();
     }
     catch( Throwable t ) {
       // catch this so our filter still works
@@ -289,6 +296,7 @@ public class SolrDispatchFilter extends BaseSolrFilter {
         cores.shutdown();
       } finally {
         cores = null;
+        statsAndPrimProfHandler.stopAutomatiLogging();
       }
     }
   }
@@ -304,6 +312,11 @@ public class SolrDispatchFilter extends BaseSolrFilter {
 
       if (cores == null || cores.isShutDown()) {
         log.error("Error processing the request. CoreContainer is either not initialized or shutting down.");
+        // FIXME MERGE - We might need to do something here to support our error propagation.
+        /*
+         Stock solr 5.1: sendError((HttpServletResponse) response, 503, "Server is shutting down or failed to initialize");
+         Solr 5.1.0.voy: ResponseUtils.sendError((HttpServletResponse) response, 503, "Server is shutting down or failed to initialize");
+         */
         throw new SolrException(ErrorCode.SERVICE_UNAVAILABLE,
             "Error processing the request. CoreContainer is either not initialized or shutting down.");
       }
@@ -341,6 +354,9 @@ public class SolrDispatchFilter extends BaseSolrFilter {
         }
       }
 
+      // FIXME MERGE - Our way of doing error propagation likely needs to go into this HttpSolrCall class now.
+      // We used to change a sendError method to use RepsonseUtils.sendError - hopefully that's what's done now
+      // in another class
       HttpSolrCall call = getHttpSolrCall((HttpServletRequest) request, (HttpServletResponse) response, retry);
       ExecutorUtil.setServerThreadFlag(Boolean.TRUE);
       try {

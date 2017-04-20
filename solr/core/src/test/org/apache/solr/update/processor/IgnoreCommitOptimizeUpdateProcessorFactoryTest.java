@@ -74,7 +74,11 @@ public class IgnoreCommitOptimizeUpdateProcessorFactoryTest extends SolrTestCase
       CommitUpdateCommand cmd = new CommitUpdateCommand(req, false);
       cmd.optimize = optimize;
       UpdateRequestProcessor processor = pc.createProcessor(req, rsp);
+      try {
       processor.processCommit(cmd);
+      } finally {
+        processor.finish();
+      }
     } finally {
       SolrRequestInfo.clearRequestInfo();
       req.close();

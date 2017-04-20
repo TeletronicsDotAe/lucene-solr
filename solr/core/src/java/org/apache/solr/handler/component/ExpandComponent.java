@@ -443,7 +443,7 @@ public class ExpandComponent extends SearchComponent implements PluginInfoInitia
   public void modifyRequest(ResponseBuilder rb, SearchComponent who, ShardRequest sreq) {
     SolrParams params = rb.req.getParams();
     if (!params.getBool(COMPONENT_NAME, false)) return;
-    if (!rb.onePassDistributedQuery && (sreq.purpose & ShardRequest.PURPOSE_GET_FIELDS) == 0) {
+    if (!rb.distribSkipGetIds && (sreq.purpose & ShardRequest.PURPOSE_GET_FIELDS) == 0) {
       sreq.params.set(COMPONENT_NAME, "false");
     } else {
       sreq.params.set(COMPONENT_NAME, "true");
@@ -458,7 +458,7 @@ public class ExpandComponent extends SearchComponent implements PluginInfoInitia
       return;
     }
 
-    if ((sreq.purpose & ShardRequest.PURPOSE_GET_FIELDS) != 0) {
+    if ((rb.stageResponsesPurpose & ShardRequest.PURPOSE_GET_FIELDS) != 0) {
       SolrQueryRequest req = rb.req;
       NamedList expanded = (NamedList) req.getContext().get("expanded");
       if (expanded == null) {
@@ -466,7 +466,7 @@ public class ExpandComponent extends SearchComponent implements PluginInfoInitia
         req.getContext().put("expanded", expanded);
       }
 
-      for (ShardResponse srsp : sreq.responses) {
+      for (ShardResponse srsp : rb.stageResponses) {
         NamedList response = srsp.getSolrResponse().getResponse();
         NamedList ex = (NamedList) response.get("expanded");
         for (int i=0; i<ex.size(); i++) {

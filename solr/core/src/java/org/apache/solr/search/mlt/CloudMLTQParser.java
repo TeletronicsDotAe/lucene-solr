@@ -45,6 +45,7 @@ import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.schema.SchemaField;
 import org.apache.solr.search.QParser;
 import org.apache.solr.search.QueryParsing;
+import org.apache.solr.util.RTimer;
 import org.apache.solr.util.SolrPluginUtils;
 
 public class CloudMLTQParser extends QParser {
@@ -182,7 +183,7 @@ public class CloudMLTQParser extends QParser {
     ModifiableSolrParams params = new ModifiableSolrParams();
     params.add("id", id);
 
-    SolrQueryRequestBase request = new SolrQueryRequestBase(core, params) {
+    SolrQueryRequestBase request = new SolrQueryRequestBase(core, params, new RTimer()) {
     };
 
     core.getRequestHandler("/get").handleRequest(request, rsp);

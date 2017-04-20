@@ -235,13 +235,16 @@ public class AddBlockUpdateTest extends SolrTestCaseJ4 {
     
     Document docToFail = DocumentHelper.createDocument();
     Element root = docToFail.addElement("add");
+    // Something is wrong with this doc1, so it should not be added...
     Element doc1 = root.addElement("doc");
     attachField(doc1, "id", id());
     attachField(doc1, parent, "Y");
     attachField(doc1, "sample_i", "notanumber/ignore_exception");
+    // ...same goes for its sub-document subDoc1
     Element subDoc1 = doc1.addElement("doc");
     attachField(subDoc1, "id", id());
     attachField(subDoc1, child, "x");
+    // But nothing should prevent this doc2 from being added
     Element doc2 = root.addElement("doc");
     attachField(doc2, "id", id());
     attachField(doc2, parent, "W");
@@ -252,13 +255,12 @@ public class AddBlockUpdateTest extends SolrTestCaseJ4 {
     assertBlockU(commit());
     
     final SolrIndexSearcher searcher = getSearcher();
-    assertQ(req("q","*:*","indent","true", "fl","id,parent_s,child_s"), "//*[@numFound='" + "abcDefgH".length() + "']");
+    assertQ(req("q","*:*","indent","true", "fl","id,parent_s,child_s"), "//*[@numFound='" + "abcDefgHW".length() + "']");
     assertSingleParentOf(searcher, one("abc"), "D");
     assertSingleParentOf(searcher, one("efg"), "H");
 
     assertQ(req(child + ":x"), "//*[@numFound='0']");
     assertQ(req(parent + ":Y"), "//*[@numFound='0']");
-    assertQ(req(parent + ":W"), "//*[@numFound='0']");
   }
   
   @SuppressWarnings("serial")

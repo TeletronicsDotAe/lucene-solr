@@ -16,9 +16,11 @@
  */
 package org.apache.solr.handler.component;
 import com.google.common.collect.ImmutableMap;
+
 import org.apache.solr.common.SolrException;
 import org.apache.solr.core.PluginInfo;
 import org.apache.solr.core.SolrResourceLoader;
+import org.apache.solr.security.InterSolrNodeAuthCredentialsFactory.AuthCredentialsSource;
 import org.apache.solr.util.plugin.PluginInfoInitialized;
 
 import java.util.Collections;
@@ -27,6 +29,8 @@ import java.util.Locale;
 public abstract class ShardHandlerFactory {
 
   public abstract ShardHandler getShardHandler();
+  
+  public abstract ShardHandler getShardHandler(AuthCredentialsSource authCredentialsSource);
 
   public abstract void close();
 

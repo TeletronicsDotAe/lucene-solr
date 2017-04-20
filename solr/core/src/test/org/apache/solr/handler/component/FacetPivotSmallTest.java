@@ -38,7 +38,7 @@ public class FacetPivotSmallTest extends SolrTestCaseJ4 {
     super.setUp();
     clearIndex();
     assertU(commit());
-    lrf = h.getRequestFactory("standard", 0, 20);
+    lrf = h.getRequestInfoFactory("standard", 0, 20);
   }
 
   /**

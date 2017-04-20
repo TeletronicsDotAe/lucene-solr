@@ -162,6 +162,7 @@ public abstract class UpdateHandler implements SolrInfoMBean {
   public abstract void rollback(RollbackUpdateCommand cmd) throws IOException;
   public abstract void close() throws IOException;
   public abstract UpdateLog getUpdateLog();
+  public abstract boolean requireUniqueKeyFieldInDocument(AddUpdateCommand cmd);
 
   /**
    * NOTE: this function is not thread safe.  However, it is safe to call within the

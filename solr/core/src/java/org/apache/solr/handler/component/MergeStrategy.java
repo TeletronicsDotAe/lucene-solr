@@ -36,7 +36,7 @@ public interface MergeStrategy {
   *
   **/
 
-  public void merge(ResponseBuilder rb, ShardRequest sreq);
+  public void merge(ResponseBuilder rb);
 
   /**
   * mergesIds must return true if the merge method merges document ids from the shards.

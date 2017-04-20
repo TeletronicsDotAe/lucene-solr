@@ -32,6 +32,7 @@ import java.util.Set;
 
 import com.google.common.base.Strings;
 import org.apache.commons.io.IOUtils;
+import org.apache.lucene.uninverting.FieldCache;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.logging.LogWatcherConfig;
@@ -91,6 +92,8 @@ public class SolrXmlConfig {
     NodeConfig.NodeConfigBuilder configBuilder = new NodeConfig.NodeConfigBuilder(nodeName, config.getResourceLoader());
     configBuilder.setUpdateShardHandlerConfig(updateConfig);
     configBuilder.setShardHandlerFactoryConfig(getShardHandlerFactoryPluginInfo(config));
+    configBuilder.setRecentlyLookedUpOrUpdatedDocumentsCachePluginInfo(getRecentlyLookedUpOrUpdatedDocumentsCachePluginInfo(config));
+    configBuilder.setFieldCache(getFieldCache(config));
     configBuilder.setLogWatcherConfig(loadLogWatcherConfig(config, "solr/logging/*[@name]", "solr/logging/watcher/*[@name]"));
     configBuilder.setSolrProperties(loadProperties(config));
     if (cloudConfig != null)
@@ -469,6 +472,36 @@ public class SolrXmlConfig {
       configs[i] = new PluginInfo(nodes.item(i), "SolrMetricReporter", true, true);
     }
     return configs;
+  }
+
+  private static PluginInfo getRecentlyLookedUpOrUpdatedDocumentsCachePluginInfo(Config config) {
+    Node node = config.getNode("solr/fieldCache", false);
+    return (node == null) ? null : new PluginInfo(node, "recentlyLookedUpOrUpdatedDocumentsCache", false, true);
+  }
+
+  private static FieldCache getFieldCache(Config config) {
+    Node node = config.getNode("solr/fieldCache", false);
+    return loadFieldCacheConfig(node, config.getResourceLoader());
+  }
+
+  private static FieldCache loadFieldCacheConfig(Node node, SolrResourceLoader loader) {
+    if (node != null) {
+      String cacheImpl = null;
+      Map<String,String> args = DOMUtil.toMap(node.getAttributes());
+      cacheImpl = args.get("class");
+      if (cacheImpl != null) {
+        log.info("FieldCache implementation is specified to to be an instance of " + cacheImpl + " in " + node);
+        try {
+          return loader.newInstance(cacheImpl, FieldCache.class);
+        } catch (Exception e) {
+          log.error("Failed creating or setting FieldCache implementation to an instance of " + cacheImpl, e);
+        }
+        log.info("FieldCache implementation successfully set to an instance of " + cacheImpl);;
+      } else {
+        log.warn(node + " set but does not contain class-attribute specifying the class to use for FieldCache");
+      }
+    }
+    return null;
   }
 }
 

@@ -61,6 +61,10 @@ public class HighlighterConfigTest extends AbstractSolrTestCase {
     args.put("hl", "true");
     args.put("df", "t_text");
     args.put("hl.fl", "");
+    //FIXME MERGE - What is the right one..?
+    /*
+    TestHarness.LocalRequestInfoFactory sumLRF = h.getRequestInfoFactory(
+     */
     TestHarness.LocalRequestFactory sumLRF = h.getRequestFactory(
       "standard", 0, 200, args);
 
@@ -69,6 +73,10 @@ public class HighlighterConfigTest extends AbstractSolrTestCase {
     assertU(optimize());
     assertQ("Basic summarization",
             sumLRF.makeRequest("long"),
+            //FIXME MERGE - What is the right one..?
+            /*
+            sumLRF.makeRequestInfo("long").getReq(),
+            */
             "//lst[@name='highlighting']/str[@name='dummy']"
             );
     }

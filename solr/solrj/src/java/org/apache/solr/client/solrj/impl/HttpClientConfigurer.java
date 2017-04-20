@@ -18,7 +18,9 @@ package org.apache.solr.client.solrj.impl;
 
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.client.HttpClient;
 import org.apache.solr.common.params.SolrParams;
+import org.apache.solr.security.AuthCredentials;
 
 /**
  * The default http client configurer. If the behaviour needs to be customized a
@@ -27,7 +29,7 @@ import org.apache.solr.common.params.SolrParams;
  */
 public class HttpClientConfigurer {
   
-  public void configure(DefaultHttpClient httpClient, SolrParams config) {
+  public void configure(HttpClient httpClient, SolrParams config, AuthCredentials authCredentials) {
     
     if (config.get(HttpClientUtil.PROP_MAX_CONNECTIONS) != null) {
       HttpClientUtil.setMaxConnections(httpClient,
@@ -57,12 +59,8 @@ public class HttpClientConfigurer {
     // always call setUseRetry, whether it is in config or not
     HttpClientUtil.setUseRetry(httpClient,
         config.getBool(HttpClientUtil.PROP_USE_RETRY, true));
-    
-    final String basicAuthUser = config
-        .get(HttpClientUtil.PROP_BASIC_AUTH_USER);
-    final String basicAuthPass = config
-        .get(HttpClientUtil.PROP_BASIC_AUTH_PASS);
-    HttpClientUtil.setBasicAuth(httpClient, basicAuthUser, basicAuthPass);
+
+    HttpClientUtil.setAuthCredentials(httpClient, authCredentials);
     
     if (config.get(HttpClientUtil.PROP_ALLOW_COMPRESSION) != null) {
       HttpClientUtil.setAllowCompression(httpClient,

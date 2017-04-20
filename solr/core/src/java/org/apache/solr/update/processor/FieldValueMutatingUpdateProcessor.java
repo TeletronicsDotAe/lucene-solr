@@ -21,7 +21,8 @@ import java.util.Collection;
 import java.util.function.Function;
 
 import org.apache.solr.common.SolrInputField;
-
+import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.response.SolrQueryResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +47,8 @@ public abstract class FieldValueMutatingUpdateProcessor
     };
 
   public FieldValueMutatingUpdateProcessor(FieldNameSelector selector,
-                                           UpdateRequestProcessor next) {
-    super(selector, next);
+                                           UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
+    super(selector, next, req, rsp);
   }
   
   /**

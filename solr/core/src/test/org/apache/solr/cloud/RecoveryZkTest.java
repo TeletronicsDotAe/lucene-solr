@@ -58,6 +58,7 @@ public class RecoveryZkTest extends SolrCloudTestCase {
     indexThread2.join();
   }
 
+  // FIXME MERGE - We used to specify our "-1" consistency parameter. Where's that done now..?
   @Test
   public void test() throws Exception {
 

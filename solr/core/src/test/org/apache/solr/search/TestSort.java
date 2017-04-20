@@ -94,7 +94,7 @@ public class TestSort extends SolrTestCaseJ4 {
   }
 
   public void testRandomFieldNameSorts() throws Exception {
-    SolrQueryRequest req = lrf.makeRequest("q", "*:*");
+    SolrQueryRequest req = lrf.makeRequestInfo("q", "*:*").getReq();
 
     final int iters = atLeast(5000);
 

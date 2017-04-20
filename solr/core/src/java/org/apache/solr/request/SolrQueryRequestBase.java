@@ -76,6 +76,10 @@ public abstract class SolrQueryRequestBase implements SolrQueryRequest, Closeabl
     this.startTime = System.currentTimeMillis();
   }
 
+  public SolrQueryRequestBase(SolrCore core, SolrParams params, RTimer requestTimer) {
+    this(core, params, requestTimer, null);
+  }
+
   public SolrQueryRequestBase(SolrCore core, SolrParams params) {
     this(core, params, new RTimerTree());
   }

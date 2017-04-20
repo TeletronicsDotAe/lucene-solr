@@ -89,8 +89,8 @@ public class FullSolrCloudDistribCmdsTest extends AbstractFullDistribZkTestBase 
     uReq = new UpdateRequest();
     uReq.deleteById(Long.toString(docId-1));
     uReq.deleteById(Long.toString(docId-2)).process(cloudClient);
-    controlClient.deleteById(Long.toString(docId-1));
-    controlClient.deleteById(Long.toString(docId-2));
+    controlClient.deleteById(Long.toString(docId-1), -1);
+    controlClient.deleteById(Long.toString(docId-2), -1);
     
     commit();
     
@@ -117,7 +117,8 @@ public class FullSolrCloudDistribCmdsTest extends AbstractFullDistribZkTestBase 
     
     uReq = new UpdateRequest();
     uReq.deleteById(Long.toString(docId - 2)).process(cloudClient);
-    controlClient.deleteById(Long.toString(docId - 2));
+    //FIXME MERGE - our version had a null as an extra, first parameter. What to do..?
+    controlClient.deleteById(null, Long.toString(docId - 2), -1);
     
     commit();
     
@@ -190,19 +191,19 @@ public class FullSolrCloudDistribCmdsTest extends AbstractFullDistribZkTestBase 
     doc.clear();
     doc.addField("id", "1");
     doc.addField("title", "s1 one");
-    shard1.add(doc);
+    shard1.add(doc ,-1);
     shard1.commit();
 
     doc.clear();
     doc.addField("id", "2");
     doc.addField("title", "s1 two");
-    shard1.add(doc);
+    shard1.add(doc, -1);
     shard1.commit();
 
     doc.clear();
     doc.addField("id", "3");
     doc.addField("title", "s1 three");
-    shard1.add(doc);
+    shard1.add(doc, -1);
     shard1.commit();
 
     docCounts1 = 3; // Three documents in shard1
@@ -211,13 +212,13 @@ public class FullSolrCloudDistribCmdsTest extends AbstractFullDistribZkTestBase 
     doc.clear();
     doc.addField("id", "4");
     doc.addField("title", "s2 four");
-    shard2.add(doc);
+    shard2.add(doc, -1);
     shard2.commit();
 
     doc.clear();
     doc.addField("id", "5");
     doc.addField("title", "s2 five");
-    shard2.add(doc);
+    shard2.add(doc, -1);
     shard2.commit();
 
     docCounts2 = 2; // Two documents in shard2
@@ -320,21 +321,21 @@ public class FullSolrCloudDistribCmdsTest extends AbstractFullDistribZkTestBase 
     doc.addField("id", "1");
     doc.addField("title", "s1 one");
     doc.addField("routefield_s", "europe");
-    shard1.add(doc);
+    shard1.add(doc, -1);
     shard1.commit();
 
     doc.clear();
     doc.addField("id", "2");
     doc.addField("title", "s1 two");
     doc.addField("routefield_s", "europe");
-    shard1.add(doc);
+    shard1.add(doc, -1);
     shard1.commit();
 
     doc.clear();
     doc.addField("id", "3");
     doc.addField("title", "s1 three");
     doc.addField("routefield_s", "europe");
-    shard1.add(doc);
+    shard1.add(doc, -1);
     shard1.commit();
 
     docCounts1 = 3; // Three documents in shard1
@@ -344,14 +345,14 @@ public class FullSolrCloudDistribCmdsTest extends AbstractFullDistribZkTestBase 
     doc.addField("id", "4");
     doc.addField("title", "s2 four");
     doc.addField("routefield_s", "africa");
-    shard2.add(doc);
+    shard2.add(doc, -1);
     //shard2.commit();
 
     doc.clear();
     doc.addField("id", "5");
     doc.addField("title", "s2 five");
     doc.addField("routefield_s", "africa");
-    shard2.add(doc);
+    shard2.add(doc, -1);
     shard2.commit();
 
     docCounts2 = 2; // Two documents in shard2
@@ -610,8 +611,9 @@ public class FullSolrCloudDistribCmdsTest extends AbstractFullDistribZkTestBase 
     
   
     cloudClient.request(request);
-    
-    controlClient.deleteByQuery("*:*");
+
+    //FIXME MERGE - Our version had null as an extra, first parameter. Do we need it?
+    controlClient.deleteByQuery(null, "*:*", -1);
     controlClient.commit();
     
     // somtimes we use an oversharded collection

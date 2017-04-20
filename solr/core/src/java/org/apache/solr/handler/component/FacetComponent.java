@@ -580,6 +580,7 @@ public class FacetComponent extends SearchComponent {
           // As described in issues SOLR-8559 and SOLR-8988 the use of 1 provides a 
           // significant performance boost.
           dff.initialMincount = dff.mco ? Math.min(dff.minCount, 1) : 0;
+          // FIXME MERGE - We should check the FACET_DISTRIB_MCO parameter out and use that. If that is not good, change the default "0" to a "1"
                                    
         } else {
           // if limit==-1, then no need to artificially lower mincount to 0 if

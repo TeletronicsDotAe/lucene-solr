@@ -16,6 +16,8 @@
  */
 package org.apache.solr.cloud;
 
+import static org.apache.solr.client.solrj.embedded.JettySolrRunner.SEARCH_CREDENTIALS;
+
 import org.apache.lucene.util.LuceneTestCase.Slow;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -161,7 +163,7 @@ public class ChaosMonkeySafeLeaderTest extends AbstractFullDistribZkTestBase {
 
     checkShardConsistency(batchSize == 1, true);
     
-    if (VERBOSE) System.out.println("control docs:" + controlClient.query(new SolrQuery("*:*")).getResults().getNumFound() + "\n\n");
+    if (VERBOSE) System.out.println("control docs:" + controlClient.query(new SolrQuery("*:*"), SEARCH_CREDENTIALS).getResults().getNumFound() + "\n\n");
     
     // try and make a collection to make sure the overseer has survived the expiration and session loss
 

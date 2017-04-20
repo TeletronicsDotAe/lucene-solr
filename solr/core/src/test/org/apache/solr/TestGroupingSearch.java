@@ -271,7 +271,6 @@ public class TestGroupingSearch extends SolrTestCaseJ4 {
     SolrQueryResponse response = new SolrQueryResponse();
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     try {
-      SolrRequestInfo.setRequestInfo(new SolrRequestInfo(request, response));
       String handlerName = request.getParams().get(CommonParams.QT);
       h.getCore().execute(h.getCore().getRequestHandler(handlerName), request, response);
       BinaryResponseWriter responseWriter = new BinaryResponseWriter();

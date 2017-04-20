@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
@@ -51,6 +52,8 @@ import org.noggit.JSONParser;
 import org.noggit.ObjectBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.solr.client.solrj.embedded.JettySolrRunner.*;
 
 public class TestConfigReload extends AbstractFullDistribZkTestBase {
 
@@ -136,7 +139,8 @@ public class TestConfigReload extends AbstractFullDistribZkTestBase {
     HttpGet get = new HttpGet(uri) ;
     HttpEntity entity = null;
     try {
-      entity = cloudClient.getLbClient().getHttpClient().execute(get).getEntity();
+      HttpContext context = HttpSolrClient.getHttpContext(ALL_CREDENTIALS, false, uri);
+      entity = cloudClient.getLbClient().getHttpClient().execute(get, context).getEntity();
       String response = EntityUtils.toString(entity, StandardCharsets.UTF_8);
       return (Map) ObjectBuilder.getVal(new JSONParser(new StringReader(response)));
     } finally {

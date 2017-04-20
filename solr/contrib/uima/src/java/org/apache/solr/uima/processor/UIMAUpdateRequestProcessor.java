@@ -24,6 +24,8 @@ import java.util.Map.Entry;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrException.ErrorCode;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.schema.SchemaField;
 import org.apache.solr.uima.processor.SolrUIMAConfiguration.MapField;
 import org.apache.solr.update.AddUpdateCommand;
@@ -52,8 +54,8 @@ public class UIMAUpdateRequestProcessor extends UpdateRequestProcessor {
   
   public UIMAUpdateRequestProcessor(UpdateRequestProcessor next,
       String coreName, SolrUIMAConfiguration config, AnalysisEngine ae,
-      JCasPool pool) {
-    super(next);
+      JCasPool pool, SolrQueryRequest req, SolrQueryResponse rsp) {
+    super(next, req, rsp);
     this.ae = ae;
     this.pool = pool;
     solrUIMAConfiguration = config;

@@ -189,7 +189,7 @@ public class BasicDistributedZk2Test extends AbstractFullDistribZkTestBase {
       // add a doc
       SolrInputDocument doc = new SolrInputDocument();
       doc.addField("id", docs);
-      qclient.add(doc);
+      qclient.add(doc, -1);
       qclient.commit();
 
 
@@ -203,7 +203,7 @@ public class BasicDistributedZk2Test extends AbstractFullDistribZkTestBase {
 
       SolrInputDocument doc = new SolrInputDocument();
       doc.addField("id", docs + 1);
-      qclient.add(doc);
+      qclient.add(doc, -1);
       qclient.commit();
 
       query = new SolrQuery("*:*");
@@ -274,7 +274,11 @@ public class BasicDistributedZk2Test extends AbstractFullDistribZkTestBase {
     } catch (SolrServerException e) {
       // expected..
     }
-    
+
+
+    //FIXME MERGE - Do we need this..?
+    downedClients.add(deadShard.client.solrClient);
+
     commit();
     
     query("q", "*:*", "sort", "n_tl1 desc");
@@ -308,7 +312,7 @@ public class BasicDistributedZk2Test extends AbstractFullDistribZkTestBase {
     SolrInputDocument doc = new SolrInputDocument();
     doc.addField("id", 1001);
     
-    controlClient.add(doc);
+    controlClient.add(doc, -1);
     
     // try adding a doc with CloudSolrServer
     UpdateRequest ureq = new UpdateRequest();
@@ -356,7 +360,9 @@ public class BasicDistributedZk2Test extends AbstractFullDistribZkTestBase {
     
     // this should trigger a recovery phase on deadShard
     ChaosMonkey.start(deadShard.jetty);
-    
+    //FIXME MERGE _ Do we need this..?
+    downedClients.remove(deadShard.client.solrClient);
+
     // make sure we have published we are recovering
     Thread.sleep(1500);
     
@@ -375,7 +381,7 @@ public class BasicDistributedZk2Test extends AbstractFullDistribZkTestBase {
     for (int i = 0; i < 226; i++) {
       doc = new SolrInputDocument();
       doc.addField("id", 2000 + i);
-      controlClient.add(doc);
+      controlClient.add(doc, -1);
       ureq = new UpdateRequest();
       ureq.add(doc);
       // ureq.setParam("update.chain", DISTRIB_UPDATE_CHAIN);

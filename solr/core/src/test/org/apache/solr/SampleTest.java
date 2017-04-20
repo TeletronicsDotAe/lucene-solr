@@ -90,7 +90,7 @@ public class SampleTest extends SolrTestCaseJ4 {
     assertU("<optimize/>");
         
     /* access the default LocalRequestFactory directly to make a request */
-    SolrQueryRequest req = lrf.makeRequest( "subject:Hoss" );
+    SolrQueryRequest req = lrf.makeRequestInfo( "subject:Hoss" ).getReq();
     assertQ("couldn't find subject hoss",
             req
             ,"//result[@numFound=1]"
@@ -101,16 +101,16 @@ public class SampleTest extends SolrTestCaseJ4 {
      *
      * Note: the qt proves we are using our custom config...
      */
-    TestHarness.LocalRequestFactory l = h.getRequestFactory
+    TestHarness.LocalRequestInfoFactory l = h.getRequestInfoFactory
       ("crazy_custom_qt",100,200,CommonParams.VERSION,"2.2");
     assertQ("how did i find Mack Daddy? ",
-            l.makeRequest( "Mack Daddy" )
+            l.makeRequestInfo( "Mack Daddy" ).getReq()
             ,"//result[@numFound=0]"
             );
 
     /* you can access the harness directly as well*/
     assertNull("how did i find Mack Daddy? ",
-               h.validateQuery(l.makeRequest( "Mack Daddy" )
+               h.validateQuery(l.makeRequestInfo( "Mack Daddy" ).getReq()
                                ,"//result[@numFound=0]"
                                ));
         

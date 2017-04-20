@@ -99,12 +99,13 @@ public class StatelessScriptUpdateProcessorFactoryTest extends UpdateProcessorTe
             , "//result[@numFound=0]");
 
 
-    assertEquals(3, functionMessages.size());
+    // Multiplying by 2 because for every operation finish is also called
+    assertEquals(2*3, functionMessages.size());
 
     assertTrue(functionMessages.contains("processAdd0"));
     assertTrue(functionMessages.contains("processDelete0"));
     assertTrue(functionMessages.contains("processCommit0"));
-
+    assertEquals(3, occurrences(functionMessages, "finish0"));
   }
 
   public void testMultipleScripts() throws Exception {
@@ -145,7 +146,8 @@ public class StatelessScriptUpdateProcessorFactoryTest extends UpdateProcessorTe
       processDeleteById(chain, "2");
       processCommit(chain);
       
-      assertEquals(chain, 6, functionMessages.size());
+      // Multiplying by 2 because for every operation finish is also called
+      assertEquals(chain, 2*6, functionMessages.size());
       assertTrue(chain, functionMessages.contains("processAdd0"));
       assertTrue(chain, functionMessages.contains("processAdd1"));
       assertTrue(chain + ": script order doesn't match conf order",
@@ -163,16 +165,20 @@ public class StatelessScriptUpdateProcessorFactoryTest extends UpdateProcessorTe
       assertTrue(chain + ": script order doesn't match conf order",
                  functionMessages.indexOf("processCommit0") 
                  < functionMessages.indexOf("processCommit1"));
+      assertEquals(3, occurrences(functionMessages, "finish0"));
+      assertEquals(3, occurrences(functionMessages, "finish1"));
 
       finish(chain);
     
-      assertEquals(chain, 8, functionMessages.size());
+      assertEquals(chain, 2*6 + 2, functionMessages.size());
 
       assertTrue(chain, functionMessages.contains("finish0"));
       assertTrue(chain, functionMessages.contains("finish1"));
       assertTrue(chain + ": script order doesn't match conf order",
                  functionMessages.indexOf("finish0") 
                  < functionMessages.indexOf("finish1"));
+      assertEquals(4, occurrences(functionMessages, "finish0"));
+      assertEquals(4, occurrences(functionMessages, "finish1"));
 
       assertQ(chain + ": found deleted doc",
               req("q","id:2")
@@ -260,6 +266,14 @@ public class StatelessScriptUpdateProcessorFactoryTest extends UpdateProcessorTe
       return;
     }
     fail("Did not get exception from script");
+  }
+  
+  private int occurrences(List<String> list, String toOccur) {
+    int result = 0;
+    for (String str : list) {
+      if (toOccur.equals(str)) result++;
+    }
+    return result;
   }
 
   public void testJavaScriptCompatibility() throws Exception  {

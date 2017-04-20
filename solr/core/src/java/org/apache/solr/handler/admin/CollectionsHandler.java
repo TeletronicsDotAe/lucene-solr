@@ -30,6 +30,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.io.IOUtils;
@@ -41,6 +44,8 @@ import org.apache.solr.client.solrj.impl.HttpSolrClient.Builder;
 import org.apache.solr.client.solrj.request.CoreAdminRequest.RequestSyncShard;
 import org.apache.solr.client.solrj.response.RequestStatusState;
 import org.apache.solr.client.solrj.util.SolrIdentifierValidator;
+import org.apache.solr.client.solrj.ResponseParser;
+import org.apache.solr.client.solrj.impl.BinaryResponseParser;
 import org.apache.solr.cloud.Overseer;
 import org.apache.solr.cloud.OverseerCollectionMessageHandler;
 import org.apache.solr.cloud.OverseerSolrResponse;
@@ -290,13 +295,24 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
         .getOverseerCollectionQueue()
         .offer(Utils.toJSON(m), timeout);
     if (event.getBytes() != null) {
-      SolrResponse response = SolrResponse.deserialize(event.getBytes());
-      rsp.getValues().addAll(response.getResponse());
-      SimpleOrderedMap exp = (SimpleOrderedMap) response.getResponse().get("exception");
-      if (exp != null) {
-        Integer code = (Integer) exp.get("rspCode");
-        rsp.setException(new SolrException(code != null && code != -1 ? ErrorCode.getErrorCode(code) : ErrorCode.SERVER_ERROR, (String)exp.get("msg")));
+      // FIXME MERGE start - Not sure why we're doing this differently - if it's the per-doc-feedback thing. Try to figure out
+      InputStream is = new ByteArrayInputStream(event.getBytes());
+      try {
+        NamedList<Object> response = getProcessedResponse(is);
+        // TODO merge into rsp - including set exception if it was a such - but this is not a http response, so
+        // status must be fetched form response (NamedList) and not from http-status to decide if it is an exception or not
+      } finally {
+        try { is.close(); } catch (IOException e) { /* Ignore - not going to happen */ }
       }
+      Object response = SolrResponse.deserialize(event.getBytes());
+      if (response instanceof Exception) {
+        rsp.setException((Exception)response);
+      } else if (response instanceof Throwable) {
+        rsp.setException(new Exception((Throwable)response));
+      } else {
+        rsp.copyFromSolrResponse((SolrResponse)response);
+      }
+      // FIXME MERGE end - Not sure why we're doing this differently - if it's the per-doc-feedback thing. Try to figure out
       return response;
     } else {
       if (System.nanoTime() - time >= TimeUnit.NANOSECONDS.convert(timeout, TimeUnit.MILLISECONDS)) {
@@ -313,6 +329,11 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
             + " the collection unknown case");
       }
     }
+  }
+
+  private NamedList<Object> getProcessedResponse(InputStream respBody) {
+    final ResponseParser processor = new BinaryResponseParser();
+    return processor.processResponse(respBody, null);
   }
 
   private boolean overseerCollectionQueueContains(String asyncId) throws KeeperException, InterruptedException {

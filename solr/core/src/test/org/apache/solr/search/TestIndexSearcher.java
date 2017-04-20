@@ -16,6 +16,7 @@
  */
 package org.apache.solr.search;
 
+import org.apache.lucene.document.Document;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ import org.apache.lucene.index.LogDocMergePolicy;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
+import org.apache.solr.SolrIndexSearcherTestWrapper;
 import org.apache.solr.SolrTestCaseJ4;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.util.NamedList;
@@ -46,10 +48,17 @@ import org.apache.solr.index.LogDocMergePolicyFactory;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.request.SolrRequestHandler;
 import org.apache.solr.schema.SchemaField;
+import org.apache.solr.search.LeafReaderTestWrappers.CountingWrapper;
 import org.apache.solr.servlet.DirectSolrConnection;
 import org.apache.solr.util.plugin.SolrCoreAware;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.io.IOException;
 
 public class TestIndexSearcher extends SolrTestCaseJ4 {
 
@@ -479,4 +488,56 @@ public class TestIndexSearcher extends SolrTestCaseJ4 {
       numberOfTimesCalled.incrementAndGet();
     }
   }
+  
+  
+  /*
+   * Testing that readers are not accessing the store on score-only request.
+   */
+  public void testNoStoreAccessWhenScoreOnly() throws Exception {
+    assertU(adoc("id", "1", "v_t", "Hello"));
+    assertU(commit());
+    
+    SolrQueryRequest sr = null;
+    SolrIndexSearcherTestWrapper<CountingWrapper> wrapper = null;
+
+    try {
+      sr = req("q", "Hello");
+
+      // Wrapping the AtomicReaders underneath the SolrIndexSearcher with a counting wrapper, so that we can assert
+      // on how many calls have been made to them
+
+      wrapper = new SolrIndexSearcherTestWrapper<>(sr.getSearcher(), CountingWrapper.getFactory());
+      
+      Document doc;
+      
+      // Asking for score only ...
+      doc = sr.getSearcher().doc(0, new HashSet<>(Arrays.asList(SolrReturnFields.SCORE)));
+      // ... should return no fields ...
+      assertEquals(0, doc.getFields().size());
+      // ... and not access the store
+      assertEquals(0, CountingWrapper.getTotalDocumentCountAndReset(wrapper.getWrappers()));
+      
+      // Asking for fields ...
+      doc = sr.getSearcher().doc(0, new HashSet<>(Arrays.asList("*")));
+      // ... should return the fields ...
+      assertEquals(9, doc.getFields().size());
+      // ... and have to access the store
+      assertEquals(1, CountingWrapper.getTotalDocumentCountAndReset(wrapper.getWrappers()));
+
+      // Asking for score only again ...
+      doc = sr.getSearcher().doc(0, new HashSet<>(Arrays.asList(SolrReturnFields.SCORE)));
+      // ... happens to return the fields, because doc is in cache ...
+      assertEquals(9, doc.getFields().size());
+      // ... but should not access the store (because it is in the cache)
+      assertEquals(0, CountingWrapper.getTotalDocumentCountAndReset(wrapper.getWrappers()));
+    } finally {
+      // Rolling back back to the original AtomicReaders 
+      if (wrapper != null) {
+        wrapper.unwrap();
+      }
+      if (sr != null) 
+        sr.close();
+    }
+  }
+
 }

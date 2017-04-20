@@ -22,11 +22,12 @@ import org.apache.lucene.util.CharsRefBuilder;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.schema.IndexSchema;
 import org.apache.solr.schema.SchemaField;
+import org.apache.solr.update.UpdateSemanticsMode.RequestCommandType;
 
 /**
  *
  */
-public class DeleteUpdateCommand extends UpdateCommand {
+public class DeleteUpdateCommand extends UpdateCommand implements UpdateSemanticsMode.RequestCommand {
   public String id;    // external (printable) id, for delete-by-id
   public String query; // query string for delete-by-query
   public BytesRef indexedId;
@@ -51,6 +52,7 @@ public class DeleteUpdateCommand extends UpdateCommand {
     query = null;
     indexedId = null;
     version = 0;
+    requestVersion = 0;
   }
 
   /** Returns the indexed ID for this delete.  The returned BytesRef is retained across multiple calls, and should not be modified. */
@@ -109,6 +111,16 @@ public class DeleteUpdateCommand extends UpdateCommand {
       sb.append(",_route_=").append(route);
      sb.append('}');
      return sb.toString();
+  }
+
+  @Override
+  public boolean isClassicOverwrite() {
+    return false;
+  }
+
+  @Override
+  public RequestCommandType getType() {
+    return UpdateSemanticsMode.RequestCommandType.DELETE;
   }
 
 }

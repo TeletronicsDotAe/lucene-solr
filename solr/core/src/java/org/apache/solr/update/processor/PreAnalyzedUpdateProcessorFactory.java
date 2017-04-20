@@ -116,7 +116,7 @@ public class PreAnalyzedUpdateProcessorFactory extends FieldMutatingUpdateProces
   @Override
   public UpdateRequestProcessor getInstance(SolrQueryRequest req,
       SolrQueryResponse rsp, UpdateRequestProcessor next) {
-    return new PreAnalyzedUpdateProcessor(getSelector(), next, req.getSchema(), parser);
+    return new PreAnalyzedUpdateProcessor(getSelector(), next, req.getSchema(), parser, req, rsp);
   }
 
   @Override
@@ -138,8 +138,8 @@ class PreAnalyzedUpdateProcessor extends FieldMutatingUpdateProcessor {
 
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-  public PreAnalyzedUpdateProcessor(FieldNameSelector sel, UpdateRequestProcessor next, IndexSchema schema, PreAnalyzedField parser) {
-    super(sel, next);
+  public PreAnalyzedUpdateProcessor(FieldNameSelector sel, UpdateRequestProcessor next, IndexSchema schema, PreAnalyzedField parser, SolrQueryRequest req, SolrQueryResponse rsp) {
+    super(sel, next, req, rsp);
     this.schema = schema;
     this.parser = parser;
   }

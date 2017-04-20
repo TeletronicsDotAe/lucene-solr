@@ -106,14 +106,14 @@ public class XmlUpdateRequestHandlerTest extends SolrTestCaseJ4 {
 
     SolrQueryRequest req = req("commitWithin","100","overwrite","false");
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
 
     XMLLoader loader = new XMLLoader().init(null);
     loader.load(req, rsp, new ContentStreamBase.StringStream(xml), p);
 
     AddUpdateCommand add = p.addCommands.get(0);
     assertEquals(100, add.commitWithin);
-    assertEquals(false, add.overwrite);
+    assertEquals(false, add.classicOverwrite);
     req.close();
   }
   
@@ -134,7 +134,7 @@ public class XmlUpdateRequestHandlerTest extends SolrTestCaseJ4 {
       "</add>";
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
     XMLLoader loader = new XMLLoader().init(null);
     loader.load(req, rsp, new ContentStreamBase.StringStream(xml), p);
 
@@ -184,7 +184,9 @@ public class XmlUpdateRequestHandlerTest extends SolrTestCaseJ4 {
         " </delete>" +
         "</update>";
 
-      MockUpdateRequestProcessor p = new MockUpdateRequestProcessor(null);
+      SolrQueryRequest req = req();
+      SolrQueryResponse rsp = new SolrQueryResponse();
+      MockUpdateRequestProcessor p = new MockUpdateRequestProcessor(null, req, rsp);
       p.expectDelete(null, "id:150", -1, 0, null);
       p.expectDelete("150", null, -1, 0, null);
       p.expectDelete("200", null, -1, 0, null);
@@ -205,8 +207,8 @@ public class XmlUpdateRequestHandlerTest extends SolrTestCaseJ4 {
 
       private Queue<DeleteUpdateCommand> deleteCommands = new LinkedList<>();
 
-      public MockUpdateRequestProcessor(UpdateRequestProcessor next) {
-        super(next);
+      public MockUpdateRequestProcessor(UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
+        super(next, req, rsp);
       }
 
       public void expectDelete(String id, String query, int commitWithin, long version, String route) {

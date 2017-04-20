@@ -17,6 +17,7 @@
 package org.apache.solr.request;
 
 import org.apache.solr.search.SolrIndexSearcher;
+import org.apache.solr.security.AuthCredentials;
 import org.apache.solr.schema.IndexSchema;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.ContentStream;
@@ -93,6 +94,11 @@ public interface SolrQueryRequest extends AutoCloseable {
    * Suitable for logging.
    */
   public String getParamString();
+  
+  /**
+   * Returns credentials used to authenticate the request
+   */
+  public AuthCredentials getAuthCredentials();
 
   /** Returns any associated JSON (or null if none) in deserialized generic form.
    * Java classes used to represent the JSON are as follows: Map, List, String, Long, Double, Boolean

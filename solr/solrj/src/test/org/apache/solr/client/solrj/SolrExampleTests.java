@@ -63,6 +63,7 @@ import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.util.NamedList;
+import org.apache.solr.common.exceptions.update.VersionConflict;
 import org.junit.Test;
 import org.noggit.JSONParser;
 import org.slf4j.Logger;
@@ -1640,10 +1641,13 @@ abstract public class SolrExampleTests extends SolrExampleTestsBase
         client.commit(); //just to be sure the client has sent the doc
         ErrorTrackingConcurrentUpdateSolrClient concurrentClient = (ErrorTrackingConcurrentUpdateSolrClient) client;
         assertNotNull("ConcurrentUpdateSolrClient did not report an error", concurrentClient.lastError);
-        assertTrue("ConcurrentUpdateSolrClient did not report an error", concurrentClient.lastError.getMessage().contains("Conflict"));
+        //FIXME MERGE - can we use this ErrorTrackingConcurrentUpdateSolrClient instead of rolling our own..?
+        // assertTrue("ConcurrentUpdateSolrClient did not report an error", concurrentClient.lastError.getMessage().contains("Conflict"));
+        Throwable t = (Throwable) getConcurrentClientExceptionField(client).get(client);
+        assertTrue("ConcurrentUpdateSolrClient did not report an error", t != null && (t instanceof VersionConflict) && t.getMessage().contains("Attempt to update document with uniqueKey unique failed. Version in document to be updated " + (version+1) + " does not match current version " + version));
       }
     } catch (SolrException se) {
-      assertTrue("No identifiable error message", se.getMessage().contains("version conflict for unique"));
+      assertTrue("No identifiable error message",  (se instanceof VersionConflict) && se.getMessage().contains("Attempt to update document with uniqueKey unique failed. Version in document to be updated " + (version+1) + " does not match current version " + version));
     }
     
     //update "price", use correct version (optimistic locking)

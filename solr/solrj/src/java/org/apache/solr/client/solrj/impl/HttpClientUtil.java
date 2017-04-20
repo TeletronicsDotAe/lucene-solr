@@ -85,11 +85,7 @@ public class HttpClientUtil {
   public static final String PROP_ALLOW_COMPRESSION = "allowCompression";
   // Follow redirects
   public static final String PROP_FOLLOW_REDIRECTS = "followRedirects";
-  // Basic auth username 
-  public static final String PROP_BASIC_AUTH_USER = "httpBasicAuthUser";
-  // Basic auth password 
-  public static final String PROP_BASIC_AUTH_PASS = "httpBasicAuthPassword";
-  
+
   public static final String SYS_PROP_CHECK_PEER_NAME = "solr.ssl.checkPeerName";
 
   /**

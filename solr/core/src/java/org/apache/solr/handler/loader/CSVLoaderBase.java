@@ -16,25 +16,30 @@
  */
 package org.apache.solr.handler.loader;
 
-import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.response.SolrQueryResponse;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.regex.Pattern;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.params.UpdateParams;
-import org.apache.solr.common.util.StrUtils;
 import org.apache.solr.common.util.ContentStream;
-import org.apache.solr.update.*;
-import org.apache.solr.update.processor.UpdateRequestProcessor;
-import org.apache.solr.internal.csv.CSVStrategy;
+import org.apache.solr.common.util.StrUtils;
 import org.apache.solr.internal.csv.CSVParser;
-import org.apache.commons.io.IOUtils;
-
-import java.util.regex.Pattern;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.io.*;
+import org.apache.solr.internal.csv.CSVStrategy;
+import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.response.SolrQueryResponse;
+import org.apache.solr.schema.IndexSchema;
+import org.apache.solr.schema.SchemaField;
+import org.apache.solr.update.AddUpdateCommand;
+import org.apache.solr.update.processor.UpdateRequestProcessor;
 
 abstract class CSVLoaderBase extends ContentStreamLoader {
   public static final String SEPARATOR="separator";
@@ -48,7 +53,6 @@ abstract class CSVLoaderBase extends ContentStreamLoader {
   public static final String SPLIT="split";
   public static final String ENCAPSULATOR="encapsulator";
   public static final String ESCAPE="escape";
-  public static final String OVERWRITE="overwrite";
   public static final String LITERALS_PREFIX = "literal.";
   public static final String ROW_ID = "rowid";
   public static final String ROW_ID_OFFSET = "rowidOffset";
@@ -63,6 +67,7 @@ abstract class CSVLoaderBase extends ContentStreamLoader {
   HashMap <String, String> literals;
 
   String[] fieldnames;
+  int partRefIndex;
   CSVLoaderBase.FieldAdder[] adders;
 
   String rowId = null;// if not null, add a special field by the name given with the line number/row id as the value
@@ -83,7 +88,7 @@ abstract class CSVLoaderBase extends ContentStreamLoader {
   private class FieldAdder {
     void add(SolrInputDocument doc, int line, int column, String val) {
       if (val.length() > 0) {
-        doc.addField(fieldnames[column],val,1.0f);
+        doc.addField(fieldnames[((partRefIndex != -1) && (column >= partRefIndex))?(column+1):column],val,1.0f);
       }
     }
   }
@@ -92,7 +97,7 @@ abstract class CSVLoaderBase extends ContentStreamLoader {
   private class FieldAdderEmpty extends CSVLoaderBase.FieldAdder {
     @Override
     void add(SolrInputDocument doc, int line, int column, String val) {
-      doc.addField(fieldnames[column],val,1.0f);
+      doc.addField(fieldnames[((partRefIndex != -1) && (column >= partRefIndex))?(column+1):column],val,1.0f);
     }
   }
 
@@ -162,7 +167,7 @@ abstract class CSVLoaderBase extends ContentStreamLoader {
     this.literals = new HashMap<>();
 
     templateAdd = new AddUpdateCommand(req);
-    templateAdd.overwrite=params.getBool(OVERWRITE,true);
+    templateAdd.classicOverwrite=params.getBool(UpdateParams.OVERWRITE,true);
     templateAdd.commitWithin = params.getInt(UpdateParams.COMMIT_WITHIN, -1);
     
     strategy = new CSVStrategy(',', '"', CSVStrategy.COMMENTS_DISABLED, CSVStrategy.ESCAPE_DISABLED, false, false, false, true, "\n");
@@ -233,15 +238,21 @@ abstract class CSVLoaderBase extends ContentStreamLoader {
     // from a POST, one could cache all of this setup info based on the params.
     // The link from FieldAdder to this would need to be severed for that to happen.
 
-    adders = new CSVLoaderBase.FieldAdder[fieldnames.length];
+    partRefIndex = -1;
+    for (int i = 0; i < fieldnames.length; i++) {
+      if (PART_REF_COLUMN_NAME.equals(fieldnames[i])) partRefIndex = i;
+    }
+
+    int numberOfFields = fieldnames.length - ((partRefIndex != -1)?1:0);
+    adders = new CSVLoaderBase.FieldAdder[numberOfFields];
     String skipStr = params.get(SKIP);
     List<String> skipFields = skipStr==null ? null : StrUtils.splitSmart(skipStr,',');
 
     CSVLoaderBase.FieldAdder adder = new CSVLoaderBase.FieldAdder();
     CSVLoaderBase.FieldAdder adderKeepEmpty = new CSVLoaderBase.FieldAdderEmpty();
 
-    for (int i=0; i<fieldnames.length; i++) {
-      String fname = fieldnames[i];
+    for (int i=0; i<numberOfFields; i++) {
+      String fname = fieldnames[((partRefIndex != -1) && (i >= partRefIndex))?(i+1):i];
       // to skip a field, leave the entries in fields and addrs null
       if (fname.length()==0 || (skipFields!=null && skipFields.contains(fname))) continue;
 
@@ -370,13 +381,24 @@ abstract class CSVLoaderBase extends ContentStreamLoader {
   abstract void addDoc(int line, String[] vals) throws IOException;
 
   /** this must be MT safe... may be called concurrently from multiple threads. */
-  void doAdd(int line, String[] vals, SolrInputDocument doc, AddUpdateCommand template) throws IOException {
+  void doAdd(int line, String[] vals, AddUpdateCommand template) throws IOException {
+    SolrInputDocument doc;
+    if (partRefIndex != -1) {
+      doc = new SolrInputDocument(vals[partRefIndex]);
+    } else {
+      doc = new SolrInputDocument();
+    }
     // the line number is passed for error reporting in MT mode as well as for optional rowId.
     // first, create the lucene document
     for (int i=0; i<vals.length; i++) {
-      if (adders[i]==null) continue;  // skip this field
+      int fieldsIndex = i;
+      if (partRefIndex != -1) {
+        if (i == partRefIndex) continue;
+        if (i >= partRefIndex) fieldsIndex--;
+      }
+      if (adders[fieldsIndex]==null) continue;  // skip this field
       String val = vals[i];
-      adders[i].add(doc, line, i, val);
+      adders[fieldsIndex].add(doc, line, fieldsIndex, val);
     }
 
     // add any literals

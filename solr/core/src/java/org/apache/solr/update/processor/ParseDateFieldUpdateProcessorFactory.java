@@ -106,7 +106,7 @@ public class ParseDateFieldUpdateProcessorFactory extends FieldMutatingUpdatePro
   public UpdateRequestProcessor getInstance(SolrQueryRequest req,
                                             SolrQueryResponse rsp,
                                             UpdateRequestProcessor next) {
-    return new AllValuesOrNoneFieldMutatingUpdateProcessor(getSelector(), next) {
+    return new AllValuesOrNoneFieldMutatingUpdateProcessor(getSelector(), next, req, rsp) {
       @Override
       protected Object mutateValue(Object srcVal) {
         if (srcVal instanceof CharSequence) {

@@ -110,6 +110,8 @@ public class DistributedDebugComponentTest extends SolrJettyTestBase {
   @Test
   @SuppressWarnings("unchecked")
   public void testSimpleSearch() throws Exception {
+    switchToOriginalDQADefaultProvider(); // There will be nothing for stage GET_FIELDS if we run with dqa.forceSkipGetIds so use default DQA which does not
+    
     SolrQuery query = new SolrQuery();
     query.setQuery("*:*");
     query.set("debug",  "track");
@@ -153,6 +155,8 @@ public class DistributedDebugComponentTest extends SolrJettyTestBase {
     assertNotNull(((NamedList<Object>)track.get("GET_FIELDS")).get(shard1));
     // This test is invalid, as GET_FIELDS should not be executed in shard 2
     assertNull(((NamedList<Object>)track.get("GET_FIELDS")).get(shard2));
+    
+    switchToTestDQADefaultProvider();
   }
   
   @Test
@@ -345,6 +349,11 @@ public class DistributedDebugComponentTest extends SolrJettyTestBase {
   }
   
   public void testCompareWithNonDistributedRequest() throws SolrServerException, IOException {
+    // todo nocommit
+    // in the new DQA, filter_queries are noted twice compared to non-distrib requests
+    // this is because a request is sent to every participating shard regardless of whether
+    // that shard contributes a result or not
+    switchToOriginalDQADefaultProvider();
     SolrQuery query = new SolrQuery();
     query.setQuery("id:1 OR id:2");
     query.setFilterQueries("id:[0 TO 10]", "id:[0 TO 5]");
@@ -380,13 +389,14 @@ public class DistributedDebugComponentTest extends SolrJettyTestBase {
     
     // timing should have the same sections:
     assertSameKeys((NamedList<?>)nonDistribResponse.getDebugMap().get("timing"), (NamedList<?>)distribResponse.getDebugMap().get("timing"));
+    switchToTestDQADefaultProvider();
   }
   
   public void testTolerantSearch() throws SolrServerException, IOException {
     String badShard = "[ff01::0083]:3334";
     SolrQuery query = new SolrQuery();
     query.setQuery("*:*");
-    query.set("debug",  "true");
+    query.set("debug", "true");
     query.set("distrib", "true");
     query.setFields("id", "text");
     query.set("shards", shard1 + "," + shard2 + "," + badShard);
@@ -404,6 +414,10 @@ public class DistributedDebugComponentTest extends SolrJettyTestBase {
     @SuppressWarnings("unchecked")
     NamedList<String> badShardTrack = (NamedList<String>) ((NamedList<NamedList<String>>)
         ((NamedList<NamedList<NamedList<String>>>)response.getDebugMap().get("track")).get("EXECUTE_QUERY")).get(badShard);
+    if (((NamedList<NamedList<NamedList<String>>>) response.getDebugMap().get("track")).get("LIMIT_ROWS") != null)  {
+      // new dqa
+      badShardTrack = ((NamedList<NamedList<NamedList<String>>>) response.getDebugMap().get("track")).get("LIMIT_ROWS").get(badShard);
+    }
     assertEquals("Unexpected response size for shard", 1, badShardTrack.size());
     Entry<String, String> exception = badShardTrack.iterator().next();
     assertEquals("Expected key 'Exception' not found", "Exception", exception.getKey());
@@ -415,7 +429,7 @@ public class DistributedDebugComponentTest extends SolrJettyTestBase {
    * Compares the same section on the two query responses
    */
   private void assertSectionEquals(QueryResponse distrib, QueryResponse nonDistrib, String section) {
-    assertEquals(section + " debug should be equal", distrib.getDebugMap().get(section), nonDistrib.getDebugMap().get(section));
+    assertEquals(section + " debug should be equal", nonDistrib.getDebugMap().get(section), distrib.getDebugMap().get(section));
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})

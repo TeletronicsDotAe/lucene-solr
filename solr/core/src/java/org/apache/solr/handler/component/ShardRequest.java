@@ -42,6 +42,8 @@ public class ShardRequest {
   public final static int PURPOSE_REFINE_PIVOT_FACETS =0x2000;
   public final static int PURPOSE_SET_TERM_STATS  =0x4000;
   public final static int PURPOSE_GET_TERM_STATS  = 0x8000;
+  // todo nocommit should we have this or not????
+  public final static int PURPOSE_GET_SCORE_ONLY = 0x9000; // used to get score only in first phase of dqa=frfilrfbi
 
   public int purpose;  // the purpose of this request
 

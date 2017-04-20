@@ -88,7 +88,7 @@ public class SSLMigrationTest extends AbstractFullDistribZkTestBase {
         props.setProperty("schema", getSchemaFile());
       props.setProperty("solr.data.dir", getDataDir(testDir + "/shard" + i + "/data"));
 
-      JettySolrRunner newRunner = new JettySolrRunner(runner.getSolrHome(), props, config);
+      JettySolrRunner newRunner = new JettySolrRunner(runner.getSolrHome(), props, config, true);
       newRunner.start();
       jettys.set(i, newRunner);
     }

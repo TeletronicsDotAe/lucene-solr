@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.solr.handler.loader;
+import org.apache.solr.common.RequestPart;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.ContentStream;
 import org.apache.solr.request.SolrQueryRequest;
@@ -30,6 +31,9 @@ import org.apache.solr.update.processor.UpdateRequestProcessor;
 public abstract class ContentStreamLoader {
 
   protected static final int pollQueueTime = Integer.getInteger("solr.cloud.replication.poll-queue-time-ms", 25);
+
+  protected static final String NON_FIELD_PREFIX = "nonfield.";
+  protected static final String PART_REF_COLUMN_NAME = NON_FIELD_PREFIX + RequestPart.PART_REF_KEY;
 
   /**
    * This should be called once for each RequestHandler

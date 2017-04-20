@@ -803,7 +803,7 @@ public abstract class AbstractFullDistribZkTestBase extends AbstractDistribZkTes
     for (int i = 0; i < fields.length; i += 2) {
       doc.addField((String) (fields[i]), fields[i + 1]);
     }
-    controlClient.add(doc);
+    controlClient.add(doc, -1);
     
     HttpSolrClient client = (HttpSolrClient) clients
         .get(serverNumber);
@@ -827,7 +827,7 @@ public abstract class AbstractFullDistribZkTestBase extends AbstractDistribZkTes
     ureq.process(client);
 
     // add to control second in case adding to shards fails
-    controlClient.add(doc);
+    controlClient.add(doc, -1);
   }
   
   protected ZkCoreNodeProps getLeaderUrlFromZk(String collection, String slice) {
@@ -841,8 +841,8 @@ public abstract class AbstractFullDistribZkTestBase extends AbstractDistribZkTes
 
   @Override
   protected void del(String q) throws Exception {
-    controlClient.deleteByQuery(q);
-    cloudClient.deleteByQuery(q);
+    controlClient.deleteByQuery(q, -1);
+    cloudClient.deleteByQuery(q, -1);
 
     /***
     for (SolrServer client : clients) {
@@ -868,7 +868,8 @@ public abstract class AbstractFullDistribZkTestBase extends AbstractDistribZkTes
   protected void waitForRecoveriesToFinish(boolean verbose, int timeoutSeconds)
       throws Exception {
     ZkStateReader zkStateReader = cloudClient.getZkStateReader();
-    super.waitForRecoveriesToFinish(DEFAULT_COLLECTION, zkStateReader, verbose, true, timeoutSeconds);
+    // FIXME MERGE - not sure if our last "false" should still be passed or it's a TestSpeedControllers leftover
+    super.waitForRecoveriesToFinish(DEFAULT_COLLECTION, zkStateReader, verbose, true, timeoutSeconds, false);
   }
 
   protected void checkQueries() throws Exception {

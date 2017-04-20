@@ -64,7 +64,7 @@ public final class RecordingUpdateProcessorFactory
   public synchronized UpdateRequestProcessor getInstance(SolrQueryRequest req, 
                                                          SolrQueryResponse rsp, 
                                                          UpdateRequestProcessor next ) {
-    return recording ? new RecordingUpdateRequestProcessor(commandQueue, next) : next;
+    return recording ? new RecordingUpdateRequestProcessor(commandQueue, next, req, rsp) : next;
   }
 
   private static final class RecordingUpdateRequestProcessor 
@@ -73,8 +73,10 @@ public final class RecordingUpdateProcessorFactory
     private final BlockingQueue<UpdateCommand> commandQueue;
 
     public RecordingUpdateRequestProcessor(BlockingQueue<UpdateCommand> commandQueue, 
-                                           UpdateRequestProcessor next) {
-      super(next);
+                                           UpdateRequestProcessor next,
+                                           SolrQueryRequest req, 
+                                           SolrQueryResponse rsp) {
+      super(next, req, rsp);
       this.commandQueue = commandQueue;
     }
 

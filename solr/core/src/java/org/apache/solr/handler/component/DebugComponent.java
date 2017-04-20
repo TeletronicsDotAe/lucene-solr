@@ -71,6 +71,7 @@ public class DebugComponent extends SearchComponent
       Map<Integer, String> map = new TreeMap<>();
       map.put(ResponseBuilder.STAGE_START, "START");
       map.put(ResponseBuilder.STAGE_PARSE_QUERY, "PARSE_QUERY");
+      map.put(ResponseBuilder.STAGE_LIMIT_ROWS, "LIMIT_ROWS");
       map.put(ResponseBuilder.STAGE_TOP_GROUPS, "TOP_GROUPS");
       map.put(ResponseBuilder.STAGE_EXECUTE_QUERY, "EXECUTE_QUERY");
       map.put(ResponseBuilder.STAGE_GET_FIELDS, "GET_FIELDS");

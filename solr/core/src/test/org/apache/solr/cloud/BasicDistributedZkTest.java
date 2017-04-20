@@ -696,7 +696,7 @@ public class BasicDistributedZkTest extends AbstractFullDistribZkTestBase {
     ignoreException("version conflict");
     for (SolrClient client : clients) {
       try {
-        client.add(sd);
+        client.add(sd, -1);
         fail();
       } catch (SolrException e) {
         assertEquals(409, e.code());
@@ -707,13 +707,13 @@ public class BasicDistributedZkTest extends AbstractFullDistribZkTestBase {
     // TODO: test deletes.  SolrJ needs a good way to pass version for delete...
 
     sd =  sdoc("id", 1000, "foo_i",5);
-    clients.get(0).add(sd);
+    clients.get(0).add(sd, -1);
 
     List<Integer> expected = new ArrayList<>();
     int val = 0;
     for (SolrClient client : clients) {
       val += 10;
-      client.add(sdoc("id", 1000, "val_i", map("add",val), "foo_i",val));
+      client.add(sdoc("id", 1000, "val_i", map("add",val), "foo_i",val), -1);
       expected.add(val);
     }
 
@@ -796,9 +796,9 @@ public class BasicDistributedZkTest extends AbstractFullDistribZkTestBase {
    // TODO: enable when we don't falsely get slice1...
    // solrj.getZkStateReader().getLeaderUrl(oneInstanceCollection2, "slice1", 30000);
    // solrj.getZkStateReader().getLeaderUrl(oneInstanceCollection2, "slice2", 30000);
-    client2.add(getDoc(id, "1")); 
-    client3.add(getDoc(id, "2")); 
-    client4.add(getDoc(id, "3")); 
+    client2.add(getDoc(id, "1"), -1);
+    client3.add(getDoc(id, "2"), -1);
+    client4.add(getDoc(id, "3"), -1);
     
     client1.commit();
     SolrQuery query = new SolrQuery("*:*");
@@ -919,9 +919,9 @@ public class BasicDistributedZkTest extends AbstractFullDistribZkTestBase {
     waitForRecoveriesToFinish(oneInstanceCollection, getCommonCloudSolrClient().getZkStateReader(), false);
     assertAllActive(oneInstanceCollection, getCommonCloudSolrClient().getZkStateReader());
     
-    client2.add(getDoc(id, "1")); 
-    client3.add(getDoc(id, "2")); 
-    client4.add(getDoc(id, "3")); 
+    client2.add(getDoc(id, "1"), -1);
+    client3.add(getDoc(id, "2"), -1);
+    client4.add(getDoc(id, "3"), -1);
     
     client1.commit();
     SolrQuery query = new SolrQuery("*:*");
@@ -1005,13 +1005,13 @@ public class BasicDistributedZkTest extends AbstractFullDistribZkTestBase {
     indexDoc("collection2", getDoc(id, "10000001")); 
     indexDoc("collection2", getDoc(id, "10000003"));
     getCommonCloudSolrClient().setDefaultCollection("collection2");
-    getCommonCloudSolrClient().add(getDoc(id, "10000004"));
+    getCommonCloudSolrClient().add(getDoc(id, "10000004"), -1);
     getCommonCloudSolrClient().setDefaultCollection(null);
     
     indexDoc("collection3", getDoc(id, "20000000"));
     indexDoc("collection3", getDoc(id, "20000001")); 
     getCommonCloudSolrClient().setDefaultCollection("collection3");
-    getCommonCloudSolrClient().add(getDoc(id, "10000005"));
+    getCommonCloudSolrClient().add(getDoc(id, "10000005"), -1);
     getCommonCloudSolrClient().setDefaultCollection(null);
     
     otherCollectionClients.get("collection2").get(0).commit();
@@ -1067,7 +1067,7 @@ public class BasicDistributedZkTest extends AbstractFullDistribZkTestBase {
     List<SolrClient> clients = otherCollectionClients.get(collection);
     int which = (doc.getField(id).toString().hashCode() & 0x7fffffff) % clients.size();
     SolrClient client = clients.get(which);
-    client.add(doc);
+    client.add(doc, -1);
   }
   
   private void createNewCollection(final String collection) throws InterruptedException {

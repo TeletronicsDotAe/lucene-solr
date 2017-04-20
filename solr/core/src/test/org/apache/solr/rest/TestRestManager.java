@@ -201,7 +201,7 @@ public class TestRestManager extends SolrRestletTestBase {
         ,"/wordSet/initArgs=={'ignoreCase':false}"); // make sure the default is serialized even if not specified
 
     // Test for case-sensitivity - "Test" lookup should fail
-    assertJQ(newEndpoint + "/Test", "/responseHeader/status==404");
+    assertJQ(newEndpoint + "/Test", 404, "");
 
     // Switch to case-insensitive
     assertJPut(newEndpoint, json("{ 'initArgs':{ 'ignoreCase':'true' } }"), "/responseHeader/status==0");
@@ -210,7 +210,7 @@ public class TestRestManager extends SolrRestletTestBase {
     assertJQ(newEndpoint + "/Test", "/responseHeader/status==0");
 
     // Switch to case-sensitive - this request should fail: changing ignoreCase from true to false is not permitted
-    assertJPut(newEndpoint, json("{ 'initArgs':{ 'ignoreCase':false } }"), "/responseHeader/status==400");
+    assertJPut(newEndpoint, json("{ 'initArgs':{ 'ignoreCase':false } }"), 400, "");
 
     // Test XML response format
     assertQ(newEndpoint + "?wt=xml"

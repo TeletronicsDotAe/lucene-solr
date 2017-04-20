@@ -409,7 +409,7 @@ public class CloneFieldUpdateProcessorFactory
                                                   SolrQueryResponse rsp,
                                                   UpdateRequestProcessor next) {
     final FieldNameSelector srcSelector = getSourceSelector();
-    return new UpdateRequestProcessor(next) {
+    return new UpdateRequestProcessor(next, req, rsp) {
       @Override
       public void processAdd(AddUpdateCommand cmd) throws IOException {
 

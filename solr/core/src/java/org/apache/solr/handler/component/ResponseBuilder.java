@@ -22,6 +22,7 @@ import org.apache.lucene.search.grouping.TopGroups;
 import org.apache.lucene.util.BytesRef;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
+import org.apache.solr.common.params.ShardParams;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.util.RTimer;
 import org.apache.solr.common.util.SimpleOrderedMap;
@@ -121,6 +122,7 @@ public class ResponseBuilder
 
   public static int STAGE_START = 0;
   public static int STAGE_PARSE_QUERY = 1000;
+  public static int STAGE_LIMIT_ROWS = 1250;
   public static int STAGE_TOP_GROUPS = 1500;
   public static int STAGE_EXECUTE_QUERY = 2000;
   public static int STAGE_GET_FIELDS = 3000;
@@ -158,14 +160,25 @@ public class ResponseBuilder
   }
 
   public GlobalCollectionStat globalCollectionStat;
+  
+  // The ShardParams.DQA used for this request
+  public ShardParams.DQA dqa;
+  // Skip the get-ids phase when executing this request
+  public boolean distribSkipGetIds;
+
+  // ShardParams.DQA.FIND_RELEVANCE_FIND_IDS_LIMITED_ROWS_FETCH_BY_IDS only
+  // Map from shard to number of rows to query in main-query
+  public Map<String, Integer> shardRows;
+  // The purpose of the responses handled
+  public int stageResponsesPurpose;
+  // The list of responses handled
+  public List<ShardResponse> stageResponses;
 
   public Map<Object, ShardDoc> resultIds;
   // Maps uniqueKeyValue to ShardDoc, which may be used to
   // determine order of the doc or uniqueKey in the final
   // returned sequence.
   // Only valid after STAGE_EXECUTE_QUERY has completed.
-
-  public boolean onePassDistributedQuery;
 
   public FacetComponent.FacetInfo _facetInfo;
   /* private... components that don't own these shouldn't use them */

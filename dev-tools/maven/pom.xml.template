@@ -67,6 +67,9 @@
     <tests.timezone>random</tests.timezone>
     <tests.verbose>false</tests.verbose>
     <tests.infostream>${tests.verbose}</tests.infostream>
+
+    <!-- Security manager used during test -->
+    <tests.securitymanager>org.apache.lucene.util.TestSecurityManager</tests.securitymanager>
   </properties>
   <issueManagement>
     <system>JIRA</system>
@@ -277,6 +280,10 @@
               <tests.postingsformat>${tests.postingsformat}</tests.postingsformat>
               <tests.timezone>${tests.timezone}</tests.timezone>
               <tests.verbose>${tests.verbose}</tests.verbose>
+
+              <!-- The Test security manager is activated by default.
+                   Some tests require that this is not activated. Override this value in those modules. -->
+              <java.security.manager>${tests.securitymanager}</java.security.manager>
             </systemPropertyVariables>
           </configuration>
         </plugin>

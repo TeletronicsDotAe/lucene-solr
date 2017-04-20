@@ -45,9 +45,7 @@ public class TestFieldTypeResource extends SolrRestletTestBase {
   @Test
   public void testGetNotFoundFieldType() throws Exception {
     assertQ("/schema/fieldtypes/not_in_there?indent=on&wt=xml",
-            "count(/response/lst[@name='fieldtypes']) = 0",
-            "/response/lst[@name='responseHeader']/int[@name='status'] = '404'",
-            "/response/lst[@name='error']/int[@name='code'] = '404'");
+            404, "Field type 'not_in_there' not found");
   }
 
   @Test

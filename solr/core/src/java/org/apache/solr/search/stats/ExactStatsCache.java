@@ -94,7 +94,8 @@ public class ExactStatsCache extends StatsCache {
   public void mergeToGlobalStats(SolrQueryRequest req, List<ShardResponse> responses) {
     Set<Object> allTerms = new HashSet<>();
     for (ShardResponse r : responses) {
-      LOG.debug("Merging to global stats, shard={}, response={}", r.getShard(), r.getSolrResponse().getResponse());
+      // todo nocommit
+      LOG.info("SHALIN: Merging to global stats, shard={}, response={}", r.getShard(), r.getSolrResponse().getResponse());
       String shard = r.getShard();
       SolrResponse res = r.getSolrResponse();
       NamedList<Object> nl = res.getResponse();
@@ -277,7 +278,7 @@ public class ExactStatsCache extends StatsCache {
         }
       }
     }
-    LOG.debug("Global collection stats={}", globalColStats);
+    LOG.info("SHALIN: Global collection stats={}", globalColStats); // todo nocommit
     if (globalTermStats == null) return;
     Map<String,TermStats> termStats = StatsUtil.termStatsMapFromString(globalTermStats);
     if (termStats != null) {

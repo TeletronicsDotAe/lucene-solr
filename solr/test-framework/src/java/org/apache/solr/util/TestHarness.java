@@ -326,8 +326,14 @@ public class TestHarness extends BaseTestHarness {
   public String query(String handler, SolrQueryRequest req) throws Exception {
     try {
       SolrCore core = req.getCore();
-      SolrQueryResponse rsp = new SolrQueryResponse();
+      SolrRequestInfo reqInfo;
+      SolrQueryResponse rsp;
+      if ((reqInfo = SolrRequestInfo.getRequestInfo()) == null) {
+        rsp = new SolrQueryResponse();
       SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req, rsp));
+      } else {
+        rsp = reqInfo.getRsp();
+      }
       core.execute(core.getRequestHandler(handler),req,rsp);
       if (rsp.getException() != null) {
         throw rsp.getException();
@@ -354,12 +360,14 @@ public class TestHarness extends BaseTestHarness {
    * This method does not set/clear SolrRequestInfo */
   public SolrQueryResponse queryAndResponse(String handler, SolrQueryRequest req) throws Exception {
     try (SolrCore core = getCoreInc()) {
-      SolrQueryResponse rsp = new SolrQueryResponse();
+      SolrQueryResponse rsp = getRequestInfoFactory().makeRequestInfo().getRsp();
       core.execute(core.getRequestHandler(handler), req, rsp);
       if (rsp.getException() != null) {
         throw rsp.getException();
       }
       return rsp;
+    } finally {
+      SolrRequestInfo.clearRequestInfo();
     }
   }
 
@@ -380,10 +388,14 @@ public class TestHarness extends BaseTestHarness {
     }
   }
 
-  public LocalRequestFactory getRequestFactory(String qtype,
+  public LocalRequestInfoFactory getRequestInfoFactory() {
+    return new LocalRequestInfoFactory();
+  }
+
+  public LocalRequestInfoFactory getRequestInfoFactory(String qtype,
                                                int start,
                                                int limit) {
-    LocalRequestFactory f = new LocalRequestFactory();
+    LocalRequestInfoFactory f = getRequestInfoFactory();
     f.qtype = qtype;
     f.start = start;
     f.limit = limit;
@@ -393,10 +405,10 @@ public class TestHarness extends BaseTestHarness {
   /**
    * 0 and Even numbered args are keys, Odd numbered args are values.
    */
-  public LocalRequestFactory getRequestFactory(String qtype,
+  public LocalRequestInfoFactory getRequestInfoFactory(String qtype,
                                                int start, int limit,
                                                String... args) {
-    LocalRequestFactory f = getRequestFactory(qtype, start, limit);
+    LocalRequestInfoFactory f = getRequestInfoFactory(qtype, start, limit);
     for (int i = 0; i < args.length; i+=2) {
       f.args.put(args[i], args[i+1]);
     }
@@ -404,11 +416,11 @@ public class TestHarness extends BaseTestHarness {
         
   }
     
-  public LocalRequestFactory getRequestFactory(String qtype,
+  public LocalRequestInfoFactory getRequestInfoFactory(String qtype,
                                                int start, int limit,
                                                Map<String,String> args) {
 
-    LocalRequestFactory f = getRequestFactory(qtype, start, limit);
+    LocalRequestInfoFactory f = getRequestInfoFactory(qtype, start, limit);
     f.args.putAll(args);
     return f;
   }
@@ -417,12 +429,12 @@ public class TestHarness extends BaseTestHarness {
    * A Factory that generates LocalSolrQueryRequest objects using a
    * specified set of default options.
    */
-  public class LocalRequestFactory {
+  public class LocalRequestInfoFactory {
     public String qtype = null;
     public int start = 0;
     public int limit = 1000;
     public Map<String,String> args = new HashMap<>();
-    public LocalRequestFactory() {
+    public LocalRequestInfoFactory() {
     }
     /**
      * Creates a LocalSolrQueryRequest based on variable args; for
@@ -446,6 +458,13 @@ public class TestHarness extends BaseTestHarness {
      * Perhaps the best we could do is increment the core reference count
      * and decrement it in the request close() method?
      */
+    public SolrRequestInfo makeRequestInfo(String ... q) {
+    	SolrRequestInfo result = new SolrRequestInfo(makeRequest(q), new SolrQueryResponse());
+      SolrRequestInfo.clearRequestInfo();
+      SolrRequestInfo.setRequestInfo(result);
+      return result;
+    }
+    
     public LocalSolrQueryRequest makeRequest(String ... q) {
       if (q.length==1) {
         return new LocalSolrQueryRequest(TestHarness.this.getCore(),

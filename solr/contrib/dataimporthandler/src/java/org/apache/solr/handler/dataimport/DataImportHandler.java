@@ -171,6 +171,7 @@ public class DataImportHandler extends RequestHandlerBase implements
         UpdateRequestProcessorChain processorChain =
                 req.getCore().getUpdateProcessorChain(params);
         UpdateRequestProcessor processor = processorChain.createProcessor(req, rsp);
+        try {
         SolrResourceLoader loader = req.getCore().getResourceLoader();
         DIHWriter sw = getSolrWriter(processor, loader, requestParams, req);
         
@@ -193,6 +194,9 @@ public class DataImportHandler extends RequestHandlerBase implements
           } else {
             importer.runCmd(requestParams, sw);
           }
+        }
+        } finally {
+          processor.finish();
         }
       } else if (DataImporter.RELOAD_CONF_CMD.equals(command)) { 
         if(importer.maybeReloadConfiguration(requestParams, defaultParams)) {

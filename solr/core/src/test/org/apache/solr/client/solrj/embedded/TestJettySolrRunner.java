@@ -48,7 +48,7 @@ public class TestJettySolrRunner extends SolrTestCaseJ4 {
 
     JettyConfig jettyConfig = buildJettyConfig("/solr");
 
-    JettySolrRunner runner = new JettySolrRunner(solrHome.toString(), new Properties(), jettyConfig);
+    JettySolrRunner runner = new JettySolrRunner(solrHome.toString(), jettyConfig);
     try {
       runner.start();
 

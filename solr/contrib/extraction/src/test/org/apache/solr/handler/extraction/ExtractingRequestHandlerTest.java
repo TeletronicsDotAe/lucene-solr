@@ -438,7 +438,7 @@ public class ExtractingRequestHandlerTest extends SolrTestCaseJ4 {
                                "commitWithin", "200"
                                );
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
 
     ExtractingDocumentLoader loader = (ExtractingDocumentLoader) handler.newLoader(req, p);
     loader.load(req, rsp, new ContentStreamBase.FileStream(getFile("extraction/version_control.txt")),p);

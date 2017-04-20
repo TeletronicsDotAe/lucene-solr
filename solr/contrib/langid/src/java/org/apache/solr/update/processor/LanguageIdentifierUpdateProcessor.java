@@ -85,7 +85,7 @@ public abstract class LanguageIdentifierUpdateProcessor extends UpdateRequestPro
 
   public LanguageIdentifierUpdateProcessor(SolrQueryRequest req,
                                            SolrQueryResponse rsp, UpdateRequestProcessor next) {
-    super(next);
+    super(next, req, rsp);
     schema = req.getSchema();
 
     initParams(req.getParams());

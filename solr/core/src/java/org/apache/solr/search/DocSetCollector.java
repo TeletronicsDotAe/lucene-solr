@@ -23,6 +23,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.SimpleCollector;
 import org.apache.lucene.util.FixedBitSet;
+import org.apache.solr.common.ExpandingIntArray;
 
 /**
  *
@@ -47,6 +48,7 @@ public class DocSetCollector extends SimpleCollector {
   public DocSetCollector(int smallSetSize, int maxDoc) {
     this.smallSetSize = smallSetSize;
     this.maxDoc = maxDoc;
+    //FIXME MERGE - should we use "smallSetSize" or no argument? Figure out how much smallSetSize actually is!
     this.scratch = new ExpandingIntArray(smallSetSize);
   }
 

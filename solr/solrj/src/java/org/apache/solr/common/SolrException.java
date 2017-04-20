@@ -19,12 +19,19 @@ package org.apache.solr.common;
 import java.io.CharArrayWriter;
 import java.io.PrintWriter;
 import java.util.Map;
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.solr.common.util.NamedList;
+
+import org.apache.http.HttpResponse;
+import org.apache.solr.client.solrj.SolrResponse;
+import org.apache.solr.common.util.SimpleOrderedMap;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -35,6 +42,9 @@ public class SolrException extends RuntimeException {
   public static final String ERROR_CLASS = "error-class";
   final private Map mdcContext;
 
+	private static Logger log = LoggerFactory.getLogger(SolrException.class);
+	protected NamedList<Object> payload = new SimpleOrderedMap<Object>();
+	
   /**
    * This list of valid HTTP Status error codes that Solr may return in 
    * the case of a "Server Side" error.
@@ -48,6 +58,8 @@ public class SolrException extends RuntimeException {
     NOT_FOUND( 404 ),
     CONFLICT( 409 ),
     UNSUPPORTED_MEDIA_TYPE( 415 ),
+    PRECONDITION_FAILED( 412 ),
+    UNPROCESSABLE_ENTITY( 422 ),
     SERVER_ERROR( 500 ),
     SERVICE_UNAVAILABLE( 503 ),
     INVALID_STATE( 510 ),
@@ -220,6 +232,119 @@ public class SolrException extends RuntimeException {
     }
     return t;
   }
+  
+  // --------- Encoding/decoding in String/NamedList/HttpServletResponse - start -------------------- //
+
+  public NamedList<Object> getPayload() {
+    return payload;
+  }
+  
+  private void setPayload(NamedList<Object> payload) {
+    if (payload != null) {
+      this.payload = payload;
+    } else {
+      this.payload.clear();
+    }
+  }
+  
+  public void setProperty(String name, Object val) {
+    NamedList<Object> properties = getProperties(true);
+    properties.add(name, val);
+  }
+  
+  public Object getProperty(String name) {
+    NamedList<Object> properties = getProperties(false);
+    return (properties != null)?properties.get(name):null;
+  }
+  
+  private NamedList<Object> getProperties(boolean create) {
+    NamedList<Object> result = (NamedList<Object>)payload.get(PROPERTIES);
+    if (create && result == null) {
+      result = new SimpleOrderedMap<Object>();
+      payload.add(PROPERTIES, result);
+    }
+    return result;
+  }
+  
+  public static SolrException decodeFromNamedList(NamedList<Object> nl) {
+    String errorType = (String)nl.get(ERROR_TYPE);
+    Integer errorCode = (Integer)nl.get(ERROR_CODE);
+    String errorMsg = (String)nl.get(ERROR_MSG);
+    NamedList<Object> payload = new SimpleOrderedMap<Object>();
+    payload.addAll(nl);
+    payload.remove(ERROR_TYPE);
+    payload.remove(ERROR_CODE);
+    payload.remove(ERROR_MSG);
+    return (SolrException)createFromClassNameCodeAndMsg(errorType, errorCode, errorMsg, payload);
+  }
+  
+  public NamedList<Object> encodeInNamedList() {
+    NamedList<Object> result = new SimpleOrderedMap<Object>();
+    result.add(ERROR_CODE, code());
+    result.add(ERROR_TYPE, getClass().getName());
+    result.add(ERROR_MSG, (getMessage() == null)?"":getMessage());
+    addPropertiesToParent(result);
+    return result;
+  }
+  
+  public boolean worthRetrying() {
+    return false;
+  }
+  
+	protected static final String ERROR_CODE = "error-code";
+	// Using a neutral name ("error" not "exception" and "type" not "class") in order not to indicate any binding to java
+	protected static final String ERROR_TYPE = "error-type";
+	protected static final String ERROR_MSG = "error-msg";
+	protected static final String HTTP_ERROR_HEADER_KEY = SolrResponse.HTTP_HEADER_KEY_PREFIX + ERROR_TYPE;
+	protected static final String PROPERTIES = "properties";
+	
+  public static SolrException decodeFromHttpMethod(HttpResponse response, String reasonPhraseEncoding, String additionalMsgToPutInCreatedException, NamedList<Object> payload) throws UnsupportedEncodingException {
+    return createFromClassNameCodeAndMsg(response.getFirstHeader(HTTP_ERROR_HEADER_KEY).getValue(), response.getStatusLine().getStatusCode(), java.net.URLDecoder.decode(response.getStatusLine().getReasonPhrase(), reasonPhraseEncoding) + additionalMsgToPutInCreatedException, payload);
+  }
+  
+  public void encodeTypeInHttpServletResponse(Object httpServletResponse) {
+    // httpServletResponse.addHeader(HTTP_ERROR_HEADER_KEY, getClass().getName());
+    // Coded using reflection, because SolrException needs to be in client jar as well as in server jar, but you only want to call
+    // encodeTypeInHttpServletResponse on server-side, and you dont want to need to include jar including HttpServletResponse on client classpath 
+    try {
+      Method m = httpServletResponse.getClass().getMethod("addHeader", String.class, String.class);
+      m.invoke(httpServletResponse, HTTP_ERROR_HEADER_KEY, getClass().getName());
+    } catch (Exception e) {
+      if (e instanceof RuntimeException) throw (RuntimeException)e;
+      throw new RuntimeException(e);
+    }
+  }
+  
+  public boolean addPropertiesToParent(NamedList<Object> parentNamedList) {
+    NamedList<Object> properties = getProperties(false);
+    if (properties != null) {
+      parentNamedList.add(PROPERTIES, properties);
+      return true;
+    }
+    return false;
+  }
+  
+  protected static SolrException createFromClassNameCodeAndMsg(String className, int code, String msg, NamedList<Object> payload) {
+		if (className != null) {
+  		try {
+    		Class clazz = Class.forName(className);
+    		if (SolrException.class.isAssignableFrom(clazz)) {
+    			SolrException result = ((Class<SolrException>)clazz).getConstructor(ErrorCode.class, String.class).newInstance(SolrException.ErrorCode.getErrorCode(code), msg);
+    			result.setPayload(payload);
+    			return result;
+    		}
+      } catch (ClassNotFoundException e) {
+      	log.warn("Could not create exception of type " + className + ". Class not found.");
+      } catch (NoSuchMethodException e) {
+      	log.warn("Could not create exception of type " + className + ". Does not have constructor taking ErrorCode and String");
+      } catch (Exception e) {
+      	log.warn("Could not create exception of type " + className + ".", e);
+      }
+		}
+    return new SolrException(SolrException.ErrorCode.getErrorCode(code), msg);
+	}
+  
+  // --------- Encoding/decoding in String/NamedList/HttpServletResponse - end -------------------- //
 
   public void logInfoWithMdc(Logger logger, String msg) {
     Map previousMdcContext = MDC.getCopyOfContextMap();

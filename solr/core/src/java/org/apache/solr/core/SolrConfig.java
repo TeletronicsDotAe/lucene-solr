@@ -442,7 +442,8 @@ public class SolrConfig extends Config implements MapSerializable {
         getBool("updateHandler/autoCommit/openSearcher", true),
         getInt("updateHandler/autoSoftCommit/maxDocs", -1),
         getInt("updateHandler/autoSoftCommit/maxTime", -1),
-        getBool("updateHandler/commitWithin/softCommit", true));
+        getBool("updateHandler/commitWithin/softCommit", true),
+        get("updateHandler/semanticsMode",null));
   }
 
   private void loadPluginInfo(SolrPluginInfo pluginInfo) {
@@ -660,13 +661,14 @@ public class SolrConfig extends Config implements MapSerializable {
     public final boolean indexWriterCloseWaitsForMerges;
     public final boolean openSearcher;  // is opening a new searcher part of hard autocommit?
     public final boolean commitWithinSoftCommit;
+    public final String semanticsMode;
 
     /**
      * @param autoCommmitMaxDocs       set -1 as default
      * @param autoCommmitMaxTime       set -1 as default
      */
     public UpdateHandlerInfo(String className, int autoCommmitMaxDocs, int autoCommmitMaxTime, boolean indexWriterCloseWaitsForMerges, boolean openSearcher,
-                             int autoSoftCommmitMaxDocs, int autoSoftCommmitMaxTime, boolean commitWithinSoftCommit) {
+                             int autoSoftCommmitMaxDocs, int autoSoftCommmitMaxTime, boolean commitWithinSoftCommit, String semanticsMode) {
       this.className = className;
       this.autoCommmitMaxDocs = autoCommmitMaxDocs;
       this.autoCommmitMaxTime = autoCommmitMaxTime;
@@ -677,6 +679,8 @@ public class SolrConfig extends Config implements MapSerializable {
       this.autoSoftCommmitMaxTime = autoSoftCommmitMaxTime;
 
       this.commitWithinSoftCommit = commitWithinSoftCommit;
+      
+      this.semanticsMode = semanticsMode;
     }
 
 

@@ -73,7 +73,7 @@ public class ParseFloatFieldUpdateProcessorFactory extends ParseNumericFieldUpda
   public UpdateRequestProcessor getInstance(SolrQueryRequest req,
                                             SolrQueryResponse rsp,
                                             UpdateRequestProcessor next) {
-    return new ParseFloatFieldUpdateProcessor(getSelector(), locale, next);
+    return new ParseFloatFieldUpdateProcessor(getSelector(), locale, next, req, rsp);
   }
 
   private static class ParseFloatFieldUpdateProcessor extends AllValuesOrNoneFieldMutatingUpdateProcessor {
@@ -90,8 +90,8 @@ public class ParseFloatFieldUpdateProcessorFactory extends ParseNumericFieldUpda
       }
     };
 
-    ParseFloatFieldUpdateProcessor(FieldNameSelector selector, Locale locale, UpdateRequestProcessor next) {
-      super(selector, next);
+    ParseFloatFieldUpdateProcessor(FieldNameSelector selector, Locale locale, UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
+      super(selector, next, req, rsp);
       this.locale = locale;
     }
 

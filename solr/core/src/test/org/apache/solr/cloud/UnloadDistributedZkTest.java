@@ -218,9 +218,9 @@ public class UnloadDistributedZkTest extends BasicDistributedZkTest {
             "humpty dumpy3 sat on a walls");
         SolrInputDocument doc3 = getDoc(id, 8, i1, -600, tlong, 600, t1,
             "humpty dumpy2 sat on a walled");
-        collectionClient.add(doc1);
-        collectionClient.add(doc2);
-        collectionClient.add(doc3);
+        collectionClient.add(doc1, -1);
+        collectionClient.add(doc2, -1);
+        collectionClient.add(doc3, -1);
         collectionClient.commit();
       }
     }
@@ -249,7 +249,7 @@ public class UnloadDistributedZkTest extends BasicDistributedZkTest {
       for (int x = 20; x < 100; x++) {
         SolrInputDocument doc1 = getDoc(id, x, i1, -600, tlong, 600, t1,
             "humpty dumpy sat on a wall");
-        addClient.add(doc1);
+        addClient.add(doc1, -1);
       }
     }
     // don't commit so they remain in the tran log
@@ -288,7 +288,7 @@ public class UnloadDistributedZkTest extends BasicDistributedZkTest {
       for (int x = 101; x < 200; x++) {
         SolrInputDocument doc1 = getDoc(id, x, i1, -600, tlong, 600, t1,
             "humpty dumpy sat on a wall");
-        addClient.add(doc1);
+        addClient.add(doc1, -1);
       }
     }
     

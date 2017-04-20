@@ -687,6 +687,9 @@ public class QueryComponent extends SearchComponent
 
   @Override
   public int distributedProcess(ResponseBuilder rb) throws IOException {
+    rb.stageResponses = null;
+    rb.stageResponsesPurpose = 0;
+
     if (rb.grouping()) {
       return groupedDistributedProcess(rb);
     } else {
@@ -733,19 +736,81 @@ public class QueryComponent extends SearchComponent
       return ResponseBuilder.STAGE_PARSE_QUERY;
     if (rb.stage == ResponseBuilder.STAGE_PARSE_QUERY) {
       createDistributedStats(rb);
+      return (doFindRelevanceFindIdsLimitedRowsFetchByIds(rb)) ? ResponseBuilder.STAGE_LIMIT_ROWS : ResponseBuilder.STAGE_EXECUTE_QUERY;
+    }
+    if (rb.stage < ResponseBuilder.STAGE_LIMIT_ROWS && doFindRelevanceFindIdsLimitedRowsFetchByIds(rb))
+      return ResponseBuilder.STAGE_LIMIT_ROWS;
+    if (rb.stage == ResponseBuilder.STAGE_LIMIT_ROWS && doFindRelevanceFindIdsLimitedRowsFetchByIds(rb)) {
+      createRelevanceCountQuery(rb);
       return ResponseBuilder.STAGE_EXECUTE_QUERY;
     }
     if (rb.stage < ResponseBuilder.STAGE_EXECUTE_QUERY) return ResponseBuilder.STAGE_EXECUTE_QUERY;
     if (rb.stage == ResponseBuilder.STAGE_EXECUTE_QUERY) {
-      createMainQuery(rb);
+      createMainQuerys(rb, doFindRelevanceFindIdsLimitedRowsFetchByIds(rb));
       return ResponseBuilder.STAGE_GET_FIELDS;
     }
     if (rb.stage < ResponseBuilder.STAGE_GET_FIELDS) return ResponseBuilder.STAGE_GET_FIELDS;
-    if (rb.stage == ResponseBuilder.STAGE_GET_FIELDS && !rb.onePassDistributedQuery) {
+    if (rb.stage == ResponseBuilder.STAGE_GET_FIELDS && !rb.distribSkipGetIds) {
       createRetrieveDocs(rb);
       return ResponseBuilder.STAGE_DONE;
     }
     return ResponseBuilder.STAGE_DONE;
+  }
+
+  private ShardParams.DQA getDQA(ResponseBuilder rb) {
+    if (rb.dqa != null) return rb.dqa;
+
+    ShardParams.DQA dqa = ShardParams.DQA.get(rb.req.getParams());
+    boolean findRelevanceFindIdsLtdRowsFetchByIdsSupported =
+      dqa == ShardParams.DQA.FIND_RELEVANCE_FIND_IDS_LIMITED_ROWS_FETCH_BY_IDS &&
+      // It is all about reducing rows asked for per shard, so irrelevant if rows <= -1
+      (rb.shards_rows > -1 || (rb.getSortSpec() != null && rb.getSortSpec().getCount() > -1)) &&
+      // In case of facet-search rows mean something different - namely the number of rows to get per found facet
+      !rb.doFacets;
+    if (!findRelevanceFindIdsLtdRowsFetchByIdsSupported) {
+      dqa = ShardParams.DQA.FIND_ID_RELEVANCE_FETCH_BY_IDS;
+    }
+    rb.rsp.addToLog("dqa", dqa.getId());
+    rb.dqa = dqa;
+    return dqa;
+  }
+
+  private boolean doFindRelevanceFindIdsLimitedRowsFetchByIds(ResponseBuilder rb) {
+    return getDQA(rb) == ShardParams.DQA.FIND_RELEVANCE_FIND_IDS_LIMITED_ROWS_FETCH_BY_IDS;
+  }
+
+  private void createRelevanceCountQuery(ResponseBuilder rb) {
+    ShardRequest sreq = createBaseQuery(rb, rb.getSortSpec().getCount());
+    sreq.params.set(CommonParams.FL, SolrReturnFields.SCORE);
+    rb.addRequest(this, sreq);
+  }
+
+  private void calculateShardRowsFromRelevanceCountResponses(ResponseBuilder rb, ShardRequest sreq) {
+    rb.shardRows = new HashMap<>(sreq.responses.size());
+
+    for (ShardResponse srsp : sreq.responses) {
+      rb.shardRows.put(srsp.getShard(), 0);
+    }
+    rb.stageResponses = new ArrayList<>(sreq.responses);
+    mergeIds(rb);
+
+    // Code stolen from QueryComponent.createRetrieveDocs
+    HashMap<String, Collection<ShardDoc>> shardMap = new HashMap<String,Collection<ShardDoc>>();
+    for (ShardDoc sdoc : rb.resultIds.values()) {
+      Collection<ShardDoc> shardDocs = shardMap.get(sdoc.shard);
+      if (shardDocs == null) {
+        shardDocs = new ArrayList<ShardDoc>();
+        shardMap.put(sdoc.shard, shardDocs);
+      }
+      shardDocs.add(sdoc);
+    }
+    // Reset
+    rb.resultIds = null;
+    rb._responseDocs = null;
+    for (Collection<ShardDoc> shardDocs : shardMap.values()) {
+      String shard = shardDocs.iterator().next().shard;
+      rb.shardRows.put(shard, shardDocs.size());
+    }
   }
 
   @Override
@@ -773,24 +838,23 @@ public class QueryComponent extends SearchComponent
   }
 
   protected void handleRegularResponses(ResponseBuilder rb, ShardRequest sreq) {
-    if ((sreq.purpose & ShardRequest.PURPOSE_GET_TOP_IDS) != 0) {
-      mergeIds(rb, sreq);
-    }
-
-    if ((sreq.purpose & ShardRequest.PURPOSE_GET_TERM_STATS) != 0) {
-      updateStats(rb, sreq);
-    }
-
-    if ((sreq.purpose & ShardRequest.PURPOSE_GET_FIELDS) != 0) {
-      returnFields(rb, sreq);
+    if (rb.stage == ResponseBuilder.STAGE_LIMIT_ROWS && doFindRelevanceFindIdsLimitedRowsFetchByIds(rb)) {
+      calculateShardRowsFromRelevanceCountResponses(rb, sreq);
+    } else {
+      if ((sreq.purpose & ShardRequest.PURPOSE_GET_TOP_IDS) != 0 ||
+          (sreq.purpose & ShardRequest.PURPOSE_GET_FIELDS) != 0 ||
+          (sreq.purpose & ShardRequest.PURPOSE_GET_STATS) != 0 ||
+          (sreq.purpose & ShardRequest.PURPOSE_GET_TERM_STATS) != 0 ||
+          (sreq.purpose & ShardRequest.PURPOSE_SET_TERM_STATS) != 0) {
+        if (rb.stageResponses == null) rb.stageResponses = new ArrayList<>();
+        rb.stageResponses.addAll(sreq.responses);
+        rb.stageResponsesPurpose = sreq.purpose;
+      }
     }
   }
 
   @Override
   public void finishStage(ResponseBuilder rb) {
-    if (rb.stage != ResponseBuilder.STAGE_GET_FIELDS) {
-      return;
-    }
     if (rb.grouping()) {
       groupedFinishStage(rb);
     } else {
@@ -803,6 +867,8 @@ public class QueryComponent extends SearchComponent
 
   @SuppressWarnings("unchecked")
   protected void groupedFinishStage(final ResponseBuilder rb) {
+    if (rb.stage != ResponseBuilder.STAGE_GET_FIELDS) return;
+
     // To have same response as non-distributed request.
     GroupingSpecification groupSpec = rb.getGroupingSpec();
     if (rb.mergedTopGroups.isEmpty()) {
@@ -833,19 +899,34 @@ public class QueryComponent extends SearchComponent
   }
 
   protected void regularFinishStage(ResponseBuilder rb) {
-    // We may not have been able to retrieve all the docs due to an
-    // index change.  Remove any null documents.
-    for (Iterator<SolrDocument> iter = rb.getResponseDocs().iterator(); iter.hasNext();) {
-      if (iter.next() == null) {
-        iter.remove();
-        rb.getResponseDocs().setNumFound(rb.getResponseDocs().getNumFound()-1);
-      }
+    if ((rb.stageResponsesPurpose & ShardRequest.PURPOSE_GET_TOP_IDS) != 0) {
+      mergeIds(rb);
     }
 
-    rb.rsp.addResponse(rb.getResponseDocs());
-    if (null != rb.getNextCursorMark()) {
-      rb.rsp.add(CursorMarkParams.CURSOR_MARK_NEXT,
-                 rb.getNextCursorMark().getSerializedTotem());
+    if ((rb.stageResponsesPurpose & ShardRequest.PURPOSE_GET_TERM_STATS) != 0) {
+      updateStats(rb);
+    }
+
+    if ((rb.stageResponsesPurpose & ShardRequest.PURPOSE_GET_FIELDS) != 0) {
+      returnFields(rb);
+    }
+
+    if (rb.stage == ResponseBuilder.STAGE_GET_FIELDS) {
+
+      // We may not have been able to retrieve all the docs due to an
+      // index change.  Remove any null documents.
+      for (Iterator<SolrDocument> iter = rb._responseDocs.iterator(); iter.hasNext(); ) {
+        if (iter.next() == null) {
+          iter.remove();
+          rb._responseDocs.setNumFound(rb._responseDocs.getNumFound() - 1);
+        }
+      }
+
+      rb.rsp.addResponse(rb.getResponseDocs());
+      if (null != rb.getNextCursorMark()) {
+        rb.rsp.add(CursorMarkParams.CURSOR_MARK_NEXT,
+            rb.getNextCursorMark().getSerializedTotem());
+      }
     }
   }
 
@@ -859,29 +940,40 @@ public class QueryComponent extends SearchComponent
     }
   }
 
-  protected void updateStats(ResponseBuilder rb, ShardRequest sreq) {
+  protected void updateStats(ResponseBuilder rb) {
     StatsCache cache = rb.req.getCore().getStatsCache();
-    cache.mergeToGlobalStats(rb.req, sreq.responses);
+    cache.mergeToGlobalStats(rb.req, rb.stageResponses);
   }
 
-  protected void createMainQuery(ResponseBuilder rb) {
-    ShardRequest sreq = new ShardRequest();
-    sreq.purpose = ShardRequest.PURPOSE_GET_TOP_IDS;
-
-    String keyFieldName = rb.req.getSchema().getUniqueKeyField().getName();
-
-    // one-pass algorithm if only id and score fields are requested, but not if fl=score since that's the same as fl=*,score
-    ReturnFields fields = rb.rsp.getReturnFields();
-
-    // distrib.singlePass=true forces a one-pass query regardless of requested fields
-    boolean distribSinglePass = rb.req.getParams().getBool(ShardParams.DISTRIB_SINGLE_PASS, false);
-
-    if(distribSinglePass || (fields != null && fields.wantsField(keyFieldName)
-        && fields.getRequestedFieldNames() != null  
-        && (!fields.hasPatternMatching() && Arrays.asList(keyFieldName, "score").containsAll(fields.getRequestedFieldNames())))) {
-      sreq.purpose |= ShardRequest.PURPOSE_GET_FIELDS;
-      rb.onePassDistributedQuery = true;
+  private void createMainQuerys(ResponseBuilder rb, boolean limitedRows) {
+    if (limitedRows) {
+      if (rb.shardRows.size() > 0) {
+        for (Map.Entry<String,Integer> entry : rb.shardRows.entrySet()) {
+          // todo nocommit why send a shard request if it won't fetch any docs?
+          createMainQuery(rb, entry.getValue());
+          rb.outgoing.get(rb.outgoing.size()-1).shards = new String[]{entry.getKey()};
+        }
+      } else {
+        // There are not matching document on any shards - no need to do any queries. Set rb properties
+        // as handleResponses would have done for a series of empty responses from the createMainQuery requests
+        rb.resultIds = new HashMap<Object,ShardDoc>();
+        rb._responseDocs = new SolrDocumentList();
+        rb._responseDocs.setNumFound(0);
+        rb._responseDocs.setStart(rb.getSortSpec().getOffset());
+      }
+    } else {
+      createMainQuery(rb, rb.getSortSpec().getCount());
     }
+  }
+
+  private void createMainQuery(ResponseBuilder rb, int rows) {
+    ShardRequest sreq = createBaseQuery(rb, rows);
+    populateShardRequestForMainQuery(rb, sreq);
+    rb.addRequest(this, sreq);
+  }
+
+  private ShardRequest createBaseQuery(ResponseBuilder rb, int rows) {
+    ShardRequest sreq = new ShardRequest();
 
     sreq.params = new ModifiableSolrParams(rb.req.getParams());
     // TODO: base on current params or original params?
@@ -905,15 +997,50 @@ public class QueryComponent extends SearchComponent
       // if the client set shards.rows set this explicity
       sreq.params.set(CommonParams.ROWS,rb.shards_rows);
     } else {
-      sreq.params.set(CommonParams.ROWS, rb.getSortSpec().getOffset() + rb.getSortSpec().getCount());
+      sreq.params.set(CommonParams.ROWS, rb.getSortSpec().getOffset() + rows);
     }
 
     sreq.params.set(ResponseBuilder.FIELD_SORT_VALUES,"true");
 
     boolean shardQueryIncludeScore = (rb.getFieldFlags() & SolrIndexSearcher.GET_SCORES) != 0 || rb.getSortSpec().includesScore();
+
+    // TODO: should this really sendGlobalDfs if just includeScore?
+
+    if (shardQueryIncludeScore) {
+      StatsCache statsCache = rb.req.getCore().getStatsCache();
+      statsCache.sendGlobalStats(rb, sreq);
+    }
+
+    return sreq;
+  }
+
+  private void populateShardRequestForMainQuery(ResponseBuilder rb, ShardRequest sreq) {
+    sreq.purpose |= ShardRequest.PURPOSE_GET_TOP_IDS;
+
+    String keyFieldName = rb.req.getSchema().getUniqueKeyField().getName();
+
+    boolean shardQueryIncludeScore = (rb.getFieldFlags() & SolrIndexSearcher.GET_SCORES) != 0 || rb.getSortSpec().includesScore();
+
+
+    // Skip get-ids algorithm if only id and score fields are requested, but not if fl=score since that's the same as fl=*,score
+    ReturnFields fields = rb.rsp.getReturnFields();
+
+    // Should we force skip of get-ids stage, and go directly for the docs
+    // Actually implemented as fetching the docs in get-ids stage, but that is just an implementation-detail. The user
+    // will most logically think of it as skipping the get-ids phase
+    boolean distribForceSkipGetIds = getDQA(rb).forceSkipGetIds(rb.req.getParams());
+
+    if(distribForceSkipGetIds || (fields != null && !fields.hasPatternMatching()
+        && fields.getRequestedFieldNames() != null
+        && (Arrays.asList(keyFieldName, "score").containsAll(fields.getRequestedFieldNames())))) {
+      sreq.purpose |= ShardRequest.PURPOSE_GET_FIELDS;
+      rb.distribSkipGetIds = true;
+    }
+
+
     StringBuilder additionalFL = new StringBuilder();
     boolean additionalAdded = false;
-    if (distribSinglePass)  {
+    if (distribForceSkipGetIds)  {
       String[] fls = rb.req.getParams().getParams(CommonParams.FL);
       if (fls != null && fls.length > 0 && (fls.length != 1 || !fls[0].isEmpty())) {
         // If the outer request contains actual FL's use them...
@@ -937,16 +1064,7 @@ public class QueryComponent extends SearchComponent
       }
     }
 
-    // TODO: should this really sendGlobalDfs if just includeScore?
-
-    if (shardQueryIncludeScore) {
-      StatsCache statsCache = rb.req.getCore().getStatsCache();
-      statsCache.sendGlobalStats(rb, sreq);
-    }
-
     if (additionalAdded) sreq.params.add(CommonParams.FL, additionalFL.toString());
-
-    rb.addRequest(this, sreq);
   }
   
   protected boolean addFL(StringBuilder fl, String field, boolean additionalAdded) {
@@ -956,12 +1074,35 @@ public class QueryComponent extends SearchComponent
   }
 
   protected void mergeIds(ResponseBuilder rb, ShardRequest sreq) {
+      IndexSchema schema = rb.req.getSchema();
+      SchemaField uniqueKeyField = schema.getUniqueKeyField();
+
+      boolean removeKeyField = removeKeyField(rb, uniqueKeyField.getName());
+      if (removeKeyField) {
+        int artificialId = 1;
+
+        for (ShardResponse srsp : rb.stageResponses) {
+          if (srsp.getException() == null) {
+            SolrDocumentList docs = (SolrDocumentList)srsp.getSolrResponse().getResponse().get("response");
+            for (int i=0; i<docs.size(); i++) {
+              SolrDocument doc = docs.get(i);
+              Object id = doc.getFieldValue(uniqueKeyField.getName());
+              if (id == null) {
+                id = artificialId++;
+                // Add some artificial ids to make mergeIds work
+                doc.setField(uniqueKeyField.getName(), id);
+              }
+            }
+          }
+        }
+      }
+
       List<MergeStrategy> mergeStrategies = rb.getMergeStrategies();
       if(mergeStrategies != null) {
         Collections.sort(mergeStrategies, MergeStrategy.MERGE_COMP);
         boolean idsMerged = false;
         for(MergeStrategy mergeStrategy : mergeStrategies) {
-          mergeStrategy.merge(rb, sreq);
+          mergeStrategy.merge(rb);
           if(mergeStrategy.mergesIds()) {
             idsMerged = true;
           }
@@ -980,10 +1121,6 @@ public class QueryComponent extends SearchComponent
       else {
         sortFields = new SortField[]{SortField.FIELD_SCORE};
       }
- 
-      IndexSchema schema = rb.req.getSchema();
-      SchemaField uniqueKeyField = schema.getUniqueKeyField();
-
 
       // id to shard mapping, to eliminate any accidental dups
       HashMap<Object,String> uniqueDoc = new HashMap<>();
@@ -1002,7 +1139,7 @@ public class QueryComponent extends SearchComponent
       Float maxScore=null;
       boolean partialResults = false;
       Boolean segmentTerminatedEarly = null;
-      for (ShardResponse srsp : sreq.responses) {
+      for (ShardResponse srsp : rb.stageResponses) {
         SolrDocumentList docs = null;
         NamedList<?> responseHeader = null;
 
@@ -1313,23 +1450,23 @@ public class QueryComponent extends SearchComponent
   }
 
 
-  protected void returnFields(ResponseBuilder rb, ShardRequest sreq) {
+  protected void returnFields(ResponseBuilder rb) {
     // Keep in mind that this could also be a shard in a multi-tiered system.
     // TODO: if a multi-tiered system, it seems like some requests
     // could/should bypass middlemen (like retrieving stored fields)
     // TODO: merge fsv to if requested
 
-    if ((sreq.purpose & ShardRequest.PURPOSE_GET_FIELDS) != 0) {
+    if ((rb.stageResponsesPurpose & ShardRequest.PURPOSE_GET_FIELDS) != 0) {
       boolean returnScores = (rb.getFieldFlags() & SolrIndexSearcher.GET_SCORES) != 0;
 
       String keyFieldName = rb.req.getSchema().getUniqueKeyField().getName();
-      boolean removeKeyField = !rb.rsp.getReturnFields().wantsField(keyFieldName);
+      boolean removeKeyField = removeKeyField(rb, keyFieldName);
       if (rb.rsp.getReturnFields().getFieldRenames().get(keyFieldName) != null) {
         // if id was renamed we need to use the new name
         keyFieldName = rb.rsp.getReturnFields().getFieldRenames().get(keyFieldName);
       }
 
-      for (ShardResponse srsp : sreq.responses) {
+      for (ShardResponse srsp : rb.stageResponses) {
         if (srsp.getException() != null) {
           // Don't try to get the documents if there was an exception in the shard
           if(rb.req.getParams().getBool(ShardParams.SHARDS_INFO, false)) {
@@ -1372,6 +1509,10 @@ public class QueryComponent extends SearchComponent
         }
       }
     }
+  }
+
+  private boolean removeKeyField(ResponseBuilder rb, String keyFieldName) {
+    return !rb.rsp.getReturnFields().wantsField(keyFieldName) || rb.stage == ResponseBuilder.STAGE_LIMIT_ROWS;
   }
 
   /////////////////////////////////////////////

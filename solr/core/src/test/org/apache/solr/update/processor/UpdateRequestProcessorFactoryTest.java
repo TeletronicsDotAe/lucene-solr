@@ -118,6 +118,7 @@ public class UpdateRequestProcessorFactoryTest extends AbstractSolrTestCase {
 
       // test a basic (non distrib) chain
       proc = chain.createProcessor(req(), new SolrQueryResponse());
+      try {
       procs = procToList(proc);
       assertEquals(name + " procs size: " + procs.toString(),
                    // -1 = NoOpDistributingUpdateProcessorFactory produces no processor
@@ -138,10 +139,14 @@ public class UpdateRequestProcessorFactoryTest extends AbstractSolrTestCase {
                  ( // compare them both just because i'm going insane and the more checks the better
                    proc.next instanceof LogUpdateProcessorFactory.LogUpdateProcessor
                    && procs.get(1) instanceof LogUpdateProcessorFactory.LogUpdateProcessor));
+      } finally {
+        proc.finish();
+      }
 
       // fetch the distributed version of this chain
       proc = chain.createProcessor(req(DISTRIB_UPDATE_PARAM, "non_blank_value"),
                                    new SolrQueryResponse());
+      try {
       procs = procToList(proc);
       assertNotNull(name + " (distrib) chain produced null proc", proc);
       assertFalse(name + " (distrib) procs is empty", procs.isEmpty());
@@ -164,6 +169,9 @@ public class UpdateRequestProcessorFactoryTest extends AbstractSolrTestCase {
                    // -1 = distrib-chain-implicit: does RemoveBlank before distrib
                    EXPECTED_CHAIN_LENGTH - ( "distrib-chain-explicit".equals(name) ? 1 : 2),
                    procs.size());
+      } finally {
+        proc.finish();
+      }
     }
 
   }

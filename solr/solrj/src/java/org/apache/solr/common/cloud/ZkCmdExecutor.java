@@ -16,10 +16,10 @@
  */
 package org.apache.solr.common.cloud;
 
+import org.apache.solr.common.TestSpeedControllers;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
-
 
 public class ZkCmdExecutor {
   private long retryDelay = 1500L; // 1 second would match timeout, so 500 ms over for padding
@@ -67,7 +67,11 @@ public class ZkCmdExecutor {
           throw new InterruptedException();
         }
         if (i != retryCount -1) {
-          retryDelay(i);
+          if (TestSpeedControllers.zkCmdExecutorRetry()) {
+            retryDelay(i);
+          } else {
+            break;
+          }
         }
       }
     }

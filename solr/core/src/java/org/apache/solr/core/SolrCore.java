@@ -2807,6 +2807,7 @@ public final class SolrCore implements SolrInfoMBean, SolrMetricProducer, Closea
           shard = "_auto_";
         }
         lst.add("shard", shard);
+        lst.add("indexDir", getIndexDir());
       }
     }
 

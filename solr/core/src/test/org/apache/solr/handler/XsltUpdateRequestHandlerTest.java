@@ -16,12 +16,12 @@
  */
 package org.apache.solr.handler;
 
-import org.apache.solr.SolrTestCaseJ4;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.solr.SolrTestCaseJ4;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.MapSolrParams;
 import org.apache.solr.common.util.ContentStream;
@@ -30,8 +30,9 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.handler.loader.XMLLoader;
 import org.apache.solr.request.LocalSolrQueryRequest;
-import org.apache.solr.response.QueryResponseWriter;
 import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.request.SolrRequestInfo;
+import org.apache.solr.response.QueryResponseWriter;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.processor.BufferingRequestProcessor;
@@ -77,6 +78,8 @@ public class XsltUpdateRequestHandlerTest extends SolrTestCaseJ4 {
     streams.add(new ContentStreamBase.StringStream(xml));
     req.setContentStreams(streams);
     SolrQueryResponse rsp = new SolrQueryResponse();
+  	SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req, rsp));
+  	try {
     UpdateRequestHandler handler = new UpdateRequestHandler();
     handler.init(new NamedList<String>());
     handler.handleRequestBody(req, rsp);
@@ -87,11 +90,13 @@ public class XsltUpdateRequestHandlerTest extends SolrTestCaseJ4 {
     String response = sw.toString();
     assertU(response);
     assertU(commit());
-
     assertQ("test document was correctly committed", req("q","*:*")
             , "//result[@numFound='1']"
             , "//int[@name='id'][.='12345']"
         );
+    } finally {
+      SolrRequestInfo.clearRequestInfo();
+    }
   }
   
   @Test
@@ -116,7 +121,7 @@ public class XsltUpdateRequestHandlerTest extends SolrTestCaseJ4 {
       "</random>";
     SolrQueryRequest req = req(CommonParams.TR, "xsl-update-handler-test.xsl");
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
     XMLLoader loader = new XMLLoader().init(null);
     loader.load(req, rsp, new ContentStreamBase.StringStream(xml), p);
 

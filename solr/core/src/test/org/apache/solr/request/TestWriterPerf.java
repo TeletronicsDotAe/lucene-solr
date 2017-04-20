@@ -94,8 +94,9 @@ public class TestWriterPerf extends AbstractSolrTestCase {
   public SolrQueryResponse getResponse(SolrQueryRequest req) throws Exception {
     SolrQueryResponse rsp = new SolrQueryResponse();
     h.getCore().execute(h.getCore().getRequestHandler(null),req,rsp);
-    if (rsp.getException() != null) {
-      throw rsp.getException();
+    Exception e;
+    if ((e = rsp.getException()) != null) {
+      throw e;
     }
     return rsp;
   }
