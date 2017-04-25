@@ -31,6 +31,8 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.util.BytesRef;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.schema.IndexSchema;
 import org.apache.solr.schema.SchemaField;
 import org.apache.solr.update.AddUpdateCommand;
@@ -57,8 +59,8 @@ class ClassificationUpdateProcessor
    * @param indexReader     index reader
    * @param schema          schema
    */
-  public ClassificationUpdateProcessor(ClassificationUpdateProcessorParams classificationParams, UpdateRequestProcessor next, IndexReader indexReader, IndexSchema schema) {
-    super(next);
+  public ClassificationUpdateProcessor(ClassificationUpdateProcessorParams classificationParams, UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp, IndexReader indexReader, IndexSchema schema) {
+    super(next, req, rsp);
     this.trainingClassField = classificationParams.getTrainingClassField();
     this.predictedClassField = classificationParams.getPredictedClassField();
     this.maxOutputClasses = classificationParams.getMaxPredictedClasses();

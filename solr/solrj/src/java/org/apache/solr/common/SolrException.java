@@ -18,20 +18,20 @@ package org.apache.solr.common;
 
 import java.io.CharArrayWriter;
 import java.io.PrintWriter;
-import java.util.Map;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.solr.common.util.NamedList;
 
 import org.apache.http.HttpResponse;
 import org.apache.solr.client.solrj.SolrResponse;
+import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.util.SimpleOrderedMap;
 import org.slf4j.Logger;
-import org.slf4j.MDC;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  *
@@ -297,11 +297,11 @@ public class SolrException extends RuntimeException {
 	protected static final String ERROR_MSG = "error-msg";
 	protected static final String HTTP_ERROR_HEADER_KEY = SolrResponse.HTTP_HEADER_KEY_PREFIX + ERROR_TYPE;
 	protected static final String PROPERTIES = "properties";
-	
-  public static SolrException decodeFromHttpMethod(HttpResponse response, String reasonPhraseEncoding, String additionalMsgToPutInCreatedException, NamedList<Object> payload) throws UnsupportedEncodingException {
-    return createFromClassNameCodeAndMsg(response.getFirstHeader(HTTP_ERROR_HEADER_KEY).getValue(), response.getStatusLine().getStatusCode(), java.net.URLDecoder.decode(response.getStatusLine().getReasonPhrase(), reasonPhraseEncoding) + additionalMsgToPutInCreatedException, payload);
+
+  public static SolrException decodeFromHttpMethod(HttpResponse response, String encoding, String reasonPhraseEncoding,  NamedList<Object> payload, byte[] additionalMsgToPutInCreatedException) throws UnsupportedEncodingException {
+    return createFromClassNameCodeAndMsg(response.getFirstHeader(HTTP_ERROR_HEADER_KEY).getValue(), response.getStatusLine().getStatusCode(), java.net.URLDecoder.decode(response.getStatusLine().getReasonPhrase(), reasonPhraseEncoding) + new String(additionalMsgToPutInCreatedException, encoding), payload);
   }
-  
+
   public void encodeTypeInHttpServletResponse(Object httpServletResponse) {
     // httpServletResponse.addHeader(HTTP_ERROR_HEADER_KEY, getClass().getName());
     // Coded using reflection, because SolrException needs to be in client jar as well as in server jar, but you only want to call

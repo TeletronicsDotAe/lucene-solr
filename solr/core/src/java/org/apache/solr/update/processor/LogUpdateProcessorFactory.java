@@ -84,7 +84,7 @@ public class LogUpdateProcessorFactory extends UpdateRequestProcessorFactory imp
     private final boolean logDebug = log.isDebugEnabled();//cache to avoid volatile-read
 
     public LogUpdateProcessor(SolrQueryRequest req, SolrQueryResponse rsp, LogUpdateProcessorFactory factory, UpdateRequestProcessor next) {
-      super( next );
+      super( next, req, rsp);
       this.req = req;
       this.rsp = rsp;
       maxNumToLog = factory.maxNumToLog;  // TODO: make configurable

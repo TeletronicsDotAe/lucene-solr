@@ -75,7 +75,7 @@ public final class CountFieldValuesUpdateProcessorFactory extends FieldMutatingU
       result.setValue(src.getValueCount(),
           src.getBoost());
       return result;
-    });
+    }, req, rsp);
   }
 }
 

@@ -16,8 +16,6 @@
  */
 package org.apache.solr.update.processor;
 
-import static org.apache.solr.common.SolrException.ErrorCode;
-
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
@@ -30,6 +28,8 @@ import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.update.CommitUpdateCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.solr.common.SolrException.ErrorCode;
 
 /**
  * <p>
@@ -86,7 +86,7 @@ public class IgnoreCommitOptimizeUpdateProcessorFactory extends UpdateRequestPro
 
   @Override
   public UpdateRequestProcessor getInstance(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next) {
-    return new IgnoreCommitOptimizeUpdateProcessor(rsp, this, next);
+    return new IgnoreCommitOptimizeUpdateProcessor(req, rsp, this, next);
   }
   
   static class IgnoreCommitOptimizeUpdateProcessor extends UpdateRequestProcessor {
@@ -96,11 +96,11 @@ public class IgnoreCommitOptimizeUpdateProcessorFactory extends UpdateRequestPro
     private final String responseMsg;
     private final boolean ignoreOptimizeOnly;
 
-    IgnoreCommitOptimizeUpdateProcessor(SolrQueryResponse rsp,
+    IgnoreCommitOptimizeUpdateProcessor(SolrQueryRequest req, SolrQueryResponse rsp,
                                         IgnoreCommitOptimizeUpdateProcessorFactory factory,
                                         UpdateRequestProcessor next)
     {
-      super(next);
+      super(next, req, rsp);
       this.rsp = rsp;
       this.errorCode = factory.errorCode;
       this.responseMsg = factory.responseMsg;

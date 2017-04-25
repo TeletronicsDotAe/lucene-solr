@@ -16,6 +16,10 @@
  */
 package org.apache.solr.update.processor;
 
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.util.Map;
+
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.util.BytesRef;
@@ -38,10 +42,6 @@ import org.apache.solr.util.RefCounted;
 import org.apache.solr.util.plugin.SolrCoreAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.util.Map;
 
 import static org.apache.solr.common.SolrException.ErrorCode.BAD_REQUEST;
 import static org.apache.solr.common.SolrException.ErrorCode.CONFLICT;
@@ -196,7 +196,7 @@ public class DocBasedVersionConstraintsProcessorFactory extends UpdateRequestPro
                                                SolrQueryRequest req, 
                                                SolrQueryResponse rsp, 
                                                UpdateRequestProcessor next ) {
-      super(next);
+      super(next, req, rsp);
       this.ignoreOldUpdates = ignoreOldUpdates;
       this.deleteVersionParamName = deleteVersionParamName;
       this.core = req.getCore();
@@ -261,8 +261,7 @@ public class DocBasedVersionConstraintsProcessorFactory extends UpdateRequestPro
       SolrInputDocument oldDoc = null;
 
       if (useFieldCache) {
-        //FIXME MERGE - Old code had s null added as the final parameter. We likely need to add an overrided method on RealTimeGetComponent..?
-        oldDoc = RealTimeGetComponent.getInputDocumentFromTlog(core, indexedDocId, null, null, true, null);
+        oldDoc = RealTimeGetComponent.getInputDocumentFromTlog(core, indexedDocId, null, null, true, DistributedUpdateProcessor.updateStats.getGetInputDocumentStatsEntries());
         if (oldDoc == RealTimeGetComponent.DELETED) {
           return true;
         }

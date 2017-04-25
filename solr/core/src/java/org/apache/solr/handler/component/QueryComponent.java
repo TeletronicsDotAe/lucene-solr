@@ -1073,7 +1073,7 @@ public class QueryComponent extends SearchComponent
     return true;
   }
 
-  protected void mergeIds(ResponseBuilder rb, ShardRequest sreq) {
+  protected void mergeIds(ResponseBuilder rb) {
       IndexSchema schema = rb.req.getSchema();
       SchemaField uniqueKeyField = schema.getUniqueKeyField();
 

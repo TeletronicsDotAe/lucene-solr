@@ -66,7 +66,7 @@ public final class FieldLengthUpdateProcessorFactory extends FieldMutatingUpdate
   public UpdateRequestProcessor getInstance(SolrQueryRequest req,
                                             SolrQueryResponse rsp,
                                             UpdateRequestProcessor next) {
-    return valueMutator(getSelector(), next, src -> {
+    return valueMutator(getSelector(), next, req, rsp, src -> {
       if (src instanceof CharSequence) {
         return ((CharSequence) src).length();
       }

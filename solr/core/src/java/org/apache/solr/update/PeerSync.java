@@ -33,7 +33,6 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.Timer;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.client.HttpClient;
-import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.lucene.util.BytesRef;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -56,7 +55,6 @@ import org.apache.solr.metrics.SolrMetricProducer;
 import org.apache.solr.request.LocalSolrQueryRequest;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
-import org.apache.solr.security.InterSolrNodeAuthCredentialsFactory.AuthCredentialsSource;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 import org.apache.solr.update.processor.UpdateRequestProcessorChain;
 import org.slf4j.Logger;
@@ -158,7 +156,7 @@ public class PeerSync implements SolrMetricProducer {
     ulog = uhandler.getUpdateLog();
 
     shardHandlerFactory = (HttpShardHandlerFactory) core.getCoreDescriptor().getCoreContainer().getShardHandlerFactory();
-    shardHandler = shardHandlerFactory.getShardHandler(AuthCredentialsSource.useInternalAuthCredentials());
+    shardHandler = shardHandlerFactory.getShardHandler();
 
     core.getCoreMetricManager().registerMetricProducer(SolrInfoMBean.Category.REPLICATION.toString(), this);
   }
@@ -763,7 +761,6 @@ public class PeerSync implements SolrMetricProducer {
     params.set(DISTRIB_UPDATE_PARAM, FROMLEADER.toString());
     params.set("peersync",true); // debugging
     SolrQueryRequest req = new LocalSolrQueryRequest(uhandler.core, params);
-    ((LocalSolrQueryRequest)req).setAuthCredentials(AuthCredentialsSource.useInternalAuthCredentials().getAuthCredentials());
     SolrQueryResponse rsp = new SolrQueryResponse();
 
     UpdateRequestProcessorChain processorChain = req.getCore().getUpdateProcessingChain(null);

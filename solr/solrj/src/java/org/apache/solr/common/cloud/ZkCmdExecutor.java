@@ -16,7 +16,6 @@
  */
 package org.apache.solr.common.cloud;
 
-import org.apache.solr.common.TestSpeedControllers;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
@@ -67,11 +66,7 @@ public class ZkCmdExecutor {
           throw new InterruptedException();
         }
         if (i != retryCount -1) {
-          if (TestSpeedControllers.zkCmdExecutorRetry()) {
-            retryDelay(i);
-          } else {
-            break;
-          }
+          retryDelay(i);
         }
       }
     }

@@ -16,6 +16,7 @@
  */
 package org.apache.solr.client.solrj.impl;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -566,11 +567,12 @@ public class HttpSolrClient extends SolrClient {
       }
 
       // Deal with errors before checking content-type. Content-type is only reliable if request was successfull
-      String charset = EntityUtils.getContentCharSet(response.getEntity());
       if (httpStatus != HttpStatus.SC_OK) {
+        String charset = EntityUtils.getContentCharSet(response.getEntity());
         StringBuilder additionalMsg = new StringBuilder();
         additionalMsg.append( "\n\n" );
         additionalMsg.append( "request: "+method.getURI() );
+        // FIXME MERGE - We might not need the following three lines anymore - seems to be introduced because of our auth at the time
         byte[] rawPayload = IOUtils.toByteArray(respBody);
         NamedList<Object> payload = (response.getFirstHeader(HTTP_EXPLICIT_BODY_INCLUDED_HEADER_KEY) != null)?getProcessedResponse(processor, new ByteArrayInputStream(rawPayload), charset, httpStatus, false):null;
         SolrException ex = SolrException.decodeFromHttpMethod(response, "UTF-8", additionalMsg.toString(), payload, rawPayload);
@@ -651,7 +653,7 @@ public class HttpSolrClient extends SolrClient {
     }
   }
 
-  // FIXME MERGE - Do we need this method still..?
+  // FIXME MERGE - Do we need this method still (likely a leftover from our auth stuff)..?
   public static NamedList<Object> getProcessedResponse(final ResponseParser processor, InputStream respBody, String charset, int httpStatus, boolean throwExceptioOnProcessError) {
     try {
       return processor.processResponse(respBody, charset);

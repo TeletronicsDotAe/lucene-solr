@@ -88,8 +88,10 @@ public abstract class FieldValueMutatingUpdateProcessor
 
   public static FieldValueMutatingUpdateProcessor valueMutator(FieldNameSelector selector,
                                                                UpdateRequestProcessor next,
+                                                               SolrQueryRequest req,
+                                                               SolrQueryResponse rsp,
                                                                Function<Object, Object> fun) {
-    return new FieldValueMutatingUpdateProcessor(selector, next) {
+    return new FieldValueMutatingUpdateProcessor(selector, next, req, rsp) {
       @Override
       protected Object mutateValue(Object src) {
         return fun.apply(src);

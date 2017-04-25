@@ -289,9 +289,9 @@ public abstract class FieldMutatingUpdateProcessor
     }
    }
   public static FieldMutatingUpdateProcessor mutator(FieldNameSelector selector,
-                                              UpdateRequestProcessor next,
-                                              Function<SolrInputField,SolrInputField> fun){
-    return new FieldMutatingUpdateProcessor(selector, next) {
+                                                     UpdateRequestProcessor next,
+                                                     Function<SolrInputField, SolrInputField> fun, SolrQueryRequest req, SolrQueryResponse rsp){
+    return new FieldMutatingUpdateProcessor(selector, next, req, rsp) {
       @Override
       protected SolrInputField mutate(SolrInputField src) {
         return fun.apply(src);

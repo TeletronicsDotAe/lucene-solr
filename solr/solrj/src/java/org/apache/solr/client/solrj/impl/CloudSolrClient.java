@@ -70,10 +70,10 @@ import org.apache.solr.common.cloud.Slice;
 import org.apache.solr.common.cloud.ZkCoreNodeProps;
 import org.apache.solr.common.cloud.ZkNodeProps;
 import org.apache.solr.common.cloud.ZkStateReader;
+import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.ShardParams;
 import org.apache.solr.common.params.SolrParams;
-import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.UpdateParams;
 import org.apache.solr.common.util.ExecutorUtil;
 import org.apache.solr.common.util.Hash;
@@ -1245,18 +1245,16 @@ public class CloudSolrClient extends SolrClient {
     return resp;
   }
 
-  // FIXME MERGE - Figure out the login in sendRequest anf figure out if we still need this method
-  private String getRealtimeGetUrl(String collection, ClusterState clusterState, String id, String route) {
+  // FIXME MERGE - Figure out the logic in sendRequest and figure out if we still need this method
+  private String getRealtimeGetUrl(String collection, String id, String route) {
     //Check to see if the collection is an alias.
-    Aliases aliases = zkStateReader.getAliases();
-    if(aliases != null) {
-      Map<String, String> collectionAliases = aliases.getCollectionAliasMap();
-      if(collectionAliases != null && collectionAliases.containsKey(collection)) {
-        collection = collectionAliases.get(collection);
-      }
+    String alias = stateProvider.getAlias(collection);
+    if (alias != null) {
+      collection = alias;
     }
 
-    DocCollection col = clusterState.getCollection(collection);
+    stateProvider.getState(collection).get();
+    DocCollection col = stateProvider.getState(collection).get();
 
     DocRouter router = col.getRouter();
 
@@ -1323,7 +1321,7 @@ public class CloudSolrClient extends SolrClient {
           // * Probably want not to use "route" as the name for route. Use UpdateRequest.ROUTE instead
           // * Probably want to keep id null, and set route = reqParams.get(UpdateRequest.ROUTE) instead
         }
-        theUrlList.add(getRealtimeGetUrl(collection, clusterState, id, route));
+        theUrlList.add(getRealtimeGetUrl(collection, id, route));
       } else {
         // FIXME MERGE end - Figure out if we still need this.
 

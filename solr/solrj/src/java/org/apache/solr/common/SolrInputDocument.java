@@ -53,7 +53,12 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
     partImpl = new RequestPartImpl();
     _fields = fields;
   }
-  
+
+  public SolrInputDocument(Map<String,SolrInputField> fields, String uniquePartRef) {
+    partImpl = new RequestPartImpl(uniquePartRef);
+    _fields = fields;
+  }
+
   /**
    * Remove all fields and boosts from the document
    */

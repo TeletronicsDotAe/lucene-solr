@@ -16,15 +16,17 @@
  */
 package org.apache.solr.update.processor;
 
-import org.apache.solr.common.SolrInputField;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+
+import org.apache.solr.common.SolrInputField;
+import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.response.SolrQueryResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Abstract subclass of FieldMutatingUpdateProcessor for implementing 
@@ -56,8 +58,8 @@ public abstract class AllValuesOrNoneFieldMutatingUpdateProcessor extends FieldM
   };
 
 
-  public AllValuesOrNoneFieldMutatingUpdateProcessor(FieldNameSelector selector, UpdateRequestProcessor next) {
-    super(selector, next);
+  public AllValuesOrNoneFieldMutatingUpdateProcessor(FieldNameSelector selector, UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
+    super(selector, next, req, rsp);
   }
 
   /**

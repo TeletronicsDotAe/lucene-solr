@@ -58,7 +58,6 @@ import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.ShardParams;
 import org.apache.solr.common.params.SolrParams;
-import org.apache.solr.common.util.Hash;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.util.StrUtils;
 import org.apache.solr.core.SolrCore;
@@ -83,9 +82,8 @@ import org.apache.solr.update.RecentlyLookedUpOrUpdatedDocumentsHandler.FoundLoc
 import org.apache.solr.update.UpdateLog;
 import org.apache.solr.update.UpdateLog.LookupResult;
 import org.apache.solr.update.VersionBucket;
-import org.apache.solr.update.VersionInfo;
-import org.apache.solr.update.statistics.RealtimeGetComponentStats.GetInputDocumentStatsEntries;
 import org.apache.solr.update.processor.DistributedUpdateProcessor;
+import org.apache.solr.update.statistics.RealtimeGetComponentStats.GetInputDocumentStatsEntries;
 import org.apache.solr.util.RefCounted;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -249,7 +247,7 @@ public class RealTimeGetComponent extends SearchComponent
 
         */
        if (ulog != null) {
-         Object o = ulog.lookup(idBytes.get());
+         Object o = ulog.lookup(idBytes.get(), null, true);
          if (o != null) {
            // should currently be a List<Oper,Ver,Doc/Id>
            List entry = (List)o;
@@ -337,12 +335,15 @@ public class RealTimeGetComponent extends SearchComponent
        }
        docList.add(doc);
 
+       // FIXME MERGE - redo this method!
+       /*
        SolrInputDocument sid = toSolrInputDocument(luceneDocument, core.getLatestSchema());
 
        RecentlyLookedUpOrUpdatedDocumentsHandler.getRecentlyLookedUpOrUpdatedDocuments().addDocument(ulog, idBytes.get(), sid, FoundLocation.Index);
-       }} finally {
+       } finally {
          if (vinfo != null) vinfo.unlockForUpdate();
        }
+       */
      }
 
    } finally {
@@ -368,7 +369,8 @@ public class RealTimeGetComponent extends SearchComponent
     String idStr = params.get("getInputDocument", null);
     if (idStr == null) return;
     AtomicLong version = new AtomicLong();
-    SolrInputDocument doc = getInputDocument(req.getCore(), new BytesRef(idStr), version, false, null, true);
+    // FIXME MERGE - in-place update of docvalues. What to do - create/pass stats from where..?
+    SolrInputDocument doc = getInputDocument(req.getCore(), new BytesRef(idStr), version, false, null, true, null);
     log.info("getInputDocument called for id="+idStr+", returning: "+doc);
     rb.rsp.add("inputDocument", doc);
     rb.rsp.add("version", version.get());
@@ -554,13 +556,12 @@ public class RealTimeGetComponent extends SearchComponent
     UpdateLog ulog = core.getUpdateHandler().getUpdateLog();
 
     if (ulog != null) {
-      //FIXME MERGE - Remerge and validate this. Our old code replaced all the below, but that was before inplace updates
-      /*
       LookupResult lr = ulog.lookup(idBytes, getInputDocumentStatsEntries.getLookupStatsEntries(), true);
       if (lr.getSid() != null) return lr.getSid();
       return lr.isMaybeInIndex()?null:DELETED;
-       */
 
+      //FIXME MERGE - Remerge and validate this. Our old code replaced all the below, but that was before inplace updates
+      /*
       Object o = ulog.lookup(idBytes);
       if (o != null) {
         // should currently be a List<Oper,Ver,Doc/Id>
@@ -599,6 +600,7 @@ public class RealTimeGetComponent extends SearchComponent
             throw new SolrException(SolrException.ErrorCode.SERVER_ERROR,  "Unknown Operation! " + oper);
         }
       }
+      */
     }
 
     return null;
@@ -608,13 +610,13 @@ public class RealTimeGetComponent extends SearchComponent
    * Obtains the latest document for a given id from the tlog or index (if not found in the tlog).
    * 
    * NOTE: This method uses the effective value for avoidRetrievingStoredFields param as false and
-   * for nonStoredDVs as null in the call to @see {@link RealTimeGetComponent#getInputDocument(SolrCore, BytesRef, AtomicLong, boolean, Set, boolean)},
+   * for nonStoredDVs as null in the call to @see {@link RealTimeGetComponent#getInputDocument(SolrCore, BytesRef, AtomicLong, boolean, Set, boolean, GetInputDocumentStatsEntries)},
    * so as to retrieve all stored and non-stored DV fields from all documents. Also, it uses the effective value of
    * resolveFullDocument param as true, i.e. it resolves any partial documents (in-place updates), in case the 
    * document is fetched from the tlog, to a full document.
    */
-  public static SolrInputDocument getInputDocument(SolrCore core, BytesRef idBytes) throws IOException {
-    return getInputDocument (core, idBytes, null, false, null, true);
+  public static SolrInputDocument getInputDocument(SolrCore core, BytesRef idBytes, GetInputDocumentStatsEntries getInputDocumentStatsEntries) throws IOException {
+    return getInputDocument (core, idBytes, null, false, null, true, getInputDocumentStatsEntries);
   }
   
   /**

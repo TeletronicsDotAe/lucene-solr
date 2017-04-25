@@ -16,22 +16,21 @@
  */
 package org.apache.solr.core;
 
-import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.request.SolrRequestInfo;
-import org.apache.solr.response.ResultContext;
-import org.apache.solr.search.SolrIndexSearcher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.solr.search.DocList;
-import org.apache.solr.search.DocIterator;
-import org.apache.solr.security.InterSolrNodeAuthCredentialsFactory.AuthCredentialsSource;
+import java.lang.invoke.MethodHandles;
+import java.util.List;
+
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.request.LocalSolrQueryRequest;
+import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.request.SolrRequestInfo;
+import org.apache.solr.response.ResultContext;
 import org.apache.solr.response.SolrQueryResponse;
-
-import java.lang.invoke.MethodHandles;
-import java.util.List;
+import org.apache.solr.search.DocIterator;
+import org.apache.solr.search.DocList;
+import org.apache.solr.search.SolrIndexSearcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -63,9 +62,6 @@ public class QuerySenderListener extends AbstractSolrEventListener {
           @Override public SolrIndexSearcher getSearcher() { return searcher; }
           @Override public void close() { }
         };
-        // Might actually want to useAuthCredentialsFromOuterRequest here, because essentially (at least some times) it is
-        // indirectly a direct action on a outer request
-        ((LocalSolrQueryRequest)req).setAuthCredentials(AuthCredentialsSource.useInternalAuthCredentials().getAuthCredentials());
 
         SolrQueryResponse rsp = new SolrQueryResponse();
         if (createNewReqInfo) {

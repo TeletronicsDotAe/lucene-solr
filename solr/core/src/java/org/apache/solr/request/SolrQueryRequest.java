@@ -16,20 +16,19 @@
  */
 package org.apache.solr.request;
 
-import org.apache.solr.search.SolrIndexSearcher;
-import org.apache.solr.security.AuthCredentials;
-import org.apache.solr.schema.IndexSchema;
-import org.apache.solr.common.params.SolrParams;
-import org.apache.solr.common.util.ContentStream;
-import org.apache.solr.core.SolrCore;
-import org.apache.solr.servlet.HttpSolrCall;
-import org.apache.solr.util.CommandOperation;
-import org.apache.solr.util.RTimerTree;
-
 import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.solr.common.params.SolrParams;
+import org.apache.solr.common.util.ContentStream;
+import org.apache.solr.core.SolrCore;
+import org.apache.solr.schema.IndexSchema;
+import org.apache.solr.search.SolrIndexSearcher;
+import org.apache.solr.servlet.HttpSolrCall;
+import org.apache.solr.util.CommandOperation;
+import org.apache.solr.util.RTimerTree;
 
 /**
  * <p>Container for a request to execute a query.</p>
@@ -94,11 +93,6 @@ public interface SolrQueryRequest extends AutoCloseable {
    * Suitable for logging.
    */
   public String getParamString();
-  
-  /**
-   * Returns credentials used to authenticate the request
-   */
-  public AuthCredentials getAuthCredentials();
 
   /** Returns any associated JSON (or null if none) in deserialized generic form.
    * Java classes used to represent the JSON are as follows: Map, List, String, Long, Double, Boolean

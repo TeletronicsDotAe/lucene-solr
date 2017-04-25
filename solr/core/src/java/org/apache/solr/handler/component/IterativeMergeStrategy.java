@@ -47,7 +47,7 @@ public abstract class IterativeMergeStrategy implements MergeStrategy  {
 
   public void merge(ResponseBuilder rb, ShardRequest sreq) {
     rb._responseDocs = new SolrDocumentList(); // Null pointers will occur otherwise.
-    rb.onePassDistributedQuery = true;   // Turn off the second pass distributed.
+    rb.distribSkipGetIds = true;   // Turn off the second pass distributed.
     executorService =     ExecutorUtil.newMDCAwareCachedThreadPool(new SolrjNamedThreadFactory("IterativeMergeStrategy"));
     try {
       process(rb, sreq);

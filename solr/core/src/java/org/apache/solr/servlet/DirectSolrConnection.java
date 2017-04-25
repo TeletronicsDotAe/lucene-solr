@@ -118,7 +118,7 @@ public class DirectSolrConnection
 
     SolrQueryRequest req = null;
     try {
-      req = parser.buildRequestFrom( core, params, streams, authCredentials );
+      req = parser.buildRequestFrom( core, params, streams);
       SolrRequestInfo reqInfo;
     	SolrQueryResponse rsp;
     	// FIXME-MERGE - Do we still need to have this IF statement..?

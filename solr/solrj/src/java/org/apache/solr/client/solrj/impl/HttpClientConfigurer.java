@@ -18,9 +18,7 @@ package org.apache.solr.client.solrj.impl;
 
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.client.HttpClient;
 import org.apache.solr.common.params.SolrParams;
-import org.apache.solr.security.AuthCredentials;
 
 /**
  * The default http client configurer. If the behaviour needs to be customized a
@@ -29,7 +27,7 @@ import org.apache.solr.security.AuthCredentials;
  */
 public class HttpClientConfigurer {
   
-  public void configure(HttpClient httpClient, SolrParams config, AuthCredentials authCredentials) {
+  public void configure(DefaultHttpClient httpClient, SolrParams config) {
     
     if (config.get(HttpClientUtil.PROP_MAX_CONNECTIONS) != null) {
       HttpClientUtil.setMaxConnections(httpClient,
@@ -60,8 +58,6 @@ public class HttpClientConfigurer {
     HttpClientUtil.setUseRetry(httpClient,
         config.getBool(HttpClientUtil.PROP_USE_RETRY, true));
 
-    HttpClientUtil.setAuthCredentials(httpClient, authCredentials);
-    
     if (config.get(HttpClientUtil.PROP_ALLOW_COMPRESSION) != null) {
       HttpClientUtil.setAllowCompression(httpClient,
           config.getBool(HttpClientUtil.PROP_ALLOW_COMPRESSION));

@@ -57,7 +57,7 @@ public final class RemoveBlankFieldUpdateProcessorFactory extends FieldMutatingU
   public UpdateRequestProcessor getInstance(SolrQueryRequest req,
                                             SolrQueryResponse rsp,
                                             UpdateRequestProcessor next) {
-    return valueMutator(getSelector(), next, src -> {
+    return valueMutator(getSelector(), next, req, rsp, src -> {
       if (src instanceof CharSequence
           && 0 == ((CharSequence) src).length()) {
         return DELETE_VALUE_SINGLETON;

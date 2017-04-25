@@ -16,27 +16,6 @@
  */
 package org.apache.solr.update;
 
-import org.apache.http.HttpResponse;
-import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.BinaryResponseParser;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
-import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrClient; // jdoc
-import org.apache.solr.client.solrj.request.AbstractUpdateRequest;
-import org.apache.solr.client.solrj.request.UpdateRequest;
-import org.apache.solr.common.SolrException;
-import org.apache.solr.common.SolrException.ErrorCode;
-import org.apache.solr.common.cloud.ZkCoreNodeProps;
-import org.apache.solr.common.cloud.ZkStateReader;
-import org.apache.solr.common.params.ModifiableSolrParams;
-import org.apache.solr.common.util.NamedList;
-import org.apache.solr.core.Diagnostics;
-import org.apache.solr.update.processor.DistributedUpdateProcessor;
-import org.apache.solr.update.processor.DistributedUpdateProcessor.RequestReplicationTracker;
-import org.apache.solr.security.InterSolrNodeAuthCredentialsFactory.AuthCredentialsSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
@@ -50,6 +29,26 @@ import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+
+import org.apache.http.HttpResponse;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.BinaryResponseParser;
+import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrClient;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.request.AbstractUpdateRequest;
+import org.apache.solr.client.solrj.request.UpdateRequest;
+import org.apache.solr.common.SolrException;
+import org.apache.solr.common.SolrException.ErrorCode;
+import org.apache.solr.common.cloud.ZkCoreNodeProps;
+import org.apache.solr.common.cloud.ZkStateReader;
+import org.apache.solr.common.params.ModifiableSolrParams;
+import org.apache.solr.common.util.NamedList;
+import org.apache.solr.core.Diagnostics;
+import org.apache.solr.update.processor.DistributedUpdateProcessor;
+import org.apache.solr.update.processor.DistributedUpdateProcessor.RequestReplicationTracker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class SolrCmdDistributor {
@@ -65,8 +64,7 @@ public class SolrCmdDistributor {
   private final List<Error> allErrors = new ArrayList<>();
   private final List<Error> errors = Collections.synchronizedList(new ArrayList<Error>());
   private final ExecutorService updateExecutor;
-  private AuthCredentialsSource authCredentialsSource;
-  
+
   private final CompletionService<Object> completionService;
   private final Set<Future<Object>> pending = new HashSet<>();
   
@@ -74,20 +72,18 @@ public class SolrCmdDistributor {
     public boolean abortCheck();
   }
   
-  public SolrCmdDistributor(UpdateShardHandler updateShardHandler, AuthCredentialsSource authCredentialsSource) {
+  public SolrCmdDistributor(UpdateShardHandler updateShardHandler) {
     this.clients = new StreamingSolrClients(updateShardHandler);
     this.updateExecutor = updateShardHandler.getUpdateExecutor();
     this.completionService = new ExecutorCompletionService<>(updateExecutor);
-    this.authCredentialsSource = authCredentialsSource;
   }
   
-  public SolrCmdDistributor(StreamingSolrClients clients, int maxRetriesOnForward, int retryPause, AuthCredentialsSource authCredentialsSource) {
+  public SolrCmdDistributor(StreamingSolrClients clients, int maxRetriesOnForward, int retryPause) {
     this.clients = clients;
     this.maxRetriesOnForward = maxRetriesOnForward;
     this.retryPause = retryPause;
     this.updateExecutor = clients.getUpdateExecutor();
     completionService = new ExecutorCompletionService<>(updateExecutor);
-    this.authCredentialsSource = authCredentialsSource;
   }
   
   public void finish() {    
@@ -191,7 +187,6 @@ public class SolrCmdDistributor {
       UpdateRequest uReq = new UpdateRequest();
       uReq.setParams(params);
       uReq.setCommitWithin(cmd.commitWithin);
-      uReq.setAuthCredentials(authCredentialsSource.getAuthCredentials());
       if (cmd.isDeleteById()) {
         uReq.deleteById(cmd.getId(), cmd.getRoute(), cmd.getVersion());
       } else {
@@ -216,7 +211,6 @@ public class SolrCmdDistributor {
       if (cmd.isLastDocInBatch)
         uReq.lastDocInBatch();
       uReq.setParams(params);
-      uReq.setAuthCredentials(authCredentialsSource.getAuthCredentials());
       uReq.add(cmd.solrDoc, cmd.commitWithin, cmd.classicOverwrite);
       if (cmd.isInPlaceUpdate()) {
         params.set(DistributedUpdateProcessor.DISTRIB_INPLACE_PREVVERSION, String.valueOf(cmd.prevVersion));
@@ -234,7 +228,6 @@ public class SolrCmdDistributor {
     
     UpdateRequest uReq = new UpdateRequest();
     uReq.setParams(params);
-    uReq.setAuthCredentials(authCredentialsSource.getAuthCredentials());
     addCommit(uReq, cmd);
     
     log.debug("Distrib commit to: {} params: {}", nodes, params);

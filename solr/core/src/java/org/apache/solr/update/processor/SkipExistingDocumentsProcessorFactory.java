@@ -16,6 +16,10 @@
  */
 package org.apache.solr.update.processor;
 
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.util.Collections;
+
 import org.apache.lucene.util.BytesRef;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
@@ -31,10 +35,6 @@ import org.apache.solr.util.RefCounted;
 import org.apache.solr.util.plugin.SolrCoreAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.util.Collections;
 
 import static org.apache.solr.common.SolrException.ErrorCode.SERVER_ERROR;
 import static org.apache.solr.update.processor.DistributingUpdateProcessorFactory.DISTRIB_UPDATE_PARAM;
@@ -126,7 +126,7 @@ public class SkipExistingDocumentsProcessorFactory extends UpdateRequestProcesso
     boolean skipInsertForRequest = req.getOriginalParams().getBool(PARAM_SKIP_INSERT_IF_EXISTS, this.skipInsertIfExists);
     boolean skipUpdateForRequest = req.getOriginalParams().getBool(PARAM_SKIP_UPDATE_IF_MISSING, this.skipUpdateIfMissing);
 
-    return new SkipExistingDocumentsUpdateProcessor(req, next, skipInsertForRequest, skipUpdateForRequest);
+    return new SkipExistingDocumentsUpdateProcessor(req, rsp, next, skipInsertForRequest, skipUpdateForRequest);
   }
 
   @Override
@@ -151,10 +151,11 @@ public class SkipExistingDocumentsProcessorFactory extends UpdateRequestProcesso
     private DistributedUpdateProcessor.DistribPhase phase;
 
     SkipExistingDocumentsUpdateProcessor(SolrQueryRequest req,
+                                         SolrQueryResponse rsp,
                                          UpdateRequestProcessor next,
                                          boolean skipInsertIfExists,
                                          boolean skipUpdateIfMissing) {
-      super(next);
+      super(next, req, rsp);
       this.skipInsertIfExists = skipInsertIfExists;
       this.skipUpdateIfMissing = skipUpdateIfMissing;
       this.core = req.getCore();
@@ -186,7 +187,7 @@ public class SkipExistingDocumentsProcessorFactory extends UpdateRequestProcesso
 
       // we don't need any fields populated, we just need to know if the doc is in the tlog...
       SolrInputDocument oldDoc = RealTimeGetComponent.getInputDocumentFromTlog(core, indexedDocId, null,
-                                                                               Collections.<String>emptySet(), false);
+                                                                               Collections.<String>emptySet(), false, null);
       if (oldDoc == RealTimeGetComponent.DELETED) {
         return false;
       }

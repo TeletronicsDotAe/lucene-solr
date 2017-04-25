@@ -16,27 +16,14 @@
  */
 package org.apache.solr.update.processor;
 
-import static org.apache.solr.update.processor.DistributingUpdateProcessorFactory.DISTRIB_UPDATE_PARAM;
-
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-
-import org.apache.solr.client.solrj.SolrResponse;
-
 import java.util.Collections;
 import java.util.HashMap;
-
-import org.apache.solr.common.exceptions.PartialErrors;
-import org.apache.solr.common.exceptions.SolrExceptionCausedByException;
-
 import java.util.HashSet;
-
-import org.apache.solr.security.InterSolrNodeAuthCredentialsFactory.AuthCredentialsSource;
-import org.apache.solr.servlet.SolrDispatchFilter;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -48,8 +35,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.CharsRefBuilder;
 import org.apache.solr.client.solrj.SolrRequest;
-import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.SolrRequest.METHOD;
+import org.apache.solr.client.solrj.SolrResponse;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.request.GenericSolrRequest;
 import org.apache.solr.client.solrj.request.UpdateRequest;
@@ -75,6 +63,8 @@ import org.apache.solr.common.cloud.SolrZkClient;
 import org.apache.solr.common.cloud.ZkCoreNodeProps;
 import org.apache.solr.common.cloud.ZkStateReader;
 import org.apache.solr.common.cloud.ZooKeeperException;
+import org.apache.solr.common.exceptions.PartialErrors;
+import org.apache.solr.common.exceptions.SolrExceptionCausedByException;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.ShardParams;
 import org.apache.solr.common.params.SolrParams;
@@ -88,6 +78,7 @@ import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.request.SolrRequestInfo;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.schema.SchemaField;
+import org.apache.solr.servlet.SolrDispatchFilter;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.CommitUpdateCommand;
 import org.apache.solr.update.DeleteUpdateCommand;
@@ -103,13 +94,14 @@ import org.apache.solr.update.UpdateLog;
 import org.apache.solr.update.UpdateShardHandler;
 import org.apache.solr.update.VersionBucket;
 import org.apache.solr.update.VersionInfo;
+import org.apache.solr.update.statistics.UpdateStats;
 import org.apache.solr.util.TestInjection;
 import org.apache.solr.util.TimeOut;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.solr.update.statistics.UpdateStats;
+import static org.apache.solr.update.processor.DistributingUpdateProcessorFactory.DISTRIB_UPDATE_PARAM;
 
 // NOT mt-safe... create a new processor for each add thread
 // TODO: we really should not wait for distrib after local? unless a certain replication factor is asked for
@@ -259,6 +251,8 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
   private final UpdateRequestProcessor next;
   private final AtomicUpdateDocumentMerger docMerger;
 
+  public static final String VERSION_FIELD = "_version_";
+
   private final UpdateHandler updateHandler;
   private final UpdateLog ulog;
   private final VersionInfo vinfo;
@@ -305,7 +299,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
    */
   public DistributedUpdateProcessor(SolrQueryRequest req,
       SolrQueryResponse rsp, AtomicUpdateDocumentMerger docMerger, UpdateRequestProcessor next) {
-    super(next);
+    super(next, req, rsp);
     this.rsp = rsp;
     this.next = next;
     this.docMerger = docMerger;
@@ -885,17 +879,17 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
         if (e instanceof SolrException) pe = (SolrException)e;
         else pe = new SolrExceptionCausedByException(ErrorCode.PRECONDITION_FAILED, "Error", e);
 
-        List<SolrInputDocument> docsList = errors.get(i).req.uReq.getDocuments();
+        List<SolrInputDocument> docsList = error.req.uReq.getDocuments();
 
         //List<List<SolrDoc>> docsList = response.sreq.ureq.getDocLists();
         if (docsList != null && docsList.size() > 0) {
           // It was a single update operation - just do get(0).get(0) because there is only one
           SolrRequestInfo.getRequestInfo().getRsp().addPartialError(docsList.get(0).getUniquePartRef(), pe);
-        } else if (errors.get(i).req.uReq.getDeleteQuery() != null) {
-          String urlCore = errors.get(i).req.node.getCoreName();
-          SolrRequestInfo.getRequestInfo().getRsp().addPartialError("DBQ: " + urlCore + " " + errors.get(i).req.uReq.getDeleteQuery().get(0), pe);
-        } else if (errors.get(i).req.uReq.getDeleteById() != null) {
-          Map<String,Map<String,Object>> idParamsMap = errors.get(i).req.uReq.getDeleteByIdMap();
+        } else if (error.req.uReq.getDeleteQuery() != null) {
+          String urlCore = error.req.node.getCoreName();
+          SolrRequestInfo.getRequestInfo().getRsp().addPartialError("DBQ: " + urlCore + " " + error.req.uReq.getDeleteQuery().get(0), pe);
+        } else if (error.req.uReq.getDeleteById() != null) {
+          Map<String,Map<String,Object>> idParamsMap = error.req.uReq.getDeleteByIdMap();
           String id = idParamsMap.keySet().iterator().next();
           Map<String, Object> params = idParamsMap.get(id);
           Object version = (params != null)?params.get(UpdateRequest.VER):null;
@@ -1273,7 +1267,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
     vinfo.lockForUpdate();
     try {
       synchronized (bucket) {
-        Long lookedUpVersion = vinfo.lookupVersion(cmd.getIndexedId());
+        Long lookedUpVersion = vinfo.lookupVersion(cmd.getIndexedId(), updateStats.getVinfoUpdateLogLookupVersionStatsEntries());
         lastFoundVersion = lookedUpVersion == null ? 0L: lookedUpVersion;
 
         if (Math.abs(lastFoundVersion) < cmd.prevVersion) {
@@ -1290,7 +1284,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
           } catch (InterruptedException ie) {
             throw new RuntimeException(ie);
           }
-          lookedUpVersion = vinfo.lookupVersion(cmd.getIndexedId());
+          lookedUpVersion = vinfo.lookupVersion(cmd.getIndexedId(), updateStats.getVinfoUpdateLogLookupVersionStatsEntries());
           lastFoundVersion = lookedUpVersion == null ? 0L: lookedUpVersion;
         }
       }
@@ -1632,7 +1626,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
     // we may or may not be the leader.
 
     boolean isReplayOrPeersync = (cmd.getFlags() & (UpdateCommand.REPLAY | UpdateCommand.PEER_SYNC)) != 0;
-    boolean leaderLogic = isLeader && !isReplayOrPeersync;
+    boolean leaderLogic = cmd.isLeaderLogic() && !isReplayOrPeersync;
 
     versionDeleteByQuery(cmd);
 

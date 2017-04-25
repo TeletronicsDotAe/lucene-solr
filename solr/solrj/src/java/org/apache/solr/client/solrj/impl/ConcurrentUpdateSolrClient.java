@@ -16,6 +16,7 @@
  */
 package org.apache.solr.client.solrj.impl;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -33,11 +34,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentProducer;
 import org.apache.http.entity.EntityTemplate;
+import org.apache.http.util.EntityUtils;
 import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrRequest;
@@ -320,8 +321,8 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
             String charset = EntityUtils.getContentCharSet(response.getEntity());
             // Read the contents
             InputStream respBody = response.getEntity().getContent();
-            byte[] rawPayload = IOUtils.toByteArray(respBody);
-            ResponseParser responseParser = updateRequest.getResponseParser();
+            byte[] rawPayload = org.apache.commons.io.IOUtils.toByteArray(respBody);
+            ResponseParser responseParser = update.getRequest().getResponseParser();
             if (responseParser == null) {
               responseParser = client.getParser();
             }

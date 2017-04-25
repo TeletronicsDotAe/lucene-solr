@@ -251,7 +251,7 @@ public class AtomicUpdateDocumentMerger {
        null, // don't want the version to be returned
        true, // avoid stored fields from index
        updatedFields,
-       true); // resolve the full document
+       true, DistributedUpdateProcessor.updateStats.getGetInputDocumentStatsEntries()); // resolve the full document
                                               
     if (oldDocument == RealTimeGetComponent.DELETED || oldDocument == null) {
       // This doc was deleted recently. In-place update cannot work, hence a full atomic update should be tried.

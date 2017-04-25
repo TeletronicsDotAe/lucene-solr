@@ -120,7 +120,7 @@ public class HttpShardHandler extends ShardHandler {
       synchronized (shardToURLs) {
         urls = shardToURLs.get(shard);
         if (urls==null) {
-          urls = httpShardHandlerFactory.makeURLList(shard);
+          urls = httpShardHandlerFactory.buildURLList(shard);
           shardToURLs.put(shard, urls);
         }
       }

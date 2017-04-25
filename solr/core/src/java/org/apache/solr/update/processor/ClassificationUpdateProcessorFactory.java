@@ -147,7 +147,7 @@ public class ClassificationUpdateProcessorFactory extends UpdateRequestProcessor
     IndexSchema schema = req.getSchema();
     IndexReader indexReader = req.getSearcher().getIndexReader();
 
-    return new ClassificationUpdateProcessor(classificationParams, next, indexReader, schema);
+    return new ClassificationUpdateProcessor(classificationParams, next, req, rsp, indexReader, schema);
   }
 
   private Query parseFilterQuery(String trainingFilterQueryString, SolrParams params, SolrQueryRequest req) throws SyntaxError {

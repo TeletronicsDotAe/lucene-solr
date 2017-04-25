@@ -15,19 +15,8 @@
  * limitations under the License.
  */
 package org.apache.solr.servlet;
-import org.apache.solr.api.ApiBag;
-import org.apache.solr.common.SolrException;
-import org.apache.solr.common.exceptions.PartialErrors;
-import org.apache.solr.common.util.NamedList;
-import org.apache.solr.util.CommandOperation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.response.QueryResponseWriter;
-import org.apache.solr.response.QueryResponseWriterUtil;
-import org.apache.solr.response.SolrQueryResponse;
-import org.apache.solr.servlet.cache.Method;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletResponse;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -35,12 +24,18 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
-import org.apache.solr.client.solrj.impl.HttpSolrServer;
-// FIXME MERGE - Organise imports
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.common.SolrException;
+import org.apache.solr.common.exceptions.PartialErrors;
+import org.apache.solr.common.util.NamedList;
+import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.response.QueryResponseWriter;
+import org.apache.solr.response.QueryResponseWriterUtil;
+import org.apache.solr.response.SolrQueryResponse;
+import org.apache.solr.servlet.cache.Method;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -78,7 +73,7 @@ public class ResponseUtils {
       // the header is there or not, but
       // the header will not be included with null-value
       if (response != null) ((HttpServletResponse) response).addHeader(
-          HttpSolrServer.HTTP_EXPLICIT_BODY_INCLUDED_HEADER_KEY, "yes");
+          HttpSolrClient.HTTP_EXPLICIT_BODY_INCLUDED_HEADER_KEY, "yes");
 
       try {
         Object invalidStates = solrReq.getContext().get(CloudSolrClient.STATE_VERSION);
