@@ -249,6 +249,10 @@ public class CreateCollectionCmd implements Cmd {
         sreq.purpose = 1;
         sreq.shards = new String[]{baseUrl};
         sreq.actualShards = sreq.shards;
+
+        //FIXME MERGE - we used to set nodeName to _coreName_ (nodeName was not set), but now nodeName is actually set to _nodeName_. See if stuff works before changing
+        // - cannot comprehend the consequences of changing just yet
+        //sreq.nodeName = coreName;
         sreq.params = params;
 
         if (isLegacyCloud) {

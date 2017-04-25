@@ -58,6 +58,7 @@ import org.apache.solr.common.cloud.ZkConfigManager;
 import org.apache.solr.common.cloud.ZkCoreNodeProps;
 import org.apache.solr.common.cloud.ZkNodeProps;
 import org.apache.solr.common.cloud.ZkStateReader;
+import org.apache.solr.common.exceptions.SolrExceptionCausedByException;
 import org.apache.solr.common.params.CollectionParams.CollectionAction;
 import org.apache.solr.common.params.CoreAdminParams;
 import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
@@ -237,11 +238,8 @@ public class OverseerCollectionMessageHandler implements OverseerMessageHandler 
             + " failed", e);
       }
 
-      results.add("Operation " + operation + " caused exception:", e);
-      SimpleOrderedMap nl = new SimpleOrderedMap();
-      nl.add("msg", e.getMessage());
-      nl.add("rspCode", e instanceof SolrException ? ((SolrException)e).code() : -1);
-      results.add("exception", nl);
+      SolrException exceptionToThrow = (e instanceof SolrException)?((SolrException)e):(new SolrExceptionCausedByException(ErrorCode.UNKNOWN, e.getMessage()));
+      SolrResponse.addPartialError(null, results, "error", exceptionToThrow);
     }
     return new OverseerSolrResponse(results);
   }
@@ -878,6 +876,8 @@ public class OverseerCollectionMessageHandler implements OverseerMessageHandler 
 
   @SuppressWarnings("unchecked")
   private void processResponse(NamedList results, Throwable e, String nodeName, SolrResponse solrResponse, String shard, Set<String> okayExceptions) {
+    String partRef = nodeName;
+
     String rootThrowable = null;
     if (e instanceof RemoteSolrException) {
       rootThrowable = ((RemoteSolrException) e).getRootThrowable();
@@ -886,14 +886,9 @@ public class OverseerCollectionMessageHandler implements OverseerMessageHandler 
     if (e != null && (rootThrowable == null || !okayExceptions.contains(rootThrowable))) {
       log.error("Error from shard: " + shard, e);
 
-      SimpleOrderedMap failure = (SimpleOrderedMap) results.get("failure");
-      if (failure == null) {
-        failure = new SimpleOrderedMap();
-        results.add("failure", failure);
-      }
-
-      failure.add(nodeName, e.getClass().getName() + ":" + e.getMessage());
-
+      ErrorCode errorCode = (e instanceof SolrException)?ErrorCode.getErrorCode(((SolrException)e).code()):ErrorCode.UNKNOWN;
+      SolrException partialError = (e instanceof SolrException)?((SolrException)e):new SolrExceptionCausedByException(errorCode, "Not able to perform sub-operation", e);
+      SolrResponse.addPartialError(null, results, partRef, partialError);
     } else {
 
       SimpleOrderedMap success = (SimpleOrderedMap) results.get("success");
@@ -904,6 +899,7 @@ public class OverseerCollectionMessageHandler implements OverseerMessageHandler 
 
       success.add(nodeName, solrResponse.getResponse());
     }
+    SolrResponse.addHandledPart(results, partRef);
   }
 
   @SuppressWarnings("unchecked")
