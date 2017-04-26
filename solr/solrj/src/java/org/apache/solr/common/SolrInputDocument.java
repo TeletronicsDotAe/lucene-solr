@@ -27,7 +27,7 @@ import java.util.Set;
 /**
  * Represent the field and boost information needed to construct and index
  * a Lucene Document.  Like the SolrDocument, the field values should
- * match those specified in schema.xml 
+ * match those specified in schema.xml
  *
  *
  * @since solr 1.3
@@ -40,15 +40,25 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
   private List<SolrInputDocument> _childDocuments;
   private RequestPartImpl partImpl;
 
-  public SolrInputDocument(String... fields) {
+  public SolrInputDocument() {
     partImpl = new RequestPartImpl();
     _fields = new LinkedHashMap<>();
-    assert fields.length % 2 == 0;
-    for (int i = 0; i < fields.length; i += 2) {
-      addField(fields[i], fields[i + 1]);
+  }
+
+  public SolrInputDocument(String... fields) {
+    _fields = new LinkedHashMap<>();
+    if (fields.length == 1) {
+      // uniquePartRef variant
+      partImpl = new RequestPartImpl(fields[0]);
+    } else {
+      partImpl = new RequestPartImpl();
+      assert fields.length % 2 == 0;
+      for (int i = 0; i < fields.length; i += 2) {
+        addField(fields[i], fields[i + 1]);
+      }
     }
   }
-  
+
   public SolrInputDocument(Map<String,SolrInputField> fields) {
     partImpl = new RequestPartImpl();
     _fields = fields;
@@ -66,7 +76,7 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
   public void clear()
   {
     if( _fields != null ) {
-      _fields.clear();      
+      _fields.clear();
     }
     _childDocuments = null;
   }
@@ -91,69 +101,69 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
 
   /**
    * Add a field with implied null value for boost.
-   * 
-   * The class type of value and the name parameter should match schema.xml. 
+   *
+   * The class type of value and the name parameter should match schema.xml.
    * schema.xml can be found in conf directory under the solr home by default.
-   * 
+   *
    * @param name Name of the field, should match one of the field names defined under "fields" tag in schema.xml.
-   * @param value Value of the field, should be of same class type as defined by "type" attribute of the corresponding field in schema.xml. 
+   * @param value Value of the field, should be of same class type as defined by "type" attribute of the corresponding field in schema.xml.
    * @see #addField(String, Object, float)
    */
-  public void addField(String name, Object value) 
+  public void addField(String name, Object value)
   {
     addField(name, value, 1.0f );
   }
-  
+
   /** Get the first value for a field.
-   * 
+   *
    * @param name name of the field to fetch
    * @return first value of the field or null if not present
    */
   @Override
-  public Object getFieldValue(String name) 
+  public Object getFieldValue(String name)
   {
     SolrInputField field = getField(name);
     Object o = null;
     if (field!=null) o = field.getFirstValue();
     return o;
   }
-  
+
   /** Get all the values for a field.
-   * 
+   *
    * @param name name of the field to fetch
    * @return value of the field or null if not set
    */
   @Override
-  public Collection<Object> getFieldValues(String name) 
+  public Collection<Object> getFieldValues(String name)
   {
     SolrInputField field = getField(name);
     if (field!=null) {
       return field.getValues();
     }
     return null;
-  } 
-  
+  }
+
   /** Get all field names.
-   * 
+   *
    * @return Set of all field names.
    */
   @Override
-  public Collection<String> getFieldNames() 
+  public Collection<String> getFieldNames()
   {
     return _fields.keySet();
   }
-  
+
   /** Set a field with implied null value for boost.
-   * 
+   *
    * @see #setField(String, Object, float)
    * @param name name of the field to set
    * @param value value of the field
    */
-  public void setField(String name, Object value) 
+  public void setField(String name, Object value)
   {
     setField(name, value, 1.0f );
   }
-  
+
   /**
    * Set a field value.
    * @deprecated Index-time boosts are deprecated. You should instead index
@@ -162,7 +172,7 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
    *             Use {@link #setField(String, Object)} instead.
    */
   @Deprecated
-  public void setField(String name, Object value, float boost ) 
+  public void setField(String name, Object value, float boost )
   {
     SolrInputField field = new SolrInputField( name );
     _fields.put( name, field );
@@ -175,11 +185,11 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
    * field, with the new boost. If the value is a collection, then each of its
    * values will be added to the field.
    *
-   * The class type of value and the name parameter should match schema.xml. 
+   * The class type of value and the name parameter should match schema.xml.
    * schema.xml can be found in conf directory under the solr home by default.
-   * 
+   *
    * @param name Name of the field, should match one of the field names defined under "fields" tag in schema.xml.
-   * @param value Value of the field, should be of same class type as defined by "type" attribute of the corresponding field in schema.xml. 
+   * @param value Value of the field, should be of same class type as defined by "type" attribute of the corresponding field in schema.xml.
    * @param boost Boost value for the field
    * @deprecated Index-time boosts are deprecated. You should instead index
    *             scoring factors into a separate field and combine them with
@@ -187,7 +197,7 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
    *             Use {@link #addField(String, Object)} instead.
    */
   @Deprecated
-  public void addField(String name, Object value, float boost ) 
+  public void addField(String name, Object value, float boost )
   {
     SolrInputField field = _fields.get( name );
     if( field == null || field.value == null ) {
@@ -200,7 +210,7 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
 
   /**
    * Remove a field from the document
-   * 
+   *
    * @param name The field name whose field is to be removed from the document
    * @return the previous field with <tt>name</tt>, or
    *         <tt>null</tt> if there was no field for <tt>key</tt>.
@@ -222,7 +232,7 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
   public Iterator<SolrInputField> iterator() {
     return _fields.values().iterator();
   }
-  
+
   /**
    * Get the document boost.
    * @deprecated Index-time boosts are deprecated. You should instead index
@@ -254,7 +264,7 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
   public void setDocumentBoost(float documentBoost) {
     _documentBoost = documentBoost;
   }
-  
+
   @Override
   public String toString()
   {
@@ -262,7 +272,7 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
         + ( _childDocuments == null ? "" : (", children: " + _childDocuments) )
         + ")";
   }
-  
+
   public SolrInputDocument deepCopy() {
     SolrInputDocument clone = new SolrInputDocument(getUniquePartRef());
     Set<Entry<String,SolrInputField>> entries = _fields.entrySet();
@@ -277,7 +287,7 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
         clone._childDocuments.add(child.deepCopy());
       }
     }
-    
+
     return clone;
   }
 
@@ -347,7 +357,7 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
    }
     _childDocuments.add(child);
   }
-  
+
   public void addChildDocuments(Collection<SolrInputDocument> children) {
     for (SolrInputDocument child : children) {
       addChildDocument(child);
@@ -358,7 +368,7 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
   public List<SolrInputDocument> getChildDocuments() {
     return _childDocuments;
   }
-  
+
   public boolean hasChildDocuments() {
     boolean isEmpty = (_childDocuments == null || _childDocuments.isEmpty());
     return !isEmpty;
