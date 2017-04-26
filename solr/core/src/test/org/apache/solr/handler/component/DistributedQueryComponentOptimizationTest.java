@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
+import com.google.common.collect.ObjectArrays;
 import org.apache.solr.BaseDistributedSearchTestCase;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.request.CollectionAdminRequest;
@@ -41,8 +43,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +54,6 @@ import org.slf4j.LoggerFactory;
  *
  * @see QueryComponent
  */
-@RunWith(Parameterized.class)
 public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase {
   static Logger log = LoggerFactory.getLogger(DistributedQueryComponentOptimizationTest.class);
 
@@ -67,7 +66,7 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
   private DQA dqa;
   private Boolean forceSkipGetIds;
 
-  @Parameterized.Parameters
+  @ParametersFactory
   public static Collection<Object[]> allDQAs() {
     ArrayList<Object[]> parameters = new ArrayList<>();
     for (DQA dqa : DQA.values()) {
@@ -84,13 +83,13 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
   }
 
   @Before
-  public static void setupDefaultDQAProvider() {
+  public void setupDefaultDQAProvider() {
     // This test is explicitly testing DQA. Make sure we run with the real DefaultProvider
     switchToOriginalDQADefaultProvider();
   }
 
   @After
-  public static void resetDQAProvider() {
+  public void resetDQAProvider() {
     // Reset DQA provider
     switchToTestDQADefaultProvider();
   }
@@ -263,6 +262,12 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
    */
   private QueryResponse queryWithAsserts(String... q) throws Exception {
     log.info("Executing query with dqa=" + dqa + " and params: " + q.toString());
+    // Add our dqa algorithm to the query parameters
+    String[] dqaParams = {DQA.QUERY_PARAM, (random().nextBoolean()) ? dqa.getId() : dqa.getAliasIds()[0]};
+    if (forceSkipGetIds != null) {
+      dqaParams = ObjectArrays.concat(dqaParams, new String[] {DQA.FORCE_SKIP_GET_IDS_PARAM, forceSkipGetIds.toString()}, String.class);
+    }
+    q = ObjectArrays.concat(q, dqaParams, String.class);
     TrackingShardHandlerFactory.RequestTrackingQueue trackingQueue = new TrackingShardHandlerFactory.RequestTrackingQueue();
     // the jettys doesn't include the control jetty which is exactly what we need here
     TrackingShardHandlerFactory.setTrackingQueue(cluster, trackingQueue);
