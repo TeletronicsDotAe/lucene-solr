@@ -45,12 +45,12 @@ public abstract class IterativeMergeStrategy implements MergeStrategy  {
 
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-  public void merge(ResponseBuilder rb, ShardRequest sreq) {
+  public void merge(ResponseBuilder rb) {
     rb._responseDocs = new SolrDocumentList(); // Null pointers will occur otherwise.
     rb.distribSkipGetIds = true;   // Turn off the second pass distributed.
     executorService =     ExecutorUtil.newMDCAwareCachedThreadPool(new SolrjNamedThreadFactory("IterativeMergeStrategy"));
     try {
-      process(rb, sreq);
+      process(rb);
     } catch (Exception e) {
       throw new RuntimeException(e);
     } finally {
@@ -118,7 +118,7 @@ public abstract class IterativeMergeStrategy implements MergeStrategy  {
     return this.executorService.submit(new CallBack(response, req));
   }
 
-  protected abstract void process(ResponseBuilder rb, ShardRequest sreq) throws Exception;
+  protected abstract void process(ResponseBuilder rb) throws Exception;
 
   static synchronized HttpClient getHttpClient() {
 

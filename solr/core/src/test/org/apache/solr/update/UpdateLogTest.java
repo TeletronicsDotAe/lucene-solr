@@ -77,7 +77,7 @@ public class UpdateLogTest extends SolrTestCaseJ4 {
     ulogAdd(ulog, 100L, sdoc("id", "1", "price", "1000", "val1_i_dvo", "2", "_version_", "101"));
     ulogAdd(ulog, 101L, sdoc("id", "1", "val1_i_dvo", "3", "_version_", "102"));
 
-    Object partialUpdate = ulog.lookup(DOC_1_INDEXED_ID);
+    Object partialUpdate = ulog.lookup(DOC_1_INDEXED_ID, null, false);
     SolrDocument partialDoc = RealTimeGetComponent.toSolrDoc((SolrInputDocument)((List)partialUpdate).get(4), 
         h.getCore().getLatestSchema());
     long prevVersion = (Long)((List)partialUpdate).get(3);
@@ -102,7 +102,7 @@ public class UpdateLogTest extends SolrTestCaseJ4 {
     ulogAdd(ulog, 102L, sdoc("id", "1", "price", "2000", "val1_i_dvo", "4", "_version_", "200"));
     ulogAdd(ulog, 200L, sdoc("id", "1", "val1_i_dvo", "5", "_version_", "201"));
 
-    partialUpdate = ulog.lookup(DOC_1_INDEXED_ID);
+    partialUpdate = ulog.lookup(DOC_1_INDEXED_ID, null, true);
     partialDoc = RealTimeGetComponent.toSolrDoc((SolrInputDocument)((List)partialUpdate).get(4), h.getCore().getLatestSchema());
     prevVersion = (Long)((List)partialUpdate).get(3);
     prevPointer = (Long)((List)partialUpdate).get(2);
@@ -129,7 +129,7 @@ public class UpdateLogTest extends SolrTestCaseJ4 {
       ulogCommit(ulog);
     ulogAdd(ulog, 101L, sdoc("id", "1", "val1_i_dvo", "6", "_version_", "300"));
 
-    Object partialUpdate = ulog.lookup(DOC_1_INDEXED_ID);
+    Object partialUpdate = ulog.lookup(DOC_1_INDEXED_ID, null, true);
     SolrDocument partialDoc = RealTimeGetComponent.toSolrDoc((SolrInputDocument)((List)partialUpdate).get(4), h.getCore().getLatestSchema());
     long prevVersion = (Long)((List)partialUpdate).get(3);
     long prevPointer = (Long)((List)partialUpdate).get(2);
@@ -149,7 +149,7 @@ public class UpdateLogTest extends SolrTestCaseJ4 {
     ulogAdd(ulog, 500L, sdoc("id", "1", "val1_i_dvo", "2", "_version_", "501"));
     ulogAdd(ulog, 501L, sdoc("id", "1", "val1_i_dvo", "3", "_version_", "502"));
 
-    Object partialUpdate = ulog.lookup(DOC_1_INDEXED_ID);
+    Object partialUpdate = ulog.lookup(DOC_1_INDEXED_ID, null, true);
     SolrDocument partialDoc = RealTimeGetComponent.toSolrDoc((SolrInputDocument)((List)partialUpdate).get(4), h.getCore().getLatestSchema());
     long prevVersion = (Long)((List)partialUpdate).get(3);
     long prevPointer = (Long)((List)partialUpdate).get(2);
@@ -185,14 +185,14 @@ public class UpdateLogTest extends SolrTestCaseJ4 {
     boolean dbq = random().nextBoolean();
     ulogDelete(ulog, "1", 200L, dbq); // delete id:1 document
     if (dbq) {
-      assertNull(ulog.lookup(DOC_1_INDEXED_ID)); // any DBQ clears out the ulog, so this document shouldn't exist
+      assertNull(ulog.lookup(DOC_1_INDEXED_ID, null, true)); // any DBQ clears out the ulog, so this document shouldn't exist
       assertEquals(0, ulog.map.size());
       assertTrue(String.valueOf(ulog.prevMap), ulog.prevMap == null || ulog.prevMap.size() == 0);
       assertTrue(String.valueOf(ulog.prevMap2), ulog.prevMap2 == null || ulog.prevMap2.size() == 0);
       // verify that the document is deleted, by doing an RTG call
       assertJQ(req("qt","/get", "id","1"), "=={'doc':null}");
     } else { // dbi
-      List entry = ((List)ulog.lookup(DOC_1_INDEXED_ID));
+      List entry = ((List)ulog.lookup(DOC_1_INDEXED_ID, null, true));
       assertEquals(UpdateLog.DELETE, (int)entry.get(UpdateLog.FLAGS_IDX) & UpdateLog.OPERATION_MASK);
     }
   }

@@ -16,15 +16,15 @@
  */
 package org.apache.solr.update;
 
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.SocketException;
+
 import org.apache.lucene.util.LuceneTestCase;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.util.NamedList;
-
-import java.io.IOException;
-import java.net.ConnectException;
-import java.net.SocketException;
 
 public class MockStreamingSolrClients extends StreamingSolrClients {
   
@@ -67,7 +67,7 @@ public class MockStreamingSolrClients extends StreamingSolrClients {
     }
     
     @Override
-    public NamedList<Object> doRequest(SolrRequest request, String collection)
+    public NamedList<Object> request(SolrRequest request, String collection)
         throws SolrServerException, IOException {
       if (exp != null) {
         if (LuceneTestCase.random().nextBoolean()) {

@@ -130,7 +130,11 @@ public class AddUpdateCommand extends UpdateCommand implements Iterable<Document
      return indexedId;
    }
 
-   public String getPrintableId() {
+  public void setIndexedId(BytesRef indexedId) {
+    this.indexedId = indexedId;
+  }
+
+  public String getPrintableId() {
   	 return getPrintableId("(null)");
    }
 

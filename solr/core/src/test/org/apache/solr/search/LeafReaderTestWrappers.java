@@ -10,10 +10,12 @@ import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
+import org.apache.lucene.search.Sort;
 import org.apache.lucene.util.Bits;
 import org.apache.solr.SolrIndexSearcherTestWrapper;
 import org.apache.solr.SolrIndexSearcherTestWrapper.WrapperFactory;
@@ -129,7 +131,12 @@ public class LeafReaderTestWrappers {
     public Bits getLiveDocs() {
       return wrapped.getLiveDocs();
     }
-    
+
+    @Override
+    public PointValues getPointValues() {
+      return wrapped.getPointValues();
+    }
+
     @Override
     public void checkIntegrity() throws IOException {
       wrapped.checkIntegrity();
@@ -153,6 +160,11 @@ public class LeafReaderTestWrappers {
     @Override
     public void document(int docID, StoredFieldVisitor visitor) throws IOException {
       wrapped.document(docID, visitor);
+    }
+
+    @Override
+    public Sort getIndexSort() {
+      return wrapped.getIndexSort();
     }
   
     @Override

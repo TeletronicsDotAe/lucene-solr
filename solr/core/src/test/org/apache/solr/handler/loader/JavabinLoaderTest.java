@@ -65,18 +65,20 @@ public class JavabinLoaderTest extends SolrTestCaseJ4 {
     ByteArrayOutputStream os = new ByteArrayOutputStream();
     (new JavaBinUpdateRequestCodec()).marshal(updateRequest, os);
 
+    SolrQueryRequest req = req();
+    SolrQueryResponse rsp = new SolrQueryResponse();
+
     // need to override the processAdd method b/c JavabinLoader calls
     // clear on the addCmd after it is passed on to the handler ... a simple clone will suffice for this test
-    BufferingRequestProcessor mockUpdateProcessor = new BufferingRequestProcessor(null) {
+    BufferingRequestProcessor mockUpdateProcessor = new BufferingRequestProcessor(null, req, rsp) {
       @Override
       public void processAdd(AddUpdateCommand cmd) throws IOException {
         addCommands.add((AddUpdateCommand)cmd.clone());
       }
     };
 
-    SolrQueryRequest req = req();
     (new JavabinLoader()).load(req,
-        new SolrQueryResponse(),
+        rsp,
         new ContentStreamBase.ByteArrayStream(os.toByteArray(), "test"),
         mockUpdateProcessor);
     req.close();

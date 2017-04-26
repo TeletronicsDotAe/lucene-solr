@@ -37,8 +37,13 @@ public class ClassicConsistencyHybridUpdateSemanticsSolrCloudTest extends Abstra
     super();
     fixShardCount(4);
     sliceCount = 2;
-    configFile = "solrconfig-classic-consistency-hybrid-semantics.xml";
-    schemaFile = "schema15.xml";
+    configString = "solrconfig-classic-consistency-hybrid-semantics.xml";
+    schemaString = "schema15.xml";
+  }
+
+  @Override
+  protected String getCloudSolrConfig() {
+    return configString;
   }
   
   @Test

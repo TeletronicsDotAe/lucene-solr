@@ -16,14 +16,15 @@
  */
 package org.apache.solr.update.processor;
 
-import org.apache.solr.update.processor.UpdateRequestProcessor;
+import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.response.SolrQueryResponse;
 
 
 /**
  * A passthrough processor that does nothing.
  */
 public class CustomUpdateRequestProcessor extends UpdateRequestProcessor {
-  public CustomUpdateRequestProcessor( UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
+  public CustomUpdateRequestProcessor(UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
     super(next, req, rsp);
   }
 }

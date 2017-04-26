@@ -15,6 +15,12 @@
  * limitations under the License.
  */
 package org.apache.solr.util;
+import javax.xml.xpath.XPathExpressionException;
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.util.Map;
+import java.util.SortedMap;
+
 import org.apache.solr.JSONTestUtil;
 import org.apache.solr.SolrJettyTestBase;
 import org.apache.solr.common.SolrException;
@@ -26,12 +32,6 @@ import org.junit.AfterClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
-
-import javax.xml.xpath.XPathExpressionException;
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.util.Map;
-import java.util.SortedMap;
 
 abstract public class RestTestBase extends SolrJettyTestBase {
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -97,12 +97,16 @@ abstract public class RestTestBase extends SolrJettyTestBase {
     }
   }
 
-  /** 
+  /**
    * Validates a query matches some XPath test expressions
-   * 
-   * @param request a URL path with optional query params, e.g. "/schema/fields?fl=id,_version_" 
+   *
+   * @param request a URL path with optional query params, e.g. "/schema/fields?fl=id,_version_"
    */
   public static void assertQ(String request, String... tests) {
+    assertQ(request, -1, null, tests);
+  }
+  
+  public static void assertQ(String request, int exceptionCode, String exceptionMsgContains, String... tests) {
     try {
       int queryStartPos = request.indexOf('?');
       String query;
@@ -119,7 +123,29 @@ abstract public class RestTestBase extends SolrJettyTestBase {
       }
       request = path + '?' + setParam(query, "indent", "on");
 
-      String response = restTestHarness.query(request);
+      String response;
+      try {
+        response = restTestHarness.query(request);
+        // exceptionCode > 0 means that a SolrException was expected
+        if (exceptionCode > 0) fail("SolrException with code " + exceptionCode + " and message containing '" + exceptionMsgContains + "' expected");
+      } catch (Exception e) {
+        log.info("REQUEST FAILED: " + request, e);
+        if (e instanceof SolrException) {
+          SolrException solrEx = (SolrException)e;
+          if (exceptionCode > 0) {
+            assertEquals(exceptionCode, solrEx.code());
+            assertTrue("'" + solrEx.getMessage() + "' does not contain '" + exceptionMsgContains + "'", solrEx.getMessage().contains(exceptionMsgContains));
+            // If the exception is as expected, do not throw it. Set response to the payload - it is still worth matching tests at
+            //FIXME MERGE - Is using NamedList.toString good enough?
+            response = solrEx.getPayload().toString();
+          } else {
+            throw e;
+          }
+        } else {
+          throw e;
+        }
+      }
+
 
       // TODO: should the facet handling below be converted to parse the URL?
       /*
@@ -153,11 +179,15 @@ abstract public class RestTestBase extends SolrJettyTestBase {
   }
 
   /**
-   *  Makes a query request and returns the JSON string response 
+   *  Makes a query request and returns the JSON string response
    *
-   * @param request a URL path with optional query params, e.g. "/schema/fields?fl=id,_version_" 
+   * @param request a URL path with optional query params, e.g. "/schema/fields?fl=id,_version_"
    */
   public static String JQ(String request) throws Exception {
+    return JQ(request, -1, null);
+  }
+  
+  public static String JQ(String request, int exceptionCode, String exceptionMsgContains) throws Exception {
     int queryStartPos = request.indexOf('?');
     String query;
     String path;
@@ -169,16 +199,28 @@ abstract public class RestTestBase extends SolrJettyTestBase {
       path = request.substring(0, queryStartPos);
     }
     query = setParam(query, "wt", "json");
-    request = path + '?' + setParam(query, "indent", "on"); 
+    request = path + '?' + setParam(query, "indent", "on");
 
     String response;
-    boolean failed=true;
     try {
       response = restTestHarness.query(request);
-      failed = false;
-    } finally {
-      if (failed) {
-        log.error("REQUEST FAILED: " + request);
+      // exceptionCode > 0 means that a SolrException was expected
+      if (exceptionCode > 0) fail("SolrException with code " + exceptionCode + " and message containing '" + exceptionMsgContains + "' expected");
+    } catch (Exception e) {
+      log.info("REQUEST FAILED: " + request, e);
+      if (e instanceof SolrException) {
+        SolrException solrEx = (SolrException)e;
+        if (exceptionCode > 0) {
+          assertEquals(exceptionCode, solrEx.code());
+          assertTrue("'" + solrEx.getMessage() + "' does not contain '" + exceptionMsgContains + "'", solrEx.getMessage().contains(exceptionMsgContains));
+          // If the exception is as expected, do not throw it. Set response to the payload - it is still worth matching tests at
+          // FIXME MERGE - Is it good enough to use NamedList.toString()?
+          response = solrEx.getPayload().toString();
+        } else {
+          throw e;
+        }
+      } else {
+        throw e;
       }
     }
 
@@ -261,11 +303,11 @@ abstract public class RestTestBase extends SolrJettyTestBase {
     }
   }
 
-  
-  
+
+
   /**
    * Validates the response from a PUT request matches some JSON test expressions
-   * 
+   *
    * @see org.apache.solr.JSONTestUtil#DEFAULT_DELTA
    * @see #assertJQ(String,double,String...)
    */
@@ -420,7 +462,7 @@ abstract public class RestTestBase extends SolrJettyTestBase {
       }
     }
   }
-  
+
   /**
    * Deletes a resource and then matches some JSON test expressions against the 
    * response using the default double delta tolerance.

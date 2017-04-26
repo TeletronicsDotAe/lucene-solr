@@ -16,6 +16,9 @@
  */
 package org.apache.solr.handler;
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.solr.SolrTestCaseJ4;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
@@ -31,8 +34,6 @@ import org.apache.solr.update.processor.BufferingRequestProcessor;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.noggit.ObjectBuilder;
-import java.util.List;
-import java.util.Map;
 
 public class JsonLoaderTest extends SolrTestCaseJ4 {
   @BeforeClass
@@ -198,11 +199,11 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
   public void testInvalidJsonProducesBadRequestSolrException() throws Exception
   {
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     String invalidJsonString = "}{";
     
     try(SolrQueryRequest req = req()) {
+      BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
       try {
         loader.load(req, rsp, new ContentStreamBase.StringStream(invalidJsonString), p);
         fail("Expected invalid JSON to produce a SolrException.");
@@ -471,7 +472,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
         "f", "cat:/children/grandchildren/cat");
     req.getContext().put("path", "/update/json/docs");
     rsp = new SolrQueryResponse();
-    p = new BufferingRequestProcessor(null);
+    p = new BufferingRequestProcessor(null, req, rsp);
     loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(json), p);
     assertEquals(2, p.addCommands.get(0).solrDoc.getChildDocuments().size());

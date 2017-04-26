@@ -43,11 +43,11 @@ import org.apache.solr.common.EnumFieldValue;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrException.ErrorCode;
 import org.apache.solr.common.params.CommonParams;
+import org.apache.solr.common.params.FacetParams.FacetRangeMethod;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.ShardParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.params.StatsParams;
-import org.apache.solr.common.params.FacetParams.FacetRangeMethod;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.handler.component.ShardResponse;
 import org.apache.solr.handler.component.StatsComponentTest.StatSetCombinations;
@@ -59,8 +59,6 @@ import org.apache.solr.response.SolrQueryResponse;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.solr.client.solrj.embedded.JettySolrRunner.*;
 
 /**
  * TODO? perhaps use:
@@ -1105,7 +1103,7 @@ public class TestDistributedSearch extends BaseDistributedSearchTestCase {
     }
     // TODO: look into why passing true causes fails
     params.set("distrib", "false");
-    final QueryResponse controlRsp = controlClient.query(params, SEARCH_CREDENTIALS);
+    final QueryResponse controlRsp = controlClient.query(params);
     // if time.allowed is specified then even a control response can return a partialResults header
     if (params.get(CommonParams.TIME_ALLOWED) == null)  {
       validateControlData(controlRsp);
@@ -1129,7 +1127,7 @@ public class TestDistributedSearch extends BaseDistributedSearchTestCase {
               int which = r.nextInt(upClients.size());
               SolrClient client = upClients.get(which);
               try {
-                QueryResponse rsp = client.query(new ModifiableSolrParams(params), SEARCH_CREDENTIALS);
+                QueryResponse rsp = client.query(new ModifiableSolrParams(params));
                 if (verifyStress) {
                   comparePartialResponses(rsp, controlRsp, upShards);
                 }
@@ -1152,7 +1150,7 @@ public class TestDistributedSearch extends BaseDistributedSearchTestCase {
     // query a random "up" server
     int which = r.nextInt(upClients.size());
     SolrClient client = upClients.get(which);
-    QueryResponse rsp = client.query(params, SEARCH_CREDENTIALS);
+    QueryResponse rsp = client.query(params);
     return rsp;
   }
 

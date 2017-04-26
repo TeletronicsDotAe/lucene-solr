@@ -65,7 +65,7 @@ public class VersionInfoTest extends SolrTestCaseJ4 {
 
     // version from index should be less than or equal the version of the first doc indexed
     VersionInfo vInfo = ulog.getVersionInfo();
-    Long version = vInfo.getVersionFromIndex(new BytesRef(docId));
+    Long version = vInfo.getVersionFromIndex(new BytesRef(docId), null);
     assertNotNull("version info should not be null for test doc: "+docId, version);
     assertTrue("max version from index should be less than or equal to the version of first doc added, diff: "+
             (version - maxVersionFromIndex), maxVersionFromIndex <= version);
@@ -85,7 +85,7 @@ public class VersionInfoTest extends SolrTestCaseJ4 {
     assertTrue(maxVersionFromIndex != 0L);
 
     vInfo = ulog.getVersionInfo();
-    version = vInfo.getVersionFromIndex(new BytesRef(docId));
+    version = vInfo.getVersionFromIndex(new BytesRef(docId), null);
     assertNotNull("version info should not be null for test doc: "+docId, version);
     assertTrue("max version from index should be less than version of last doc added, diff: "+
             (version - maxVersionFromIndex), maxVersionFromIndex < version);
@@ -95,8 +95,8 @@ public class VersionInfoTest extends SolrTestCaseJ4 {
     bucket = vInfo.bucket(bucketHash);
     assertTrue(bucket.highest == version.longValue());
 
-    Long versionFromTLog = ulog.lookupVersion(idBytes);
-    Long versionFromIndex = vInfo.getVersionFromIndex(idBytes);
+    Long versionFromTLog = ulog.lookupVersion(idBytes, null);
+    Long versionFromIndex = vInfo.getVersionFromIndex(idBytes, null);
     assertEquals("version from tlog and version from index should be the same",
         versionFromTLog, versionFromIndex);
 
@@ -117,7 +117,7 @@ public class VersionInfoTest extends SolrTestCaseJ4 {
     assertTrue(maxVersionFromIndex != 0L);
 
     vInfo = ulog.getVersionInfo();
-    version = vInfo.getVersionFromIndex(new BytesRef(docId));
+    version = vInfo.getVersionFromIndex(new BytesRef(docId), null);
     assertNotNull("version info should not be null for test doc: "+docId, version);
     assertTrue("max version from index should be less than version of last doc added, diff: "+
         (version - maxVersionFromIndex), maxVersionFromIndex < version);

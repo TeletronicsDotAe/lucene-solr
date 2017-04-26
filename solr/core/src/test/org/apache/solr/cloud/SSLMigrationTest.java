@@ -16,6 +16,12 @@
  */
 package org.apache.solr.cloud;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.util.LuceneTestCase.BadApple;
 import org.apache.lucene.util.LuceneTestCase.Slow;
@@ -34,12 +40,6 @@ import org.apache.solr.common.params.MapSolrParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.util.SSLTestConfig;
 import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
 
 import static org.apache.solr.common.util.Utils.makeMap;
 
@@ -88,7 +88,7 @@ public class SSLMigrationTest extends AbstractFullDistribZkTestBase {
         props.setProperty("schema", getSchemaFile());
       props.setProperty("solr.data.dir", getDataDir(testDir + "/shard" + i + "/data"));
 
-      JettySolrRunner newRunner = new JettySolrRunner(runner.getSolrHome(), props, config, true);
+      JettySolrRunner newRunner = new JettySolrRunner(runner.getSolrHome(), props, config);
       newRunner.start();
       jettys.set(i, newRunner);
     }

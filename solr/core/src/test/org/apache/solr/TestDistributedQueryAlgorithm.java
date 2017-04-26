@@ -35,7 +35,6 @@ import org.apache.solr.common.params.ShardParams;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.search.LeafReaderTestWrappers.CountingWrapper;
 import org.apache.solr.search.SolrReturnFields;
-import org.apache.solr.servlet.SolrDispatchFilter;
 import org.junit.Test;
 
 @Slow
@@ -159,7 +158,7 @@ public class TestDistributedQueryAlgorithm extends BaseDistributedSearchTestCase
     
     try {
       for (JettySolrRunner jetty : jettys) {
-        for (SolrCore solrCore : ((SolrDispatchFilter) jetty.getDispatchFilter().getFilter()).getCores().getCores()) {
+        for (SolrCore solrCore : jetty.getCoreContainer().getCores()) {
           wrappers.add(new SolrCoreTestWrapper<CountingWrapper>(solrCore, CountingWrapper.getFactory()));
         }
       }
