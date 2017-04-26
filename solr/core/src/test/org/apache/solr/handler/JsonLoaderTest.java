@@ -419,7 +419,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     req = req("split", "/|/a/b"   );
     req.getContext().put("path","/update/json/docs");
     rsp = new SolrQueryResponse();
-    p = new BufferingRequestProcessor(null);
+    p = new BufferingRequestProcessor(null, req, rsp);
     loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(json), p);
 

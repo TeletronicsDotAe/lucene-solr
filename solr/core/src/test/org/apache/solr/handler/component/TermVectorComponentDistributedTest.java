@@ -211,7 +211,7 @@ public class TermVectorComponentDistributedTest extends BaseDistributedSearchTes
           "qt",tv,
           "q", q,
           "rows", 1,
-          ShardParams.DISTRIB_SINGLE_PASS, "true",
+          ShardParams.DQA.FORCE_SKIP_GET_IDS_PARAM, "true",
           TermVectorComponent.COMPONENT_NAME, "true",
           TermVectorParams.ALL, "true");
 

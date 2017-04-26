@@ -1,8 +1,5 @@
 package org.apache.solr.cloud;
 
-import static org.apache.solr.client.solrj.embedded.JettySolrRunner.SEARCH_CREDENTIALS;
-import static org.apache.solr.client.solrj.embedded.JettySolrRunner.UPDATE_CREDENTIALS;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,7 +48,7 @@ public class ClassicConsistencyHybridUpdateSemanticsSolrCloudTest extends Abstra
     handle.put("timestamp", SKIPVAL);
     
     waitForRecoveriesToFinish(false);
-    assertEquals(0, cloudClient.query(new SolrQuery("*:*"), SEARCH_CREDENTIALS).getResults().getNumFound());
+    assertEquals(0, cloudClient.query(new SolrQuery("*:*")).getResults().getNumFound());
     
     int DOC_COUNT = 50;
     
@@ -93,7 +90,7 @@ public class ClassicConsistencyHybridUpdateSemanticsSolrCloudTest extends Abstra
     docs.addAll(docsForAlreadyExists);
     docs.addAll(docsForVersionConflict);
     try {
-      cloudClient.add(null, docs, -1, UPDATE_CREDENTIALS);
+      cloudClient.add(null, docs, -1);
     } catch (PartialErrors e) {
       failedWithPartialErrors = true;
       UpdateResponse response = (UpdateResponse)e.getSpecializedResponse();
@@ -106,9 +103,9 @@ public class ClassicConsistencyHybridUpdateSemanticsSolrCloudTest extends Abstra
     // Should not result in any partial error (or any other error for that matter)
     assertFalse("Inserting " + (DOC_COUNT*2)/3 + " in empty Solr failed\n" + errorList.toString(), failedWithPartialErrors);
     
-    cloudClient.commit(UPDATE_CREDENTIALS);
+    cloudClient.commit();
     
-    QueryResponse resp = cloudClient.query(new SolrQuery("*:*").set("rows", (DOC_COUNT*2)/3), SEARCH_CREDENTIALS);
+    QueryResponse resp = cloudClient.query(new SolrQuery("*:*").set("rows", (DOC_COUNT*2)/3));
     assertEquals((DOC_COUNT*2)/3, resp.getResults().getNumFound());
 
     // Prepare all docs that we want to fail with VersionConflict to have a "real wrong" version number
@@ -127,7 +124,7 @@ public class ClassicConsistencyHybridUpdateSemanticsSolrCloudTest extends Abstra
     docs.addAll(docsForSuccessCreate);
     UpdateResponse response;
     try {
-      response = cloudClient.add(null, docs, -1, UPDATE_CREDENTIALS);
+      response = cloudClient.add(null, docs, -1);
     } catch (PartialErrors e) {
       failedWithPartialErrors = true;
       response = (UpdateResponse)e.getSpecializedResponse();
@@ -192,9 +189,9 @@ public class ClassicConsistencyHybridUpdateSemanticsSolrCloudTest extends Abstra
       assertTrue(handledPartsRef + " does not contain " + doc.getUniquePartRef(), handledPartsRef.contains(doc.getUniquePartRef()));
     }
     
-    cloudClient.commit(UPDATE_CREDENTIALS);
+    cloudClient.commit();
     
-    resp = cloudClient.query(new SolrQuery("*:*"), SEARCH_CREDENTIALS);
+    resp = cloudClient.query(new SolrQuery("*:*"));
     assertEquals(DOC_COUNT, resp.getResults().getNumFound());
     
     // Finally try to update again with several docs, but where only one ought to end in version-conflict error
@@ -211,7 +208,7 @@ public class ClassicConsistencyHybridUpdateSemanticsSolrCloudTest extends Abstra
     }
     failedWithPartialErrors = false;
     try {
-      cloudClient.add(null, docsForVersionConflict, -1, UPDATE_CREDENTIALS);
+      cloudClient.add(null, docsForVersionConflict, -1);
     } catch (PartialErrors pas) {
       failedWithPartialErrors = true;
       
@@ -254,7 +251,7 @@ public class ClassicConsistencyHybridUpdateSemanticsSolrCloudTest extends Abstra
     // Finally try to update again with one doc that ought to end in version-conflict error
     boolean failedWithVersionConflict = false;
     try {
-      cloudClient.add(failDoc, -1, UPDATE_CREDENTIALS);
+      cloudClient.add(failDoc, -1);
     } catch (VersionConflict vc) {
       failedWithVersionConflict = true;
       assertVersionConflict(vc, ((Long)failDoc.getFieldValue("_version_"))-1, null, true);

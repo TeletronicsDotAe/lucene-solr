@@ -133,30 +133,24 @@ public abstract class AbstractDistribZkTestBase extends BaseDistributedSearchTes
       zkStateReader.getLeaderRetry("collection1", "shard" + (i + 2), 15000);
     }
   }
-  
+
   protected void waitForRecoveriesToFinish(String collection, ZkStateReader zkStateReader, boolean verbose)
       throws Exception {
     waitForRecoveriesToFinish(collection, zkStateReader, verbose, true);
   }
-  
+
   protected void waitForRecoveriesToFinish(String collection, ZkStateReader zkStateReader, boolean verbose, boolean failOnTimeout)
       throws Exception {
-    waitForRecoveriesToFinish(collection, zkStateReader, verbose, failOnTimeout, false);
+    waitForRecoveriesToFinish(collection, zkStateReader, verbose, failOnTimeout, 330);
   }
-  
-  protected void waitForRecoveriesToFinish(String collection, ZkStateReader zkStateReader, boolean verbose, boolean failOnTimeout, boolean waitToSeeLiveRecovering)
-      throws Exception {
-    waitForRecoveriesToFinish(collection, zkStateReader, verbose, failOnTimeout, 330, waitToSeeLiveRecovering);
-  }
-  
+
   public static void waitForRecoveriesToFinish(String collection,
-      ZkStateReader zkStateReader, boolean verbose, boolean failOnTimeout, int timeoutSeconds, boolean waitToSeeLiveRecovering)
+                                               ZkStateReader zkStateReader, boolean verbose, boolean failOnTimeout, int timeoutSeconds)
       throws Exception {
     log.info("Wait for recoveries to finish - collection: " + collection + " failOnTimeout:" + failOnTimeout + " timeout (sec):" + timeoutSeconds);
     boolean cont = true;
     int cnt = 0;
-    boolean haveSeenLiveRecovering = false;
-    
+
     while (cont) {
       if (verbose) System.out.println("-");
       boolean sawLiveRecovering = false;
@@ -182,12 +176,6 @@ public abstract class AbstractDistribZkTestBase extends BaseDistributedSearchTes
           }
         }
       }
-      if (sawLiveRecovering) {
-        haveSeenLiveRecovering = true;
-      }
-      if (waitToSeeLiveRecovering && !haveSeenLiveRecovering) {
-        if (verbose) System.out.println("Havnt seen any recovering yet");
-      } else {
       if (!sawLiveRecovering || cnt == timeoutSeconds) {
         if (!sawLiveRecovering) {
           if (verbose) System.out.println("no one is recoverying");
@@ -205,10 +193,7 @@ public abstract class AbstractDistribZkTestBase extends BaseDistributedSearchTes
       } else {
         Thread.sleep(1000);
       }
-        // If waitToSeeLiveRecovering, do not start counting secs before saw recovering
       cnt++;
-        if (verbose) System.out.println("cnt: " + cnt);
-      }
     }
     log.info("Recoveries finished - collection: " + collection);
   }

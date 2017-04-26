@@ -25,7 +25,6 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.QueryRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.exceptions.update.DocumentAlreadyExists;
@@ -120,7 +119,7 @@ public class ClassicConsistencyHybridUpdateSemanticsConcurrencyTest extends
     private boolean updateDocument() throws Exception {
       SolrDocument doc = realtimeGetSMSDocById(solrClient);
       if (doc != null) {
-        SolrInputDocument idoc = ClientUtils.toSolrInputDocument(doc);
+        SolrInputDocument idoc = solrClient.getBinder().toSolrInputDocument(doc);
         int oldVal = (Integer)idoc.getFieldValue("popularity");
         int newVal = oldVal + 1;
         Thread.sleep(random().nextInt(150));

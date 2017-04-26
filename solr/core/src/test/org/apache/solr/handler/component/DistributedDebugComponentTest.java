@@ -16,6 +16,17 @@
  */
 package org.apache.solr.handler.component;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.solr.SolrJettyTestBase;
@@ -33,17 +44,6 @@ import org.apache.solr.response.SolrQueryResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class DistributedDebugComponentTest extends SolrJettyTestBase {
   
@@ -365,7 +365,9 @@ public class DistributedDebugComponentTest extends SolrJettyTestBase {
     if (random().nextBoolean()) { // can affect rb.onePassDistributedQuery
       query.addField("text");
     }
-    query.set(ShardParams.DISTRIB_SINGLE_PASS, random().nextBoolean());
+    // FIXME DQA - verify this works!
+    //query.set(ShardParams.DISTRIB_SINGLE_PASS, random().nextBoolean());
+    query.set(ShardParams.DQA.FORCE_SKIP_GET_IDS_PARAM, random().nextBoolean());
     query.set("shards", shard1 + "," + shard2);
     QueryResponse distribResponse = collection1.query(query);
     

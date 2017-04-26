@@ -17,6 +17,8 @@
 package org.apache.solr.handler.component;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -32,21 +34,17 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.cloud.SolrCloudTestCase;
 import org.apache.solr.common.cloud.DocCollection;
 import org.apache.solr.common.params.CommonParams;
-import org.apache.solr.common.params.ShardParams;
-import org.apache.solr.common.params.SolrParams;
+import org.apache.solr.common.params.ShardParams.DQA;
 import org.apache.solr.common.util.SimpleOrderedMap;
-import org.junit.Assert;
 import org.apache.solr.common.util.StrUtils;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import java.util.ArrayList;
-import java.util.List;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.common.params.ModifiableSolrParams;
-// FIXME - Organise imports
-
 
 /**
  * Test for QueryComponent's distributed querying optimization.
@@ -56,6 +54,7 @@ import org.apache.solr.common.params.ModifiableSolrParams;
  *
  * @see QueryComponent
  */
+@RunWith(Parameterized.class)
 public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase {
   static Logger log = LoggerFactory.getLogger(DistributedQueryComponentOptimizationTest.class);
 
@@ -64,6 +63,37 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
   private static final String SHARD2 = "shard2";
 
   private static final int sliceCount = 3;
+
+  private DQA dqa;
+  private Boolean forceSkipGetIds;
+
+  @Parameterized.Parameters
+  public static Collection<Object[]> allDQAs() {
+    ArrayList<Object[]> parameters = new ArrayList<>();
+    for (DQA dqa : DQA.values()) {
+      parameters.add(new Object[] {dqa, Boolean.TRUE});
+      parameters.add(new Object[] {dqa, Boolean.FALSE});
+      parameters.add(new Object[] {dqa, null});
+    }
+    return parameters;
+  }
+
+  public DistributedQueryComponentOptimizationTest(DQA dqa, Boolean forceSkipGetIds) {
+    this.dqa = dqa;
+    this.forceSkipGetIds = forceSkipGetIds;
+  }
+
+  @Before
+  public static void setupDefaultDQAProvider() {
+    // This test is explicitly testing DQA. Make sure we run with the real DefaultProvider
+    switchToOriginalDQADefaultProvider();
+  }
+
+  @After
+  public static void resetDQAProvider() {
+    // Reset DQA provider
+    switchToTestDQADefaultProvider();
+  }
 
   @BeforeClass
   public static void setupCluster() throws Exception {
@@ -99,15 +129,6 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
   }
 
   private static final String id = "id";
-
-  // FIXME MERGE - The actual @Test methods have not been merged - that needs to be done. The old test only had a single method -
-  // the new version has the tests split. Retry this with editor support!
-
-  // The old test had this - likely needs to be applied to every test now..?
-  /*
-    // This test is explicitly testing DQA. Make sure we run with the real DefaultProvider
-    switchToOriginalDQADefaultProvider();
-   */
 
   @Test
   public void testBasics() throws Exception {
@@ -184,30 +205,30 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
     queryWithAsserts("q", "id:19", "fl", "id,dynamic_s,cat*", "sort", "payload asc", "distrib.singlePass", "true");
 
     // fl=*
-    queryWithAsserts("q", "*:*", "fl", "*", "sort", "payload desc", ShardParams.DISTRIB_SINGLE_PASS, "true");
+    queryWithAsserts("q", "*:*", "fl", "*", "sort", "payload desc", DQA.FORCE_SKIP_GET_IDS_PARAM, "true");
     queryWithAsserts("q", "*:*", "fl", "*", "sort", "payload desc");
 
     // fl=*,score
-    queryWithAsserts("q", "*:*", "fl", "*,score", "sort", "payload desc", ShardParams.DISTRIB_SINGLE_PASS, "true");
+    queryWithAsserts("q", "*:*", "fl", "*,score", "sort", "payload desc", DQA.FORCE_SKIP_GET_IDS_PARAM, "true");
     queryWithAsserts("q", "*:*", "fl", "*,score", "sort", "payload desc");
   }
 
   @Test
   public void testScoreAlwaysReturned() throws Exception {
     // see SOLR-6795, distrib.singlePass=true would return score even when not asked for
-    queryWithAsserts("q", "id:19", ShardParams.DISTRIB_SINGLE_PASS, "true");
+    queryWithAsserts("q", "id:19", DQA.FORCE_SKIP_GET_IDS_PARAM, "true");
   }
 
   @Test
   public void testMultipleFlParams() throws Exception {
     // fix for a bug where not all fields are returned if using multiple fl parameters, see SOLR-6796
-    queryWithAsserts("q", "*:*", "fl", "id", "fl", "dynamic_s", "sort", "payload desc", ShardParams.DISTRIB_SINGLE_PASS, "true");
+    queryWithAsserts("q", "*:*", "fl", "id", "fl", "dynamic_s", "sort", "payload desc", DQA.FORCE_SKIP_GET_IDS_PARAM, "true");
   }
 
   @Test
   public void testMissingFieldListWithSort() throws Exception {
     // missing fl with sort
-    queryWithAsserts("q", "*:*", "sort", "payload desc", ShardParams.DISTRIB_SINGLE_PASS, "true");
+    queryWithAsserts("q", "*:*", "sort", "payload desc", DQA.FORCE_SKIP_GET_IDS_PARAM, "true");
     queryWithAsserts("q", "*:*", "sort", "payload desc");
   }
 
@@ -240,8 +261,8 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
    * <p>
    * and also asserts that each query which requests id or score or both behaves exactly like a single pass query
    */
-  private QueryResponse queryWithAsserts(ShardParams.DQA dqa, ModifiableSolrParams params) throws Exception {
-    log.info("Executing query with dqa=" + dqa + " and params: " + params);
+  private QueryResponse queryWithAsserts(String... q) throws Exception {
+    log.info("Executing query with dqa=" + dqa + " and params: " + q.toString());
     TrackingShardHandlerFactory.RequestTrackingQueue trackingQueue = new TrackingShardHandlerFactory.RequestTrackingQueue();
     // the jettys doesn't include the control jetty which is exactly what we need here
     TrackingShardHandlerFactory.setTrackingQueue(cluster, trackingQueue);
@@ -256,31 +277,34 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
 
     Set<String> fls = new HashSet<>();
     Set<String> sortFields = new HashSet<>();
-
-    if (dqa == ShardParams.DQA.FIND_ID_RELEVANCE_FETCH_BY_IDS && dqa.forceSkipGetIds(params)) {
-      assertTrue("distrib.forceSkipGetIds=true made more requests than number of shards",
-          numRequests == sliceCount);
-      distribSinglePass = true;
-    }
-    String[] flsArr = params.getParams(CommonParams.FL);
-    if (flsArr != null) {
-      for (String s : flsArr) {
-        fls.addAll(StrUtils.splitSmart(s, ','));
+    for (int i = 0; i < q.length; i += 2) {
+      if (dqa == DQA.FIND_ID_RELEVANCE_FETCH_BY_IDS && DQA.FORCE_SKIP_GET_IDS_PARAM.equals(q[i].toString()) && Boolean.parseBoolean(q[i + 1].toString())) {
+        assertTrue("distrib.singlePass=true made more requests than number of shards",
+            numRequests == sliceCount);
+        distribSinglePass = true;
+      }
+      if (CommonParams.FL.equals(q[i].toString())) {
+        fls.addAll(StrUtils.splitSmart(q[i + 1].toString(), ','));
+      }
+      // FIXME MERGE - We used to add sort ALWAYS - is that still needed
+      if (CommonParams.SORT.equals(q[i].toString())) {
+        String val = q[i + 1].toString().trim();
+        // take care of asc/desc decorators
+        sortFields.addAll(StrUtils.splitSmart(StrUtils.splitSmart(val, ' ').get(0), ','));
       }
     }
-    sortFields.addAll(StrUtils.splitSmart(StrUtils.splitSmart(params.get(CommonParams.SORT), ' ').get(0), ','));
 
     Set<String> idScoreFields = new HashSet<>(2);
     idScoreFields.add("id"); // id is always requested in GET_TOP_IDS phase
     // score is optional, requested only if sorted by score
     if (fls.contains("score") || sortFields.contains("score")) idScoreFields.add("score");
 
-    if (dqa == ShardParams.DQA.FIND_ID_RELEVANCE_FETCH_BY_IDS && idScoreFields.containsAll(fls) && !fls.isEmpty()) {
+    if (dqa == DQA.FIND_ID_RELEVANCE_FETCH_BY_IDS && idScoreFields.containsAll(fls) && !fls.isEmpty()) {
       // if id and/or score are the only fields being requested then we implicitly turn on distribSinglePass=true
       distribSinglePass = true;
     }
 
-    if (dqa == ShardParams.DQA.FIND_ID_RELEVANCE_FETCH_BY_IDS && distribSinglePass) {
+    if (dqa == DQA.FIND_ID_RELEVANCE_FETCH_BY_IDS && distribSinglePass) {
       Map<String, Object> debugMap = response.getDebugMap();
       SimpleOrderedMap<Object> track = (SimpleOrderedMap<Object>) debugMap.get("track");
       assertNotNull(track);
@@ -295,12 +319,12 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
           CommonParams.FL, ShardRequest.PURPOSE_GET_TOP_IDS, reqAndIdScoreFields.toArray(new String[reqAndIdScoreFields.size()]));
       assertParamsEquals(trackingQueue, COLLECTION, SHARD2,
           CommonParams.FL, ShardRequest.PURPOSE_GET_TOP_IDS, reqAndIdScoreFields.toArray(new String[reqAndIdScoreFields.size()]));
-    } else if (dqa == ShardParams.DQA.FIND_ID_RELEVANCE_FETCH_BY_IDS) {
+    } else if (dqa == DQA.FIND_ID_RELEVANCE_FETCH_BY_IDS) {
       if (numRequests > sliceCount * 2) {
         log.error("Request map = {}", trackingQueue.getAllRequests()); // todo nocommit
       }
 
-      // we are assuming there are no facet refinement or distributed idf requests here
+      // we are assuming there are facet refinement or distributed idf requests here
       assertTrue("distrib.singlePass=false made more requests than 2 * number of shards." +
               " Actual: " + numRequests + " but expected <= " + sliceCount * 2,
           numRequests <= sliceCount * 2);
@@ -316,13 +340,13 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
           CommonParams.FL, ShardRequest.PURPOSE_GET_FIELDS, fls.toArray(new String[fls.size()]));
       assertParamsEquals(trackingQueue, COLLECTION, SHARD2,
           CommonParams.FL, ShardRequest.PURPOSE_GET_FIELDS, fls.toArray(new String[fls.size()]));
-    } else if (dqa == ShardParams.DQA.FIND_RELEVANCE_FIND_IDS_LIMITED_ROWS_FETCH_BY_IDS)  {
+    } else if (dqa == DQA.FIND_RELEVANCE_FIND_IDS_LIMITED_ROWS_FETCH_BY_IDS)  {
 
     }
 
     Map<String, Object> debugMap = response.getDebugMap();
     SimpleOrderedMap<Object> track = (SimpleOrderedMap<Object>) debugMap.get("track");
-    if (dqa.equals(ShardParams.DQA.FIND_RELEVANCE_FIND_IDS_LIMITED_ROWS_FETCH_BY_IDS)) {
+    if (dqa.equals(DQA.FIND_RELEVANCE_FIND_IDS_LIMITED_ROWS_FETCH_BY_IDS)) {
       assertNotNull(track.get("LIMIT_ROWS"));
     } else {
       assertNull(track.get("LIMIT_ROWS"));

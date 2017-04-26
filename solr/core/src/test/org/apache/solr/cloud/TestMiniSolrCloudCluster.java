@@ -249,7 +249,7 @@ public class TestMiniSolrCloudCluster extends LuceneTestCase {
         zkStateReader.createClusterStateWatchersAndUpdate();
 
         // wait for collection to appear
-        AbstractDistribZkTestBase.waitForRecoveriesToFinish(collectionName, zkStateReader, true, true, 330, false);
+        AbstractDistribZkTestBase.waitForRecoveriesToFinish(collectionName, zkStateReader, true, true, 330);
 
         // check the collection's corelessness
         {

@@ -67,7 +67,6 @@ import org.apache.solr.common.params.CollectionParams.CollectionAction;
 import org.apache.solr.common.params.CoreAdminParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.util.NamedList;
-import org.apache.solr.common.util.SimpleOrderedMap;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.core.SolrInfoMBean.Category;
@@ -79,7 +78,6 @@ import org.junit.Test;
 
 import static org.apache.solr.common.cloud.ZkStateReader.CORE_NAME_PROP;
 import static org.apache.solr.common.cloud.ZkStateReader.REPLICATION_FACTOR;
-import static org.apache.solr.client.solrj.embedded.JettySolrRunner.*;
 
 /**
  * Tests the Cloud Collections API.
@@ -307,26 +305,12 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
     String nn1 = cluster.getJettySolrRunner(0).getNodeName();
     String nn2 = cluster.getJettySolrRunner(1).getNodeName();
 
-    CollectionAdminResponse resp = CollectionAdminRequest.createCollection("halfcollection", "conf", 2, 1)
-        .setCreateNodeSet(nn1 + "," + nn2)
-        .process(cluster.getSolrClient());
-
-    /*
-    SimpleOrderedMap success = (SimpleOrderedMap) resp.getResponse().get("success");
-    SimpleOrderedMap failure = (SimpleOrderedMap) resp.getResponse().get("failure");
-
-    assertNotNull(resp.toString(), success);
-    assertNotNull(resp.toString(), failure);
-    
-    String val1 = success.getVal(0).toString();
-    String val2 = failure.getVal(0).toString();
-    assertTrue(val1.contains("SolrException") || val2.contains("SolrException"));
-    */
-    // FIXME MERGE - check that this compiles
     try {
-      makeRequest(baseUrl, request);;
+      CollectionAdminResponse resp = CollectionAdminRequest.createCollection("halfcollection", "conf", 2, 1)
+          .setCreateNodeSet(nn1 + "," + nn2)
+          .process(cluster.getSolrClient());
+      fail("Should have thrown exception");
     } catch (SolrException e) {
-      gotExp = true;
       assertTrue(e.getClass().getCanonicalName(), e instanceof PartialErrors);
       SolrResponse solrResp = ((PartialErrors)e).getSpecializedResponse();
       List<String> handledPartsRef = solrResp.getHandledPartsRef();
@@ -339,7 +323,6 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
       assertTrue(partRefToException.getKey(), partRefToException.getKey().contains("halfcollection_shard1_replica1"));
       assertTrue(partRefToException.getValue().getMessage(), partRefToException.getValue().getMessage().contains("Core with name 'halfcollection_shard1_replica1' already exists"));
     }
-    assertTrue(gotExp);
   }
 
   @Test

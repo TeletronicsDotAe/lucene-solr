@@ -16,16 +16,6 @@
  */
 package org.apache.solr.core;
 
-import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
-import org.apache.solr.cloud.AbstractFullDistribZkTestBase;
-import org.apache.solr.common.SolrException;
-import org.apache.solr.handler.TestBlobHandler;
-import org.apache.solr.util.RestTestHarness;
-import org.apache.solr.util.SimplePostTool;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -36,6 +26,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.cloud.AbstractFullDistribZkTestBase;
+import org.apache.solr.common.SolrException;
+import org.apache.solr.handler.TestBlobHandler;
+import org.apache.solr.util.RestTestHarness;
+import org.apache.solr.util.SimplePostTool;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import static java.util.Arrays.asList;
 import static org.apache.solr.handler.TestSolrConfigHandlerCloud.compareValues;
@@ -101,8 +101,6 @@ public class TestDynamicLoading extends AbstractFullDistribZkTestBase {
         Arrays.asList("overlay", "requestHandler", "/test1", "class"),
         "org.apache.solr.core.BlobStoreTestRequestHandler",10);
 
-    Map map = TestSolrConfigHandler.getRespMap("/test1?wt=json", client);
-
     try {
       TestSolrConfigHandler.getRespMap("/test1?wt=json", client);
       fail("SolrException with messsage including '.system collection not available' expected");
@@ -120,8 +118,6 @@ public class TestDynamicLoading extends AbstractFullDistribZkTestBase {
       assertTrue(e.getMessage(), e.getMessage().contains("no such blob or version available: colltest/1"));
     }
 
-    assertNotNull(map = (Map) map.get("error"));
-    assertTrue("full output " + TestBlobHandler.getAsString(map), map.get("msg").toString().contains("no such blob or version available: colltest/1" ));
     payload = " {\n" +
         "  'set' : {'watched': {" +
         "                    'x':'X val',\n" +

@@ -35,6 +35,13 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.carrotsearch.randomizedtesting.annotations.Nightly;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakAction;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakAction.Action;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakZombies;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakZombies.Consequence;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -80,16 +87,6 @@ import org.apache.solr.util.TimeOut;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.carrotsearch.randomizedtesting.annotations.Nightly;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakAction;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakAction.Action;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakZombies;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakZombies.Consequence;
-
-import static org.apache.solr.client.solrj.embedded.JettySolrRunner.*;
 
 @ThreadLeakAction({Action.WARN})
 @ThreadLeakLingering(linger = 0)
@@ -406,7 +403,7 @@ public class MorphlineGoLiveMiniMRTest extends AbstractFullDistribZkTestBase {
         assertEquals(0, res);
         assertTrue(tool.job.isComplete());
         assertTrue(tool.job.isSuccessful());
-        results = server.query(new SolrQuery("*:*"), SEARCH_CREDENTIALS);
+        results = server.query(new SolrQuery("*:*"));
         assertEquals(20, results.getResults().getNumFound());
       }
 
@@ -436,7 +433,7 @@ public class MorphlineGoLiveMiniMRTest extends AbstractFullDistribZkTestBase {
         assertEquals(0, res);
         assertTrue(tool.job.isComplete());
         assertTrue(tool.job.isSuccessful());
-        results = server.query(new SolrQuery("*:*"), SEARCH_CREDENTIALS);
+        results = server.query(new SolrQuery("*:*"));
 
         assertEquals(22, results.getResults().getNumFound());
       }
@@ -454,9 +451,9 @@ public class MorphlineGoLiveMiniMRTest extends AbstractFullDistribZkTestBase {
       fs.delete(dataDir, true);
       INPATH = upAvroFile(fs, inDir, DATADIR, dataDir, inputAvroFile3);
 
-      cloudClient.deleteByQuery("*:*", -1, UPDATE_CREDENTIALS);
-      cloudClient.commit(UPDATE_CREDENTIALS);
-      assertEquals(0, cloudClient.query(new SolrQuery("*:*"), SEARCH_CREDENTIALS).getResults().getNumFound());
+      cloudClient.deleteByQuery("*:*", -1);
+      cloudClient.commit();
+      assertEquals(0, cloudClient.query(new SolrQuery("*:*")).getResults().getNumFound());
 
       args = new String[]{
           "--output-dir=" + outDir.toString(),
@@ -491,9 +488,9 @@ public class MorphlineGoLiveMiniMRTest extends AbstractFullDistribZkTestBase {
           }
           update.setField("user_screen_name", "Nadja" + i);
           update.removeField("_version_");
-          cloudClient.add(update, -1, UPDATE_CREDENTIALS);
+          cloudClient.add(update, -1);
         }
-        cloudClient.commit(UPDATE_CREDENTIALS);
+        cloudClient.commit();
 
         // verify updates
         SolrDocumentList resultDocs2 = executeSolrQuery(cloudClient, "*:*");
@@ -507,17 +504,17 @@ public class MorphlineGoLiveMiniMRTest extends AbstractFullDistribZkTestBase {
           assertEquals(doc.getFirstValue("text"), doc2.getFirstValue("text"));
 
           // perform delete
-          cloudClient.deleteById(null, (String) doc.getFirstValue("id"), -1, UPDATE_CREDENTIALS);
+          cloudClient.deleteById(null, (String) doc.getFirstValue("id"), -1);
         }
-        cloudClient.commit(UPDATE_CREDENTIALS);
+        cloudClient.commit();
 
         // verify deletes
         assertEquals(0, executeSolrQuery(cloudClient, "*:*").size());
       }
 
-      cloudClient.deleteByQuery("*:*", -1, UPDATE_CREDENTIALS);
-      cloudClient.commit(UPDATE_CREDENTIALS);
-      assertEquals(0, cloudClient.query(new SolrQuery("*:*"), SEARCH_CREDENTIALS).getResults().getNumFound());
+      cloudClient.deleteByQuery("*:*", -1);
+      cloudClient.commit();
+      assertEquals(0, cloudClient.query(new SolrQuery("*:*")).getResults().getNumFound());
     }
     
     // try using zookeeper with replication
@@ -570,9 +567,9 @@ public class MorphlineGoLiveMiniMRTest extends AbstractFullDistribZkTestBase {
           }
           update.setField("user_screen_name", "@Nadja" + i);
           update.removeField("_version_");
-          cloudClient.add(update, -1, UPDATE_CREDENTIALS);
+          cloudClient.add(update, -1);
       }
-      cloudClient.commit(UPDATE_CREDENTIALS);
+      cloudClient.commit();
       
       // verify updates
       SolrDocumentList resultDocs2 = executeSolrQuery(cloudClient, "*:*");   
@@ -587,17 +584,17 @@ public class MorphlineGoLiveMiniMRTest extends AbstractFullDistribZkTestBase {
           assertEquals(doc.getFieldValues("text"), doc2.getFieldValues("text"));
           
           // perform delete
-          cloudClient.deleteById(null, (String)doc.getFirstValue("id"), -1, UPDATE_CREDENTIALS);
+          cloudClient.deleteById(null, (String)doc.getFirstValue("id"), -1);
       }
-      cloudClient.commit(UPDATE_CREDENTIALS);
+      cloudClient.commit();
       
       // verify deletes
       assertEquals(0, executeSolrQuery(cloudClient, "*:*").size());
     }
     
     // try using solr_url with replication
-    cloudClient.deleteByQuery("*:*", -1, UPDATE_CREDENTIALS);
-    cloudClient.commit(UPDATE_CREDENTIALS);
+    cloudClient.deleteByQuery("*:*", -1);
+    cloudClient.commit();
     assertEquals(0, executeSolrQuery(cloudClient, "*:*").getNumFound());
     assertEquals(0, executeSolrQuery(cloudClient, "*:*").size());
     fs.delete(inDir, true);    
@@ -641,7 +638,6 @@ public class MorphlineGoLiveMiniMRTest extends AbstractFullDistribZkTestBase {
     params.set("name", replicatedCollection);
     QueryRequest request = new QueryRequest(params);
     request.setPath("/admin/collections");
-    request.setAuthCredentials(ALL_CREDENTIALS);
     cloudClient.request(request);
 
     final TimeOut timeout = new TimeOut(10, TimeUnit.SECONDS);
@@ -699,7 +695,7 @@ public class MorphlineGoLiveMiniMRTest extends AbstractFullDistribZkTestBase {
   
   private SolrDocumentList executeSolrQuery(SolrClient collection, String queryString) throws SolrServerException, IOException {
     SolrQuery query = new SolrQuery(queryString).setRows(2 * RECORD_COUNT).addSort("id", ORDER.asc);
-    QueryResponse response = collection.query(query, SEARCH_CREDENTIALS);
+    QueryResponse response = collection.query(query);
     return response.getResults();
   }
 
@@ -714,7 +710,7 @@ public class MorphlineGoLiveMiniMRTest extends AbstractFullDistribZkTestBase {
         try (HttpSolrClient client = getHttpSolrClient(new ZkCoreNodeProps(replica).getCoreUrl())) {
           SolrQuery query = new SolrQuery("*:*");
           query.set("distrib", false);
-          QueryResponse replicaResults = client.query(query, SEARCH_CREDENTIALS);
+          QueryResponse replicaResults = client.query(query);
           long count = replicaResults.getResults().getNumFound();
           if (found != -1) {
             assertEquals(slice.getName() + " is inconsistent "
@@ -768,7 +764,7 @@ public class MorphlineGoLiveMiniMRTest extends AbstractFullDistribZkTestBase {
       collection = "collection1";
     props.setProperty("collection", collection);
 
-    JettySolrRunner jetty = new JettySolrRunner(solrHome.getAbsolutePath(), props, buildJettyConfig(context), true);
+    JettySolrRunner jetty = new JettySolrRunner(solrHome.getAbsolutePath(), props, buildJettyConfig(context));
     jetty.start();
     
     return jetty;
@@ -877,7 +873,6 @@ public class MorphlineGoLiveMiniMRTest extends AbstractFullDistribZkTestBase {
     params.set("action", CollectionAction.CREATEALIAS.toString());
     QueryRequest request = new QueryRequest(params);
     request.setPath("/admin/collections");
-    request.setAuthCredentials(ALL_CREDENTIALS);
     return cloudClient.request(request);
   }
 

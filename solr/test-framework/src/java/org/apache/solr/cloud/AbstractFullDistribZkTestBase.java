@@ -868,8 +868,7 @@ public abstract class AbstractFullDistribZkTestBase extends AbstractDistribZkTes
   protected void waitForRecoveriesToFinish(boolean verbose, int timeoutSeconds)
       throws Exception {
     ZkStateReader zkStateReader = cloudClient.getZkStateReader();
-    // FIXME MERGE - not sure if our last "false" should still be passed or it's a TestSpeedControllers leftover
-    super.waitForRecoveriesToFinish(DEFAULT_COLLECTION, zkStateReader, verbose, true, timeoutSeconds, false);
+    super.waitForRecoveriesToFinish(DEFAULT_COLLECTION, zkStateReader, verbose, true, timeoutSeconds);
   }
 
   protected void checkQueries() throws Exception {

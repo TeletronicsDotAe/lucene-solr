@@ -16,9 +16,6 @@
  */
 package org.apache.solr.handler;
 
-import static java.util.Arrays.asList;
-import static org.apache.solr.common.util.Utils.getObjectByPath;
-
 import java.io.StringReader;
 import java.lang.invoke.MethodHandles;
 import java.nio.charset.StandardCharsets;
@@ -30,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
@@ -53,7 +49,8 @@ import org.noggit.ObjectBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.solr.client.solrj.embedded.JettySolrRunner.*;
+import static java.util.Arrays.asList;
+import static org.apache.solr.common.util.Utils.getObjectByPath;
 
 public class TestConfigReload extends AbstractFullDistribZkTestBase {
 
@@ -139,8 +136,7 @@ public class TestConfigReload extends AbstractFullDistribZkTestBase {
     HttpGet get = new HttpGet(uri) ;
     HttpEntity entity = null;
     try {
-      HttpContext context = HttpSolrClient.getHttpContext(ALL_CREDENTIALS, false, uri);
-      entity = cloudClient.getLbClient().getHttpClient().execute(get, context).getEntity();
+      entity = cloudClient.getLbClient().getHttpClient().execute(get).getEntity();
       String response = EntityUtils.toString(entity, StandardCharsets.UTF_8);
       return (Map) ObjectBuilder.getVal(new JSONParser(new StringReader(response)));
     } finally {

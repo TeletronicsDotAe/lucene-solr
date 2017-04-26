@@ -44,6 +44,6 @@ public class ShardParamsTest extends LuceneTestCase
   public void testShardsPurpose() { assertEquals(ShardParams.SHARDS_PURPOSE, "shards.purpose"); }
   
   public void testRoute() { assertEquals(ShardParams._ROUTE_, "_route_"); }
-  
-  public void testDistribSinglePass() { assertEquals(ShardParams.DISTRIB_SINGLE_PASS, "distrib.singlePass"); }
+
+  //public void testDistribSinglePass() { assertEquals(ShardParams.DISTRIB_SINGLE_PASS, "distrib.singlePass"); }
 }

@@ -23,7 +23,6 @@ import org.apache.solr.handler.component.ShardHandler;
 import org.apache.solr.handler.component.ShardHandlerFactory;
 import org.apache.solr.handler.component.ShardRequest;
 import org.apache.solr.handler.component.ShardResponse;
-import org.apache.solr.security.InterSolrNodeAuthCredentialsFactory.AuthCredentialsSource;
 import org.apache.solr.util.plugin.PluginInfoInitialized;
 
 /** a fake shardhandler factory that does nothing. */
@@ -37,11 +36,6 @@ public class MockShardHandlerFactory extends ShardHandlerFactory implements Plug
   
   @Override
   public ShardHandler getShardHandler() {
-    return getShardHandler(null);
-  }
-  
-  @Override
-  public ShardHandler getShardHandler(AuthCredentialsSource authCredentialsSource) {
     return new ShardHandler() {
       @Override
       public void prepDistributed(ResponseBuilder rb) {}

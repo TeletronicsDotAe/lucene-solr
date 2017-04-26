@@ -16,6 +16,13 @@
  */
 package org.apache.solr;
 
+import java.io.File;
+import java.io.OutputStreamWriter;
+import java.lang.invoke.MethodHandles;
+import java.nio.file.Path;
+import java.util.Properties;
+import java.util.SortedMap;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.lucene.util.LuceneTestCase;
 import org.apache.solr.client.solrj.SolrClient;
@@ -29,13 +36,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.OutputStreamWriter;
-import java.lang.invoke.MethodHandles;
-import java.nio.file.Path;
-import java.util.Properties;
-import java.util.SortedMap;
 
 
 abstract public class SolrJettyTestBase extends SolrTestCaseJ4 
@@ -109,7 +109,7 @@ abstract public class SolrJettyTestBase extends SolrTestCaseJ4
     nodeProps.setProperty("coreRootDirectory", coresDir.toString());
     nodeProps.setProperty("configSetBaseDir", solrHome);
 
-    jetty = new JettySolrRunner(solrHome, nodeProps, jettyConfig, false);
+    jetty = new JettySolrRunner(solrHome, nodeProps, jettyConfig);
     jetty.start();
     port = jetty.getLocalPort();
     log.info("Jetty Assigned Port#" + port);

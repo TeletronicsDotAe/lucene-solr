@@ -566,7 +566,7 @@ public abstract class BaseDistributedSearchTestCase extends SolrTestCaseJ4 {
       int which = r.nextInt(clients.size());
       client = clients.get(which);
     } while (downedClients.contains(client));
-    QueryResponse rsp = client.query(params, authCredentials);
+    QueryResponse rsp = client.query(params);
     return rsp;
   }
 

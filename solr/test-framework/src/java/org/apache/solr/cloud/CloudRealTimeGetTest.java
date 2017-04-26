@@ -1,8 +1,5 @@
 package org.apache.solr.cloud;
 
-import static org.apache.solr.client.solrj.embedded.JettySolrRunner.SEARCH_CREDENTIALS;
-import static org.apache.solr.client.solrj.embedded.JettySolrRunner.UPDATE_CREDENTIALS;
-
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.impl.BinaryResponseParser;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
@@ -69,7 +66,7 @@ public class CloudRealTimeGetTest extends AbstractFullDistribZkTestBase {
       for (int i = 0; i < 100; i++) {
         SolrInputDocument doc = new SolrInputDocument();
         addFields(doc, id, i, i1, i);
-        client.add(doc, -1, UPDATE_CREDENTIALS);
+        client.add(doc, -1);
       }
       
       for (int i = 0; i < 100; i++) {
@@ -83,7 +80,6 @@ public class CloudRealTimeGetTest extends AbstractFullDistribZkTestBase {
         query.setIncludeScore(false);
         query.setTerms(false);
         QueryRequest req = new QueryRequest(query);
-        req.setAuthCredentials(SEARCH_CREDENTIALS);
         req.setResponseParser(new BinaryResponseParser());
         QueryResponse rsp = req.process(client);
         SolrDocument out = (SolrDocument) rsp.getResponse().get("doc");
