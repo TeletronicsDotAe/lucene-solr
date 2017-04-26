@@ -602,38 +602,8 @@ public class HttpSolrClient extends SolrClient {
         }
       }
       
-      NamedList<Object> rsp = null;
       String charset = EntityUtils.getContentCharSet(response.getEntity());
-      try {
-        rsp = processor.processResponse(respBody, charset);
-      } catch (Exception e) {
-        throw new RemoteSolrException(baseUrl, httpStatus, e.getMessage(), e);
-      }
-      if (httpStatus != HttpStatus.SC_OK) {
-        NamedList<String> metadata = null;
-        String reason = null;
-        try {
-          NamedList err = (NamedList) rsp.get("error");
-          if (err != null) {
-            reason = (String) err.get("msg");
-            if(reason == null) {
-              reason = (String) err.get("trace");
-            }
-            metadata = (NamedList<String>)err.get("metadata");
-          }
-        } catch (Exception ex) {}
-        if (reason == null) {
-          StringBuilder msg = new StringBuilder();
-          msg.append(response.getStatusLine().getReasonPhrase())
-            .append("\n\n")
-            .append("request: ")
-            .append(method.getURI());
-          reason = java.net.URLDecoder.decode(msg.toString(), UTF_8);
-        }
-        RemoteSolrException rss = new RemoteSolrException(baseUrl, httpStatus, reason, null);
-        if (metadata != null) rss.setMetadata(metadata);
-        throw rss;
-      }
+
       //return rsp;
       return getProcessedResponse(processor, respBody, charset, httpStatus, true);
     } catch (ConnectException e) {
