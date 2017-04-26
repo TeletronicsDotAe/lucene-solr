@@ -101,7 +101,7 @@ public class SampleTest extends SolrTestCaseJ4 {
      *
      * Note: the qt proves we are using our custom config...
      */
-    TestHarness.LocalRequestInfoFactory l = h.getRequestInfoFactory
+    TestHarness.LocalRequestFactory l = h.getRequestFactory
       ("crazy_custom_qt",100,200,CommonParams.VERSION,"2.2");
     assertQ("how did i find Mack Daddy? ",
             l.makeRequestInfo( "Mack Daddy" ).getReq()

@@ -65,7 +65,7 @@ public class EchoParamsTest extends SolrTestCaseJ4 {
   }
 
   private void allEchoParams() {
-    lrf = h.getRequestInfoFactory
+    lrf = h.getRequestFactory
       ("crazy_custom_qt", 0, 20,
        CommonParams.VERSION,"2.2",
        "wt","xml",

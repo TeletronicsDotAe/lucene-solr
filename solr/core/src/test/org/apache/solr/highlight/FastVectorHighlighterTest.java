@@ -76,7 +76,7 @@ public class FastVectorHighlighterTest extends SolrTestCaseJ4 {
     } else {
       args.put("hl.method", "fastVector"); // the new way
     }
-    TestHarness.LocalRequestInfoFactory sumLRF = h.getRequestInfoFactory(
+    TestHarness.LocalRequestFactory sumLRF = h.getRequestFactory(
       "standard",0,200,args);
     
     assertU(adoc("tv_text", "basic fast vector highlighter test", 

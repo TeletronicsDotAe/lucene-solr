@@ -360,7 +360,7 @@ public class TestHarness extends BaseTestHarness {
    * This method does not set/clear SolrRequestInfo */
   public SolrQueryResponse queryAndResponse(String handler, SolrQueryRequest req) throws Exception {
     try (SolrCore core = getCoreInc()) {
-      SolrQueryResponse rsp = getRequestInfoFactory().makeRequestInfo().getRsp();
+      SolrQueryResponse rsp = getRequestFactory().makeRequestInfo().getRsp();
       core.execute(core.getRequestHandler(handler), req, rsp);
       if (rsp.getException() != null) {
         throw rsp.getException();
@@ -388,14 +388,14 @@ public class TestHarness extends BaseTestHarness {
     }
   }
 
-  public LocalRequestInfoFactory getRequestInfoFactory() {
-    return new LocalRequestInfoFactory();
+  public LocalRequestFactory getRequestFactory() {
+    return new LocalRequestFactory();
   }
 
-  public LocalRequestInfoFactory getRequestInfoFactory(String qtype,
+  public LocalRequestFactory getRequestFactory(String qtype,
                                                int start,
                                                int limit) {
-    LocalRequestInfoFactory f = getRequestInfoFactory();
+    LocalRequestFactory f = getRequestFactory();
     f.qtype = qtype;
     f.start = start;
     f.limit = limit;
@@ -405,10 +405,10 @@ public class TestHarness extends BaseTestHarness {
   /**
    * 0 and Even numbered args are keys, Odd numbered args are values.
    */
-  public LocalRequestInfoFactory getRequestInfoFactory(String qtype,
+  public LocalRequestFactory getRequestFactory(String qtype,
                                                int start, int limit,
                                                String... args) {
-    LocalRequestInfoFactory f = getRequestInfoFactory(qtype, start, limit);
+    LocalRequestFactory f = getRequestFactory(qtype, start, limit);
     for (int i = 0; i < args.length; i+=2) {
       f.args.put(args[i], args[i+1]);
     }
@@ -416,11 +416,11 @@ public class TestHarness extends BaseTestHarness {
         
   }
     
-  public LocalRequestInfoFactory getRequestInfoFactory(String qtype,
+  public LocalRequestFactory getRequestFactory(String qtype,
                                                int start, int limit,
                                                Map<String,String> args) {
 
-    LocalRequestInfoFactory f = getRequestInfoFactory(qtype, start, limit);
+    LocalRequestFactory f = getRequestFactory(qtype, start, limit);
     f.args.putAll(args);
     return f;
   }
@@ -429,12 +429,12 @@ public class TestHarness extends BaseTestHarness {
    * A Factory that generates LocalSolrQueryRequest objects using a
    * specified set of default options.
    */
-  public class LocalRequestInfoFactory {
+  public class LocalRequestFactory {
     public String qtype = null;
     public int start = 0;
     public int limit = 1000;
     public Map<String,String> args = new HashMap<>();
-    public LocalRequestInfoFactory() {
+    public LocalRequestFactory() {
     }
     /**
      * Creates a LocalSolrQueryRequest based on variable args; for

@@ -29,7 +29,7 @@ public class DisMaxRequestHandlerTest extends SolrTestCaseJ4 {
   @BeforeClass
   public static void beforeClass() throws Exception {
     initCore("solrconfig.xml","schema.xml");
-    lrf = h.getRequestInfoFactory
+    lrf = h.getRequestFactory
       ("dismax", 0, 20,
        CommonParams.VERSION,"2.2",
        "facet", "true",

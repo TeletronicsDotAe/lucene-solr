@@ -101,7 +101,7 @@ public class TestComplexPhraseQParserPlugin extends AbstractSolrTestCase {
     args.put(QueryParsing.DEFTYPE, ComplexPhraseQParserPlugin.NAME);
     args.put(CommonParams.FL, "id");
 
-    TestHarness.LocalRequestInfoFactory sumLRF = h.getRequestInfoFactory(
+    TestHarness.LocalRequestFactory sumLRF = h.getRequestFactory(
             "standard", 0, 200, args);
 
     assertU(adoc("name", "john smith", "id", "1"));
@@ -180,7 +180,7 @@ public class TestComplexPhraseQParserPlugin extends AbstractSolrTestCase {
     args.put(HighlightParams.FIELDS, "name");
 
 
-    TestHarness.LocalRequestInfoFactory sumLRF = h.getRequestInfoFactory(
+    TestHarness.LocalRequestFactory sumLRF = h.getRequestFactory(
             "standard", 0, 200, args);
 
     assertU(adoc("name", "john smith smith john", "id", "1"));
@@ -198,7 +198,7 @@ public class TestComplexPhraseQParserPlugin extends AbstractSolrTestCase {
     );
 
 
-    sumLRF = h.getRequestInfoFactory("standard", 0, 200, args);
+    sumLRF = h.getRequestFactory("standard", 0, 200, args);
     assertQ("PhraseHighlighter=true Test",
             sumLRF.makeRequest("name:\"(john johathon) smith\""),
             "//lst[@name='highlighting']/lst[@name='1']",
@@ -209,7 +209,7 @@ public class TestComplexPhraseQParserPlugin extends AbstractSolrTestCase {
 
 
     args.put(HighlightParams.USE_PHRASE_HIGHLIGHTER, Boolean.FALSE.toString());
-    sumLRF = h.getRequestInfoFactory("standard", 0, 200, args);
+    sumLRF = h.getRequestFactory("standard", 0, 200, args);
     assertQ("PhraseHighlighter=false Test",
             sumLRF.makeRequest("name:\"(john johathon) smith\""),
             "//lst[@name='highlighting']/lst[@name='1']",

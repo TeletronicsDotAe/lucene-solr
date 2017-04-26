@@ -528,7 +528,7 @@ public abstract class SolrTestCaseJ4 extends LuceneTestCase {
       xmlStr = "<solr></solr>";
     Files.write(solrHome.resolve(SolrXmlConfig.SOLR_XML_FILE), xmlStr.getBytes(StandardCharsets.UTF_8));
     h = new TestHarness(SolrXmlConfig.fromSolrHome(solrHome));
-    lrf = h.getRequestInfoFactory("standard", 0, 20, CommonParams.VERSION, "2.2");
+    lrf = h.getRequestFactory("standard", 0, 20, CommonParams.VERSION, "2.2");
   }
   
   /** 
@@ -674,7 +674,7 @@ public abstract class SolrTestCaseJ4 extends LuceneTestCase {
    * For use in test methods as needed.
    * </p>
    */
-  protected static TestHarness.LocalRequestInfoFactory lrf;
+  protected static TestHarness.LocalRequestFactory lrf;
 
 
   /**
@@ -741,21 +741,21 @@ public abstract class SolrTestCaseJ4 extends LuceneTestCase {
     h = new TestHarness( coreName, hdfsDataDir == null ? initCoreDataDir.getAbsolutePath() : hdfsDataDir,
             solrConfig,
             getSchemaFile());
-    lrf = h.getRequestInfoFactory
+    lrf = h.getRequestFactory
             ("standard",0,20,CommonParams.VERSION,"2.2");
   }
 
   public static CoreContainer createCoreContainer(Path solrHome, String solrXML) {
     testSolrHome = requireNonNull(solrHome);
     h = new TestHarness(solrHome, solrXML);
-    lrf = h.getRequestInfoFactory("standard", 0, 20, CommonParams.VERSION, "2.2");
+    lrf = h.getRequestFactory("standard", 0, 20, CommonParams.VERSION, "2.2");
     return h.getCoreContainer();
   }
 
   public static CoreContainer createCoreContainer(NodeConfig config, CoresLocator locator) {
     testSolrHome = config.getSolrResourceLoader().getInstancePath();
     h = new TestHarness(config, locator);
-    lrf = h.getRequestInfoFactory("standard", 0, 20, CommonParams.VERSION, "2.2");
+    lrf = h.getRequestFactory("standard", 0, 20, CommonParams.VERSION, "2.2");
     return h.getCoreContainer();
   }
 
@@ -770,7 +770,7 @@ public abstract class SolrTestCaseJ4 extends LuceneTestCase {
   public static CoreContainer createDefaultCoreContainer(Path solrHome) {
     testSolrHome = requireNonNull(solrHome);
     h = new TestHarness("collection1", initCoreDataDir.getAbsolutePath(), "solrconfig.xml", "schema.xml");
-    lrf = h.getRequestInfoFactory("standard", 0, 20, CommonParams.VERSION, "2.2");
+    lrf = h.getRequestFactory("standard", 0, 20, CommonParams.VERSION, "2.2");
     return h.getCoreContainer();
   }
 

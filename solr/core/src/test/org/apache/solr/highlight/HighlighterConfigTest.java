@@ -63,7 +63,7 @@ public class HighlighterConfigTest extends AbstractSolrTestCase {
     args.put("hl.fl", "");
     //FIXME MERGE - What is the right one..?
     /*
-    TestHarness.LocalRequestInfoFactory sumLRF = h.getRequestInfoFactory(
+    TestHarness.LocalRequestFactory sumLRF = h.getRequestFactory(
      */
     TestHarness.LocalRequestFactory sumLRF = h.getRequestFactory(
       "standard", 0, 200, args);
