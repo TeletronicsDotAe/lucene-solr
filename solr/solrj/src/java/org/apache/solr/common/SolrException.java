@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.solr.client.solrj.SolrResponse;
 import org.apache.solr.common.util.NamedList;
@@ -299,7 +300,9 @@ public class SolrException extends RuntimeException {
 	protected static final String PROPERTIES = "properties";
 
   public static SolrException decodeFromHttpMethod(HttpResponse response, String encoding, String reasonPhraseEncoding,  NamedList<Object> payload, byte[] additionalMsgToPutInCreatedException) throws UnsupportedEncodingException {
-    return createFromClassNameCodeAndMsg(response.getFirstHeader(HTTP_ERROR_HEADER_KEY).getValue(), response.getStatusLine().getStatusCode(), java.net.URLDecoder.decode(response.getStatusLine().getReasonPhrase(), reasonPhraseEncoding) + new String(additionalMsgToPutInCreatedException, encoding), payload);
+    Header errorType = response.getFirstHeader(HTTP_ERROR_HEADER_KEY);
+    String className = (errorType != null) ? errorType.getValue() : null;
+    return createFromClassNameCodeAndMsg(className, response.getStatusLine().getStatusCode(), java.net.URLDecoder.decode(response.getStatusLine().getReasonPhrase(), reasonPhraseEncoding) + additionalMsgToPutInCreatedException, payload);
   }
 
   public void encodeTypeInHttpServletResponse(Object httpServletResponse) {

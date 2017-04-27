@@ -240,6 +240,7 @@ public class OverseerCollectionMessageHandler implements OverseerMessageHandler 
 
       SolrException exceptionToThrow = (e instanceof SolrException)?((SolrException)e):(new SolrExceptionCausedByException(ErrorCode.UNKNOWN, e.getMessage()));
       SolrResponse.addPartialError(null, results, "error", exceptionToThrow);
+      SolrResponse.addHandledPart(results, "error");
     }
     return new OverseerSolrResponse(results);
   }
