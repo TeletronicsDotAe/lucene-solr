@@ -58,6 +58,7 @@ import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.ShardParams;
 import org.apache.solr.common.params.SolrParams;
+import org.apache.solr.common.util.Hash;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.util.StrUtils;
 import org.apache.solr.core.SolrCore;
@@ -82,6 +83,7 @@ import org.apache.solr.update.RecentlyLookedUpOrUpdatedDocumentsHandler.FoundLoc
 import org.apache.solr.update.UpdateLog;
 import org.apache.solr.update.UpdateLog.LookupResult;
 import org.apache.solr.update.VersionBucket;
+import org.apache.solr.update.VersionInfo;
 import org.apache.solr.update.processor.DistributedUpdateProcessor;
 import org.apache.solr.update.statistics.RealtimeGetComponentStats.GetInputDocumentStatsEntries;
 import org.apache.solr.util.RefCounted;
@@ -217,9 +219,6 @@ public class RealTimeGetComponent extends SearchComponent
      BytesRefBuilder idBytes = new BytesRefBuilder();
      for (String idStr : reqIds.allIds) {
        fieldType.readableToIndexed(idStr, idBytes);
-
-       // FIXME MERGE - needs to be added for our recently looked up documents performance thing to work
-       /*
        VersionInfo vinfo = (ulog != null)?ulog.getVersionInfo():null;
        int bucketHash = Hash.murmurhash3_x86_32(idBytes.get().bytes, idBytes.get().offset, idBytes.get().length, 0);
 
@@ -231,71 +230,23 @@ public class RealTimeGetComponent extends SearchComponent
        // This code also exists in eDR CacheImpl.getCompleteCacheEntry, so change code both places if we change
        if (vinfo != null) vinfo.lockForUpdate();
        try {
-       // This synchronized is to make sure that no update request is modifying the document while we are finding
-       // and more importantly adding it to cache. See DistributedUpdateProcessor.versionAdd and .versionDelete
-       // We can potentially make a less "limiting" synchronizing
-       // This code also exists in eDR CacheImpl.getCompleteCacheEntry, so change code both places if we change
-       synchronized (bucket) {
-       */
-
-       // FIXME MERGE - This was previously most of the logic, but we didn't have inplace updates etc. back then.
-       // Redo our implementation!
-       /*
-           LookupResult lr = ulog.lookup(idBytes.get(), null, true);
-           if (lr.getSid() != null) {
-             SolrDocument doc = toSolrDoc(lr.getSid(), core.getLatestSchema());
-
-        */
-       if (ulog != null) {
-         Object o = ulog.lookup(idBytes.get(), null, true);
-         if (o != null) {
-           // should currently be a List<Oper,Ver,Doc/Id>
-           List entry = (List)o;
-           assert entry.size() >= 3;
-           int oper = (Integer)entry.get(UpdateLog.FLAGS_IDX) & UpdateLog.OPERATION_MASK;
-           switch (oper) {
-             case UpdateLog.UPDATE_INPLACE: // fall through to ADD
-             case UpdateLog.ADD:
-
-               if (mustUseRealtimeSearcher) {
-                 // close handles to current searchers & result context
-                 searcherInfo.clear();
-                 resultContext = null;
-                 ulog.openRealtimeSearcher();  // force open a new realtime searcher
-                 o = null;  // pretend we never found this record and fall through to use the searcher
-                 break;
-               }
-
-               SolrDocument doc;
-               if (oper == UpdateLog.ADD) {
-                 doc = toSolrDoc((SolrInputDocument)entry.get(entry.size()-1), core.getLatestSchema());
-               } else if (oper == UpdateLog.UPDATE_INPLACE) {
-                 assert entry.size() == 5;
-                 // For in-place update case, we have obtained the partial document till now. We need to
-                 // resolve it to a full document to be returned to the user.
-                 doc = resolveFullDocument(core, idBytes.get(), rsp.getReturnFields(), (SolrInputDocument)entry.get(entry.size()-1), entry, null);
-                 if (doc == null) {
-                   break; // document has been deleted as the resolve was going on
-                 }
-               } else {
-                 throw new SolrException(ErrorCode.INVALID_STATE, "Expected ADD or UPDATE_INPLACE. Got: " + oper);
-               }
+         // This synchronized is to make sure that no update request is modifying the document while we are finding
+         // and more importantly adding it to cache. See DistributedUpdateProcessor.versionAdd and .versionDelete
+         // We can potentially make a less "limiting" synchronizing
+         // This code also exists in eDR CacheImpl.getCompleteCacheEntry, so change code both places if we change
+         synchronized (bucket) {
+           if (ulog != null) {
+             LookupResult lr = ulog.lookup(idBytes.get(), null, true);
+             if (lr.getSid() != null) {
+               SolrDocument doc = toSolrDoc(lr.getSid(), core.getLatestSchema());
                if (transformer!=null) {
                  transformer.transform(doc, -1, 0); // unknown docID
                }
-              docList.add(doc);
-              break;
-             case UpdateLog.DELETE:
-              break;
-             default:
-               throw new SolrException(SolrException.ErrorCode.SERVER_ERROR,  "Unknown Operation! " + oper);
+               docList.add(doc);
+               continue;
+             }
+             if (!lr.isMaybeInIndex()) continue;
            }
-           if (o != null) continue;
-         }
-         //FIXME MERGE - needs to be added for our recently looked up documents performance thing to work
-         // if (!lr.isMaybeInIndex()) continue;
-       }
-
        // didn't find it in the update log, so it should be in the newest searcher opened
        searcherInfo.init();
        // don't bother with ResultContext yet, we won't need it if doc doesn't match filters
@@ -335,17 +286,13 @@ public class RealTimeGetComponent extends SearchComponent
        }
        docList.add(doc);
 
-       // FIXME MERGE - redo this method!
-       /*
        SolrInputDocument sid = toSolrInputDocument(luceneDocument, core.getLatestSchema());
 
        RecentlyLookedUpOrUpdatedDocumentsHandler.getRecentlyLookedUpOrUpdatedDocuments().addDocument(ulog, idBytes.get(), sid, FoundLocation.Index);
-       } finally {
+       }} finally {
          if (vinfo != null) vinfo.unlockForUpdate();
        }
-       */
      }
-
    } finally {
      searcherInfo.clear();
    }
@@ -1077,17 +1024,17 @@ public class RealTimeGetComponent extends SearchComponent
     
     PeerSync peerSync = new PeerSync(rb.req.getCore(), replicas, nVersions, cantReachIsSuccess, true);
 
-    try {
+//    try {
     boolean success = peerSync.sync().isSuccess();
     
     // TODO: more complex response?
     rb.rsp.add("sync", success);
-    } catch (RuntimeException re) {
-      log.warn("RESOURCE LEAK! PeerSync was not properly closed, until we fixed it!");
-      throw re;
-    } finally {
-      peerSync.close();
-    }
+//    } catch (RuntimeException re) {
+//      log.warn("RESOURCE LEAK! PeerSync was not properly closed, until we fixed it!");
+//      throw re;
+//    } finally {
+//      peerSync.close();
+//    }
   }
   
 
