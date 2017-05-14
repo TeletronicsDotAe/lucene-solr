@@ -16,14 +16,15 @@
  */
 package org.apache.solr.update.processor;
 
+import java.io.IOException;
+
 import org.apache.solr.SolrTestCaseJ4;
-import org.apache.solr.common.params.SolrParams;
-import org.apache.solr.common.util.IOUtils;
-import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.SolrInputField;
+import org.apache.solr.common.params.ModifiableSolrParams;
+import org.apache.solr.common.params.SolrParams;
+import org.apache.solr.common.util.IOUtils;
 import org.apache.solr.core.SolrCore;
-import org.apache.solr.request.SolrRequestInfo;
 import org.apache.solr.request.LocalSolrQueryRequest;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.request.SolrRequestInfo;
@@ -31,8 +32,6 @@ import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.CommitUpdateCommand;
 import org.apache.solr.update.DeleteUpdateCommand;
-
-import java.io.IOException;
 
 public class UpdateProcessorTestBase extends SolrTestCaseJ4 {
 
@@ -63,8 +62,8 @@ public class UpdateProcessorTestBase extends SolrTestCaseJ4 {
     assertNotNull("No Chain named: " + chain, pc);
 
     SolrQueryResponse rsp = new SolrQueryResponse();
+
     SolrQueryRequest req = new LocalSolrQueryRequest(core, requestParams);
-    SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req, rsp));
     try {
       SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req, rsp));
       AddUpdateCommand cmd = new AddUpdateCommand(req);
