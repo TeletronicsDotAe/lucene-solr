@@ -86,6 +86,7 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
   public void setupDefaultDQAProvider() {
     // This test is explicitly testing DQA. Make sure we run with the real DefaultProvider
     switchToOriginalDQADefaultProvider();
+    System.out.println("Testing with DQA:" + dqa.toString() + " and forceSkipIDs: " + forceSkipGetIds);
   }
 
   @After
@@ -159,7 +160,7 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
   public void testDistribSinglePass() throws Exception {
 
     QueryResponse rsp = cluster.getSolrClient().query(COLLECTION,
-        new SolrQuery("q", "*:*", "fl", "id,test_sS,score", "sort", "payload asc", "rows", "20", "distrib.singlePass", "true"));
+        new SolrQuery("q", "*:*", "fl", "id,test_sS,score", "sort", "payload asc", "rows", "20", DQA.FORCE_SKIP_GET_IDS_PARAM, "true"));
     assertFieldValues(rsp.getResults(), id, "7", "1", "6", "4", "2", "10", "12", "3", "5", "9", "8", "13", "19", "11");
     assertFieldValues(rsp.getResults(), "test_sS", "27", "21", "26", "24", "22", "30", "32", "23", "25", "29", "28", "33", null, "31");
 
@@ -171,7 +172,7 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
     nonDistribRsp = cluster.getSolrClient().query(COLLECTION,
         new SolrQuery("q", "*:*", "fl", "score", "sort", "payload asc", "rows", "20"));
     rsp = cluster.getSolrClient().query(COLLECTION,
-        new SolrQuery("q", "*:*", "fl", "score", "sort", "payload asc", "rows", "20", "distrib.singlePass", "true"));
+        new SolrQuery("q", "*:*", "fl", "score", "sort", "payload asc", "rows", "20", DQA.FORCE_SKIP_GET_IDS_PARAM, "true"));
     compareResponses(rsp, nonDistribRsp); // make sure distrib and distrib.singlePass return the same thing
 
   }
@@ -182,7 +183,7 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
     // verify that the optimization actually works
     queryWithAsserts("q", "*:*", "fl", "id", "sort", "payload desc", "rows", "20"); // id only is optimized by default
     queryWithAsserts("q", "*:*", "fl", "id,score", "sort", "payload desc", "rows", "20"); // id,score only is optimized by default
-    queryWithAsserts("q", "*:*", "fl", "score", "sort", "payload asc", "rows", "20", "distrib.singlePass", "true");
+    queryWithAsserts("q", "*:*", "fl", "score", "sort", "payload asc", "rows", "20", DQA.FORCE_SKIP_GET_IDS_PARAM, "true");
 
   }
 
@@ -190,18 +191,18 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
   public void testWildcardFieldList() throws Exception {
 
     QueryResponse nonDistribRsp = queryWithAsserts("q", "id:19", "fl", "id,*a_sS", "sort", "payload asc");
-    QueryResponse rsp = queryWithAsserts("q", "id:19", "fl", "id,*a_sS", "sort", "payload asc", "distrib.singlePass", "true");
+    QueryResponse rsp = queryWithAsserts("q", "id:19", "fl", "id,*a_sS", "sort", "payload asc", DQA.FORCE_SKIP_GET_IDS_PARAM, "true");
 
     assertFieldValues(nonDistribRsp.getResults(), "id", "19");
     assertFieldValues(rsp.getResults(), "id", "19");
 
     nonDistribRsp = queryWithAsserts("q", "id:19", "fl", "id,dynamic_s,cat*", "sort", "payload asc");
-    rsp = queryWithAsserts("q", "id:19", "fl", "id,dynamic_s,cat*", "sort", "payload asc", "distrib.singlePass", "true");
+    rsp = queryWithAsserts("q", "id:19", "fl", "id,dynamic_s,cat*", "sort", "payload asc", DQA.FORCE_SKIP_GET_IDS_PARAM, "true");
     assertFieldValues(nonDistribRsp.getResults(), "id", "19");
     assertFieldValues(rsp.getResults(), "id", "19");
 
-    queryWithAsserts("q", "id:19", "fl", "id,*a_sS", "sort", "payload asc", "distrib.singlePass", "true");
-    queryWithAsserts("q", "id:19", "fl", "id,dynamic_s,cat*", "sort", "payload asc", "distrib.singlePass", "true");
+    queryWithAsserts("q", "id:19", "fl", "id,*a_sS", "sort", "payload asc", DQA.FORCE_SKIP_GET_IDS_PARAM, "true");
+    queryWithAsserts("q", "id:19", "fl", "id,dynamic_s,cat*", "sort", "payload asc", DQA.FORCE_SKIP_GET_IDS_PARAM, "true");
 
     // fl=*
     queryWithAsserts("q", "*:*", "fl", "*", "sort", "payload desc", DQA.FORCE_SKIP_GET_IDS_PARAM, "true");
@@ -267,7 +268,7 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
     if (forceSkipGetIds != null) {
       dqaParams = ObjectArrays.concat(dqaParams, new String[] {DQA.FORCE_SKIP_GET_IDS_PARAM, forceSkipGetIds.toString()}, String.class);
     }
-    q = ObjectArrays.concat(q, dqaParams, String.class);
+    q = ObjectArrays.concat(dqaParams, q, String.class);
     TrackingShardHandlerFactory.RequestTrackingQueue trackingQueue = new TrackingShardHandlerFactory.RequestTrackingQueue();
     // the jettys doesn't include the control jetty which is exactly what we need here
     TrackingShardHandlerFactory.setTrackingQueue(cluster, trackingQueue);
@@ -282,11 +283,18 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
 
     Set<String> fls = new HashSet<>();
     Set<String> sortFields = new HashSet<>();
+
+    boolean dqaAlreadySeen = false;
     for (int i = 0; i < q.length; i += 2) {
-      if (dqa == DQA.FIND_ID_RELEVANCE_FETCH_BY_IDS && DQA.FORCE_SKIP_GET_IDS_PARAM.equals(q[i].toString()) && Boolean.parseBoolean(q[i + 1].toString())) {
-        assertTrue("distrib.singlePass=true made more requests than number of shards",
-            numRequests == sliceCount);
-        distribSinglePass = true;
+      if (dqa == DQA.FIND_ID_RELEVANCE_FETCH_BY_IDS && DQA.FORCE_SKIP_GET_IDS_PARAM.equals(q[i])) {
+        // Only process the first DQA.FORCE_SKIP_GET_IDS_PARAM in the list, since it's now part of the parameterized test
+        if (!dqaAlreadySeen && Boolean.parseBoolean(q[i + 1])) {
+          assertTrue("distrib.singlePass=true made more requests than number of shards",
+              numRequests == sliceCount);
+          distribSinglePass = true;
+        } else {
+          continue;
+        }
       }
       if (CommonParams.FL.equals(q[i].toString())) {
         fls.addAll(StrUtils.splitSmart(q[i + 1].toString(), ','));
