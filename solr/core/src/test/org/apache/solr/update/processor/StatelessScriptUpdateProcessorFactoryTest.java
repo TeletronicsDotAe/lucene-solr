@@ -16,19 +16,17 @@
  */
 package org.apache.solr.update.processor;
 
-import org.apache.solr.common.params.ModifiableSolrParams;
-import org.apache.solr.common.SolrException;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.core.SolrCore;
 import org.junit.Assume;
 import org.junit.BeforeClass;
-
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptEngine;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Tests {@link StatelessScriptUpdateProcessorFactory}.
@@ -44,27 +42,27 @@ public class StatelessScriptUpdateProcessorFactoryTest extends UpdateProcessorTe
   }
 
   /**
-   * simple test of a basic script processor chain using the full 
+   * simple test of a basic script processor chain using the full
    * RequestHandler + UpdateProcessorChain flow
    */
   public void testFullRequestHandlerFlow() throws Exception {
 
     assertU("Simple assertion that adding a document works",
-            adoc("id",  "4055",
-                 "subject", "Hoss"));
+        adoc("id",  "4055",
+            "subject", "Hoss"));
     assertU(commit());
 
     assertQ("couldn't find hoss using script added field",
-            req("q","script_added_i:[40 TO 45]",
-                "fq","id:4055")
-            ,"//result[@numFound=1]"
-            ,"//str[@name='id'][.='4055']"
-            );
+        req("q","script_added_i:[40 TO 45]",
+            "fq","id:4055")
+        ,"//result[@numFound=1]"
+        ,"//str[@name='id'][.='4055']"
+    );
 
     // clean up
     processDeleteById("run-no-scripts","4055");
     processCommit("run-no-scripts");
-    
+
   }
 
   public void testSingleScript() throws Exception {
@@ -88,137 +86,131 @@ public class StatelessScriptUpdateProcessorFactoryTest extends UpdateProcessorTe
     processCommit("run-no-scripts");
 
     assertQ("couldn't find doc by id",
-            req("q","id:1")
-            , "//result[@numFound=1]");
+        req("q","id:1")
+        , "//result[@numFound=1]");
 
     processDeleteById("single-script","1");
     processCommit("single-script");
-    
+
     assertQ("found deleted doc",
-            req("q","id:1")
-            , "//result[@numFound=0]");
+        req("q","id:1")
+        , "//result[@numFound=0]");
 
 
-    // Multiplying by 2 because for every operation finish is also called
-    assertEquals(2*3, functionMessages.size());
+    assertEquals(3, functionMessages.size());
 
     assertTrue(functionMessages.contains("processAdd0"));
     assertTrue(functionMessages.contains("processDelete0"));
     assertTrue(functionMessages.contains("processCommit0"));
-    assertEquals(3, occurrences(functionMessages, "finish0"));
+
   }
 
   public void testMultipleScripts() throws Exception {
     SolrCore core = h.getCore();
 
-    for (final String chain : new String[] {"dual-scripts-arr", 
-                                            "dual-scripts-strs"}) {
-    
+    for (final String chain : new String[] {"dual-scripts-arr",
+        "dual-scripts-strs"}) {
+
       UpdateRequestProcessorChain chained = core.getUpdateProcessingChain(chain);
-      final StatelessScriptUpdateProcessorFactory factory = 
-        ((StatelessScriptUpdateProcessorFactory) chained.getProcessors().get(0));
+      final StatelessScriptUpdateProcessorFactory factory =
+          ((StatelessScriptUpdateProcessorFactory) chained.getProcessors().get(0));
       final List<String> functionMessages = new ArrayList<>();
       ScriptEngineCustomizer customizer = new ScriptEngineCustomizer() {
-          @Override
-          public void customize(ScriptEngine engine) {
-            engine.put("functionMessages", functionMessages);
-          }
-        };
+        @Override
+        public void customize(ScriptEngine engine) {
+          engine.put("functionMessages", functionMessages);
+        }
+      };
       factory.setScriptEngineCustomizer(customizer);
       assertNotNull(chained);
 
       SolrInputDocument d = processAdd(chain,
-                                       doc(f("id", "2"),
-                                           f("name", " foo "),
-                                           f("subject", "bar")));
-      
-      assertEquals(chain + " didn't add Double field", 
-                   42.3d, d.getFieldValue("script_added_d"));
-      assertEquals(chain + " didn't add integer field", 
-                   new Integer(42), d.getFieldValue("script_added_i"));
-      
+          doc(f("id", "2"),
+              f("name", " foo "),
+              f("subject", "bar")));
+
+      assertEquals(chain + " didn't add Double field",
+          42.3d, d.getFieldValue("script_added_d"));
+      assertEquals(chain + " didn't add integer field",
+          new Integer(42), d.getFieldValue("script_added_i"));
+
       processCommit("run-no-scripts");
 
       assertQ(chain + ": couldn't find doc by id",
-              req("q","id:2")
-              , "//result[@numFound=1]");
+          req("q","id:2")
+          , "//result[@numFound=1]");
 
       processDeleteById(chain, "2");
       processCommit(chain);
-      
-      // Multiplying by 2 because for every operation finish is also called
-      assertEquals(chain, 2*6, functionMessages.size());
+
+      assertEquals(chain, 6, functionMessages.size());
       assertTrue(chain, functionMessages.contains("processAdd0"));
       assertTrue(chain, functionMessages.contains("processAdd1"));
       assertTrue(chain + ": script order doesn't match conf order",
-                 functionMessages.indexOf("processAdd0") 
-                 < functionMessages.indexOf("processAdd1"));
+          functionMessages.indexOf("processAdd0")
+              < functionMessages.indexOf("processAdd1"));
 
       assertTrue(chain, functionMessages.contains("processDelete0"));
       assertTrue(chain, functionMessages.contains("processDelete1"));
       assertTrue(chain + ": script order doesn't match conf order",
-                 functionMessages.indexOf("processDelete0") 
-                 < functionMessages.indexOf("processDelete1"));
+          functionMessages.indexOf("processDelete0")
+              < functionMessages.indexOf("processDelete1"));
 
       assertTrue(chain, functionMessages.contains("processCommit0"));
       assertTrue(chain, functionMessages.contains("processCommit1"));
       assertTrue(chain + ": script order doesn't match conf order",
-                 functionMessages.indexOf("processCommit0") 
-                 < functionMessages.indexOf("processCommit1"));
-      assertEquals(3, occurrences(functionMessages, "finish0"));
-      assertEquals(3, occurrences(functionMessages, "finish1"));
+          functionMessages.indexOf("processCommit0")
+              < functionMessages.indexOf("processCommit1"));
 
       finish(chain);
-    
-      assertEquals(chain, 2*6 + 2, functionMessages.size());
+
+      assertEquals(chain, 8, functionMessages.size());
 
       assertTrue(chain, functionMessages.contains("finish0"));
       assertTrue(chain, functionMessages.contains("finish1"));
       assertTrue(chain + ": script order doesn't match conf order",
-                 functionMessages.indexOf("finish0") 
-                 < functionMessages.indexOf("finish1"));
-      assertEquals(4, occurrences(functionMessages, "finish0"));
-      assertEquals(4, occurrences(functionMessages, "finish1"));
+          functionMessages.indexOf("finish0")
+              < functionMessages.indexOf("finish1"));
 
       assertQ(chain + ": found deleted doc",
-              req("q","id:2")
-              , "//result[@numFound=0]");
-      
+          req("q","id:2")
+          , "//result[@numFound=0]");
+
     }
   }
 
 
   public void testConditionalExecution() throws Exception {
-    for (String chain : new String[] {"conditional-script", 
-                                      "conditional-scripts"}) {
+    for (String chain : new String[] {"conditional-script",
+        "conditional-scripts"}) {
 
       ModifiableSolrParams reqParams = new ModifiableSolrParams();
-      
+
       SolrInputDocument d = processAdd(chain,
-                                       reqParams,
-                                       doc(f("id", "3"),
-                                           f("name", " foo "),
-                                           f("subject", "bar")));
-      
-      assertFalse(chain + " added String field despite condition", 
-                  d.containsKey("script_added_s"));
-      assertFalse(chain + " added Double field despite condition", 
-                  d.containsKey("script_added_d"));
-      
+          reqParams,
+          doc(f("id", "3"),
+              f("name", " foo "),
+              f("subject", "bar")));
+
+      assertFalse(chain + " added String field despite condition",
+          d.containsKey("script_added_s"));
+      assertFalse(chain + " added Double field despite condition",
+          d.containsKey("script_added_d"));
+
       reqParams.add("go-for-it", "true");
-      
+
       d = processAdd(chain,
-                     reqParams,
-                     doc(f("id", "4"),
-                         f("name", " foo "),
-                         f("subject", "bar")));
-      
-      assertEquals(chain + " didn't add String field", 
-                   "i went for it", d.getFieldValue("script_added_s"));
-      assertEquals(chain +" didn't add Double field", 
-                   42.3d, d.getFieldValue("script_added_d"));
-      assertEquals(chain + " didn't add integer field", 
-                   new Integer(42), d.getFieldValue("script_added_i"));
+          reqParams,
+          doc(f("id", "4"),
+              f("name", " foo "),
+              f("subject", "bar")));
+
+      assertEquals(chain + " didn't add String field",
+          "i went for it", d.getFieldValue("script_added_s"));
+      assertEquals(chain +" didn't add Double field",
+          42.3d, d.getFieldValue("script_added_d"));
+      assertEquals(chain + " didn't add integer field",
+          new Integer(42), d.getFieldValue("script_added_i"));
     }
   }
 
@@ -227,26 +219,26 @@ public class StatelessScriptUpdateProcessorFactoryTest extends UpdateProcessorTe
 
     final String chain = "force-script-engine";
     SolrInputDocument d = processAdd(chain,
-                                     doc(f("id", "5"),
-                                         f("name", " foo "),
-                                         f("subject", "bar")));
-      
-    assertEquals(chain +" didn't add Double field", 
-                 42.3d, d.getFieldValue("script_added_d"));
-    assertEquals(chain + " didn't add integer field", 
-                 new Integer(42), d.getFieldValue("script_added_i"));
+        doc(f("id", "5"),
+            f("name", " foo "),
+            f("subject", "bar")));
+
+    assertEquals(chain +" didn't add Double field",
+        42.3d, d.getFieldValue("script_added_d"));
+    assertEquals(chain + " didn't add integer field",
+        new Integer(42), d.getFieldValue("script_added_i"));
   }
 
   public void testPropogatedException() throws Exception  {
     final String chain = "error-on-add";
     try {
       SolrInputDocument d = processAdd(chain,
-                                       doc(f("id", "5"),
-                                           f("name", " foo "),
-                                           f("subject", "bar")));
+          doc(f("id", "5"),
+              f("name", " foo "),
+              f("subject", "bar")));
     } catch (SolrException e) {
       assertTrue("Exception doesn't contain script error string: " + e.getMessage(),
-                 0 < e.getMessage().indexOf("no-soup-fo-you"));
+          0 < e.getMessage().indexOf("no-soup-fo-you"));
       return;
     }
     fail("Did not get exception from script");
@@ -257,31 +249,23 @@ public class StatelessScriptUpdateProcessorFactoryTest extends UpdateProcessorTe
     final String chain = "missing-functions";
     try {
       SolrInputDocument d = processAdd(chain,
-                                       doc(f("id", "5"),
-                                           f("name", " foo "),
-                                           f("subject", "bar")));
+          doc(f("id", "5"),
+              f("name", " foo "),
+              f("subject", "bar")));
     } catch (SolrException e) {
       assertTrue("Exception doesn't contain expected error: " + e.getMessage(),
-                 0 < e.getMessage().indexOf("processAdd"));
+          0 < e.getMessage().indexOf("processAdd"));
       return;
     }
     fail("Did not get exception from script");
-  }
-  
-  private int occurrences(List<String> list, String toOccur) {
-    int result = 0;
-    for (String str : list) {
-      if (toOccur.equals(str)) result++;
-    }
-    return result;
   }
 
   public void testJavaScriptCompatibility() throws Exception  {
     final String chain = "javascript-compatibility";
     SolrInputDocument d = processAdd(chain,
-                                 doc(f("id", "5"),
-                                     f("name", " foo "),
-                                     f("subject", "BAR")));
+        doc(f("id", "5"),
+            f("name", " foo "),
+            f("subject", "BAR")));
     assertEquals("bar", d.getFieldValue("term_s"));
 
   }

@@ -327,7 +327,6 @@
   </condition>
 
   <!-- workaround for https://issues.apache.org/bugzilla/show_bug.cgi?id=53347 -->
-  <!-- //FIXME - We applied javac1.8, but I'm not sure it's necessary -->
   <condition property="build.compiler" value="javac1.7">
     <or>
       <antversion exactly="1.8.3" />
