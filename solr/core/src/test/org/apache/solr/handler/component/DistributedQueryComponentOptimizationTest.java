@@ -262,7 +262,6 @@ public class DistributedQueryComponentOptimizationTest extends SolrCloudTestCase
    * and also asserts that each query which requests id or score or both behaves exactly like a single pass query
    */
   private QueryResponse queryWithAsserts(String... q) throws Exception {
-    log.info("Executing query with dqa=" + dqa + " and params: " + q.toString());
     // Add our dqa algorithm to the query parameters
     String[] dqaParams = {DQA.QUERY_PARAM, (random().nextBoolean()) ? dqa.getId() : dqa.getAliasIds()[0]};
     if (forceSkipGetIds != null) {
