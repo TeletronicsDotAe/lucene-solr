@@ -16,21 +16,13 @@
  */
 package org.apache.solr.response;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.servlet.http.HttpServletResponse;
-
-import java.util.HashMap;
-import java.util.List;
-
-import org.apache.solr.client.solrj.SolrResponse;
-import org.apache.solr.common.SolrException;
-import org.apache.solr.common.SolrException.ErrorCode;
-import org.apache.solr.common.exceptions.PartialErrors;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.util.SimpleOrderedMap;
 import org.apache.solr.search.ReturnFields;
@@ -86,43 +78,42 @@ public class SolrQueryResponse {
    * @see <a href="#returnable_data">Note on Returnable Data</a>
    */
   protected NamedList<Object> values = new SimpleOrderedMap<>();
-  
-  protected Map<String, SolrException> partsRefToPartialErrorMap = new HashMap<String, SolrException>();
-  
-/**
+
+
+  /**
    * Container for storing information that should be logged by Solr before returning.
    */
   protected NamedList<Object> toLog = new SimpleOrderedMap<>();
 
   protected ReturnFields returnFields;
-  
+
   /**
    * Container for storing HTTP headers. Internal Solr components can add headers to
    * this SolrQueryResponse through the methods: {@link #addHttpHeader(String, String)}
-   * and {@link #setHttpHeader(String, String)}, or remove existing ones through 
-   * {@link #removeHttpHeader(String)} and {@link #removeHttpHeaders(String)}. 
+   * and {@link #setHttpHeader(String, String)}, or remove existing ones through
+   * {@link #removeHttpHeader(String)} and {@link #removeHttpHeaders(String)}.
    * All these headers are going to be added to the HTTP response.
    */
   private final NamedList<String> headers = new SimpleOrderedMap<>();
 
-  // entire request failed if this is set...
+  // error if this is set...
   protected Exception err;
 
   /**
    * Should this response be tagged with HTTP caching headers?
    */
   protected boolean httpCaching=true;
-  
+
   /***
    // another way of returning an error
-  int errCode;
-  String errMsg;
-  ***/
+   int errCode;
+   String errMsg;
+   ***/
 
   public SolrQueryResponse() {
   }
-  
-  
+
+
   /**
    * Gets data to be returned in this response
    * @see <a href="#returnable_data">Note on Returnable Data</a>
@@ -169,39 +160,20 @@ public class SolrQueryResponse {
 
   /**
    * Causes an error to be returned instead of the results.
-   * 
+   *
    * In general, new calls to this method should not be added. In most cases
-   * you should simply throw an exception and let it bubble out to 
+   * you should simply throw an exception and let it bubble out to
    * RequestHandlerBase, which will set the exception thrown.
    */
   public void setException(Exception e) {
     err=e;
   }
 
-  public void addHandledPart(String partRef) {
-    SolrResponse.addHandledPart(values, partRef);
-  }
-    
   /**
    * Returns an Exception if there was a fatal error in processing the request.
    * Returns null if the request succeeded.
    */
   public Exception getException() {
-  	if (err == null) {
-      @SuppressWarnings("unchecked")
-      // If only on part of request handled and it resulted in error, throw corresponding exception for convenience
-      SolrException singlePartialError;
-      List<String> handledPartsRef = SolrResponse.getHandledPartsRef(getValues());
-      if ((handledPartsRef != null) && handledPartsRef.size() == 1 && (singlePartialError = SolrResponse.getPartialError(partsRefToPartialErrorMap, getValues(), handledPartsRef.iterator().next())) != null) {
-      	SolrResponse.removeAllPartsRef(partsRefToPartialErrorMap, getValues());
-      	err = singlePartialError;
-      } else if (SolrResponse.numberOfPartialErrors(partsRefToPartialErrorMap, getValues()) > 0) {
-      	PartialErrors pes = new PartialErrors(ErrorCode.PRECONDITION_FAILED, "Some parts of the request resulted in errors - other parts might have succeeded. Client needs to check response for partial errors");
-      	pes.setPayload(getValues());
-      	err = pes;
-      }
-  	}
-
     return err;
   }
 
@@ -215,31 +187,6 @@ public class SolrQueryResponse {
     values.remove(RESPONSE_HEADER_KEY);
   }
 
-  public void addPartialError(String partRef, SolrException err) {
-  	SolrResponse.addPartialError(partsRefToPartialErrorMap, getValues(), partRef, err);
-  }
-  
-  public void copyFromSolrResponse(SolrResponse from) {
-    List<String> handledPartsRef = from.getHandledPartsRef();
-    if (handledPartsRef != null) {
-      for (String handledPart : handledPartsRef) {
-        addHandledPart(handledPart);
-      }
-    }
-    Map<String, SolrException> pes = from.getPartialErrors();
-    for (String key : pes.keySet()) {
-      addPartialError(key, pes.get(key));
-    }
-    
-    if (pes.size() == 0) {
-      for (Map.Entry<String,Object> entry : from.getResponse()) {
-        if (!entry.getKey().equals(SolrResponse.HANDLED_PARTS_KEY) && !entry.getKey().equals(SolrResponse.PARTIAL_ERRORS_KEY)) {
-          getValues().add(entry.getKey(), entry.getValue());
-        }
-      }
-    }
-  }
-  
   /** Response header to be logged */
   public NamedList<Object> getResponseHeader() {
     @SuppressWarnings("unchecked")
@@ -256,18 +203,18 @@ public class SolrQueryResponse {
   public Object getResponse() {
     return values.get(RESPONSE_KEY);
   }
-  
+
   /** Add a value to be logged.
-   * 
+   *
    * @param name name of the thing to log
    * @param val value of the thing to log
    */
   public void addToLog(String name, Object val) {
     toLog.add(name, val);
   }
-  
+
   /** Get loggable items.
-   * 
+   *
    * @return things to log
    */
   public NamedList<Object> getToLog() {
@@ -290,7 +237,7 @@ public class SolrQueryResponse {
     }
     return sb.toString();
   }
-  
+
   /**
    * Enables or disables the emission of HTTP caching headers for this response.
    * @param httpCaching true=emit caching headers, false otherwise
@@ -298,7 +245,7 @@ public class SolrQueryResponse {
   public void setHttpCaching(boolean httpCaching) {
     this.httpCaching=httpCaching;
   }
-  
+
   /**
    * Should this response emit HTTP caching headers?
    * @return true=yes emit headers, false otherwise
@@ -306,14 +253,14 @@ public class SolrQueryResponse {
   public boolean isHttpCaching() {
     return this.httpCaching;
   }
-  
+
   /**
    *
    * Sets a response header with the given name and value. This header
    * will be included in the HTTP response
    * If the header had already been set, the new value overwrites the
    * previous ones (all of them if there are multiple for the same name).
-   * 
+   *
    * @param name the name of the header
    * @param value the header value  If it contains octet string,
    *    it should be encoded according to RFC 2047
@@ -326,12 +273,12 @@ public class SolrQueryResponse {
     headers.removeAll(name);
     headers.add(name, value);
   }
- 
+
   /**
    * Adds a response header with the given name and value. This header
    * will be included in the HTTP response
    * This method allows response headers to have multiple values.
-   * 
+   *
    * @param name  the name of the header
    * @param value the additional header value   If it contains
    *    octet string, it should be encoded
@@ -342,12 +289,12 @@ public class SolrQueryResponse {
    * @see HttpServletResponse#addHeader
    */
   public void addHttpHeader(String name, String value) {
-     headers.add(name, value);
+    headers.add(name, value);
   }
- 
+
   /**
    * Gets the value of the response header with the given name.
-   * 
+   *
    * <p>If a response header with the given name exists and contains
    * multiple values, the value that was added first will be returned.</p>
    *
@@ -372,7 +319,7 @@ public class SolrQueryResponse {
    * @return a (possibly empty) <code>Collection</code> of the values
    * of the response header with the given name
    *
-   */     
+   */
   public Collection<String> getHttpHeaders(String name) {
     return headers.getAll(name);
   }

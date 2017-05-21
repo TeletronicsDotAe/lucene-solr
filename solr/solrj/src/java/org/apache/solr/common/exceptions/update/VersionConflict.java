@@ -37,11 +37,11 @@ public class VersionConflict extends DocumentUpdateBaseException {
   }
   
   public void setCurrentVersion(long currentVersion) {
-    setProperty(CURRENT_VERSION_PROPERTIES_KEY, currentVersion);
+    setMetadata(CURRENT_VERSION_PROPERTIES_KEY, String.valueOf(currentVersion));
   }
   
   public long getCurrentVersion() {
-    return (Long)getProperty(CURRENT_VERSION_PROPERTIES_KEY); 
+    String currentVersion = getMetadata(CURRENT_VERSION_PROPERTIES_KEY);
+    return (currentVersion != null) ? Long.valueOf(currentVersion) : 0L;
   }
-
 }

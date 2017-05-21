@@ -16,9 +16,6 @@
  */
 package org.apache.solr.client.solrj;
 
-import org.apache.solr.common.params.SolrParams;
-import org.apache.solr.common.util.ContentStream;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
@@ -26,13 +23,14 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import org.apache.solr.common.exceptions.PartialErrors;
-import org.apache.solr.common.util.NamedList;
+
+import org.apache.solr.common.params.SolrParams;
+import org.apache.solr.common.util.ContentStream;
 
 import static java.util.Collections.unmodifiableSet;
 
 /**
- * 
+ *
  *
  * @since solr 1.3
  */
@@ -72,7 +70,7 @@ public abstract class SolrRequest<T extends SolrResponse> implements Serializabl
   public String getBasicAuthPassword(){
     return basicAuthPwd;
   }
-  
+
   //---------------------------------------------------------
   //---------------------------------------------------------
 
@@ -157,25 +155,11 @@ public abstract class SolrRequest<T extends SolrResponse> implements Serializabl
    * @throws IOException if there is a communication error
    */
   public final T process(SolrClient client, String collection) throws SolrServerException, IOException {
-    PartialErrors peToBeThrown = null;
     long startTime = TimeUnit.MILLISECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS);
-    NamedList<Object> genericResponse;
     T res = createResponse(client);
-    try {
-      genericResponse = client.request(this, collection);
-    } catch (PartialErrors pe) {
-      genericResponse = pe.getPayload();
-      peToBeThrown = pe;
-    }
-    res.setResponse(genericResponse);
+    res.setResponse(client.request(this, collection));
     long endTime = TimeUnit.MILLISECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS);
     res.setElapsedTime(endTime - startTime);
-
-    if (peToBeThrown != null) {
-      peToBeThrown.setSpecializedResponse(res);
-      throw peToBeThrown;
-    }
-
     return res;
   }
 

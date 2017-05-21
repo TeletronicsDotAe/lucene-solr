@@ -16,7 +16,6 @@
  */
 package org.apache.solr.client.solrj.impl;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -34,11 +33,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentProducer;
 import org.apache.http.entity.EntityTemplate;
-import org.apache.http.util.EntityUtils;
 import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrRequest;
@@ -63,11 +62,11 @@ import org.slf4j.MDC;
 /**
  * ConcurrentUpdateSolrClient buffers all added documents and writes
  * them into open HTTP connections. This class is thread safe.
- * 
+ *
  * Params from {@link UpdateRequest} are converted to http request
  * parameters. When params change between UpdateRequests a new HTTP
  * request is started.
- * 
+ *
  * Although any SolrClient request can be made with this implementation, it is
  * only recommended to use ConcurrentUpdateSolrClient with /update
  * requests. The class {@link HttpSolrClient} is better suited for the
@@ -89,14 +88,14 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
 
   /**
    * Uses an internally managed HttpClient instance.
-   * 
+   *
    * @param solrServerUrl
    *          The Solr server URL
    * @param queueSize
    *          The buffer size before the documents are sent to the server
    * @param threadCount
    *          The number of background threads used to empty the queue
-   *          
+   *
    * @deprecated use {@link Builder} instead.
    */
   @Deprecated
@@ -106,7 +105,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
     shutdownExecutor = true;
     internalHttpClient = true;
   }
-  
+
   /**
    * @deprecated use {@link Builder} instead.
    */
@@ -120,7 +119,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
 
   /**
    * Uses the supplied HttpClient to send documents to the Solr server.
-   * 
+   *
    * @deprecated use {@link Builder} instead.
    */
   @Deprecated
@@ -128,10 +127,10 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
                                     HttpClient client, int queueSize, int threadCount, ExecutorService es) {
     this(solrServerUrl, client, queueSize, threadCount, es, false);
   }
-  
+
   /**
    * Uses the supplied HttpClient to send documents to the Solr server.
-   * 
+   *
    * @deprecated use {@link Builder} instead.  This will soon be a
    * protected method, and will only be available for use in implementing subclasses.
    */
@@ -147,7 +146,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
     this.threadCount = threadCount;
     runners = new LinkedList<>();
     this.streamDeletes = streamDeletes;
-    
+
     if (es != null) {
       scheduler = es;
       shutdownExecutor = false;
@@ -168,7 +167,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
   public void setQueryParams(Set<String> queryParams) {
     this.client.setQueryParams(queryParams);
   }
-  
+
   /**
    * Opens a connection and sends everything...
    */
@@ -222,7 +221,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
 
         InputStream rspBody = null;
         try {
-          final Update update = 
+          final Update update =
               queue.poll(pollQueueTime, TimeUnit.MILLISECONDS);
           if (update == null)
             break;
@@ -318,16 +317,36 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
             msg.append("\n\n\n\n");
             msg.append("request: ").append(method.getURI());
 
-            String charset = EntityUtils.getContentCharSet(response.getEntity());
-            // Read the contents
-            InputStream respBody = response.getEntity().getContent();
-            byte[] rawPayload = org.apache.commons.io.IOUtils.toByteArray(respBody);
-            ResponseParser responseParser = update.getRequest().getResponseParser();
-            if (responseParser == null) {
-              responseParser = client.getParser();
+            SolrException solrExc;
+            NamedList<String> metadata = null;
+            // parse out the metadata from the SolrException
+            try {
+              String encoding = "UTF-8"; // default
+              if (response.getEntity().getContentType().getElements().length > 0) {
+                NameValuePair param = response.getEntity().getContentType().getElements()[0].getParameterByName("charset");
+                if (param != null)  {
+                  encoding = param.getValue();
+                }
+              }
+              NamedList<Object> resp = client.parser.processResponse(rspBody, encoding);
+              NamedList<Object> error = (NamedList<Object>) resp.get("error");
+              if (error != null) {
+                metadata = (NamedList<String>) error.get("metadata");
+                String remoteMsg = (String) error.get("msg");
+                if (remoteMsg != null) {
+                  msg.append("\nRemote error message: ");
+                  msg.append(remoteMsg);
+                }
+              }
+            } catch (Exception exc) {
+              // don't want to fail to report error if parsing the response fails
+              log.warn("Failed to parse error response from " + client.getBaseURL() + " due to: " + exc);
+            } finally {
+              solrExc = new HttpSolrClient.RemoteSolrException(client.getBaseURL(), statusCode, msg.toString(), null);
+              if (metadata != null) {
+                solrExc.setMetadata(metadata);
+              }
             }
-            NamedList<Object> payload = (response.getFirstHeader(HttpSolrClient.HTTP_EXPLICIT_BODY_INCLUDED_HEADER_KEY) != null)?HttpSolrClient.getProcessedResponse(responseParser, new ByteArrayInputStream(rawPayload), charset, statusCode, false):null;
-            SolrException solrExc = SolrException.decodeFromHttpMethod(response, "UTF-8", msg.toString(), payload, rawPayload);
 
             handleError(solrExc);
           } else {
@@ -365,7 +384,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
     UpdateRequest request;
     String collection;
     /**
-     * 
+     *
      * @param request the update request.
      * @param collection The collection, can be null.
      */
@@ -497,16 +516,16 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
           } catch (InterruptedException e) {
             Thread.interrupted();
           }
-          
+
           if (scheduler.isShutdown())
             break;
-                      
+
           // Need to check if the queue is empty before really considering this is finished (SOLR-4260)
           int queueSize = queue.size();
           if (queueSize > 0 && runners.isEmpty()) {
             // TODO: can this still happen?
             log.warn("No more runners, but queue still has "+
-              queueSize+" adding more runners to process remaining requests on queue");
+                queueSize+" adding more runners to process remaining requests on queue");
             addRunner();
           }
         }
@@ -520,7 +539,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
   public void handleError(Throwable ex) {
     log.error("error", ex);
   }
-  
+
   /**
    * Intended to be used as an extension point for doing post processing after a request completes.
    */
@@ -545,7 +564,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
       }
     }
   }
-  
+
   public void setConnectionTimeout(int timeout) {
     HttpClientUtil.setConnectionTimeout(client.getHttpClient(), timeout);
   }
@@ -563,20 +582,20 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
     if (shutdownExecutor) {
       scheduler.shutdownNow(); // Cancel currently executing tasks
       try {
-        if (!scheduler.awaitTermination(30, TimeUnit.SECONDS)) 
+        if (!scheduler.awaitTermination(30, TimeUnit.SECONDS))
           log.error("ExecutorService did not terminate");
       } catch (InterruptedException ie) {
         scheduler.shutdownNow();
         Thread.currentThread().interrupt();
       }
-    }    
+    }
   }
-  
+
   public void setParser(ResponseParser responseParser) {
     client.setParser(responseParser);
   }
-  
-  
+
+
   /**
    * @param pollQueueTime time for an open connection to wait for updates when
    * the queue is empty. 
@@ -588,7 +607,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
   public void setRequestWriter(RequestWriter requestWriter) {
     client.setRequestWriter(requestWriter);
   }
-  
+
   /**
    * Constructs {@link ConcurrentUpdateSolrClient} instances from provided configuration.
    */
@@ -602,7 +621,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
 
     /**
      * Create a Builder object, based on the provided Solr URL.
-     * 
+     *
      * @param baseSolrUrl the base URL of the Solr server that will be targeted by any created clients.
      */
     public Builder(String baseSolrUrl) {
@@ -616,7 +635,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
       this.httpClient = httpClient;
       return this;
     }
-    
+
     /**
      * The number of documents to batch together before sending to Solr.
      */
@@ -627,7 +646,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
       this.queueSize = queueSize;
       return this;
     }
-    
+
     /**
      * The number of threads used to empty {@link ConcurrentUpdateSolrClient}s queue.
      */
@@ -635,11 +654,11 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
       if (threadCount <= 0) {
         throw new IllegalArgumentException("threadCount must be a positive integer.");
       }
-      
+
       this.threadCount = threadCount;
       return this;
     }
-    
+
     /**
      * Provides the {@link ExecutorService} for clients to use when servicing requests.
      */
@@ -647,7 +666,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
       this.executorService = executorService;
       return this;
     }
-    
+
     /**
      * Configures created clients to always stream delete requests.
      */
@@ -655,7 +674,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
       this.streamDeletes = true;
       return this;
     }
-    
+
     /**
      * Configures created clients to not stream delete requests.
      */
@@ -663,7 +682,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
       this.streamDeletes = false;
       return this;
     }
-    
+
     /**
      * Create a {@link ConcurrentUpdateSolrClient} based on the provided configuration options.
      */
@@ -671,7 +690,7 @@ public class ConcurrentUpdateSolrClient extends SolrClient {
       if (baseSolrUrl == null) {
         throw new IllegalArgumentException("Cannot create HttpSolrClient without a valid baseSolrUrl!");
       }
-      
+
       return new ConcurrentUpdateSolrClient(baseSolrUrl, httpClient, queueSize, threadCount, executorService, streamDeletes);
     }
   }

@@ -97,11 +97,6 @@ public class SolrCmdDistributor {
     }
   }
   
-  boolean exceptionWorthRetrying(Exception e) {
-    // No need to retry on partial error(s). 
-    return (!(e instanceof SolrException) || (((SolrException)e).worthRetrying()));
-  }
-
   private void doRetriesIfNeeded() {
     // NOTE: retries will be forwards to a single url
     
@@ -139,7 +134,7 @@ public class SolrCmdDistributor {
             doRetry = true;
           }
           
-          if (err.req.retries < maxRetriesOnForward && doRetry && exceptionWorthRetrying(err.e)) {
+          if (err.req.retries < maxRetriesOnForward && doRetry) {
             err.req.retries++;
             
             SolrException.log(SolrCmdDistributor.log, "forwarding update to "

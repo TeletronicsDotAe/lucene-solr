@@ -36,7 +36,6 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.CharsRefBuilder;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrRequest.METHOD;
-import org.apache.solr.client.solrj.SolrResponse;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.request.GenericSolrRequest;
@@ -63,8 +62,6 @@ import org.apache.solr.common.cloud.SolrZkClient;
 import org.apache.solr.common.cloud.ZkCoreNodeProps;
 import org.apache.solr.common.cloud.ZkStateReader;
 import org.apache.solr.common.cloud.ZooKeeperException;
-import org.apache.solr.common.exceptions.PartialErrors;
-import org.apache.solr.common.exceptions.SolrExceptionCausedByException;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.ShardParams;
 import org.apache.solr.common.params.SolrParams;
@@ -75,7 +72,6 @@ import org.apache.solr.common.util.Utils;
 import org.apache.solr.core.CoreDescriptor;
 import org.apache.solr.handler.component.RealTimeGetComponent;
 import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.request.SolrRequestInfo;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.schema.SchemaField;
 import org.apache.solr.servlet.SolrDispatchFilter;
@@ -757,14 +753,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
     
     boolean dropCmd = false;
     if (!forwardToLeader) {      
-      try {
       dropCmd = versionAdd(cmd);
-      } catch (SolrException e) {
-        SolrRequestInfo.getRequestInfo().getRsp().addPartialError(cmd.getSolrInputDocument().getUniquePartRef(), e);
-        dropCmd = true;
-      } finally {
-        SolrRequestInfo.getRequestInfo().getRsp().addHandledPart(cmd.getSolrInputDocument().getUniquePartRef());
-      }
     }
 
     if (dropCmd) {
@@ -815,7 +804,6 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
       if (replicationTracker != null && minRf > 1)
         params.set(UpdateRequest.MIN_REPFACT, String.valueOf(minRf));
 
-      try {
       if (cmd.isInPlaceUpdate()) {
         params.set(DISTRIB_INPLACE_PREVVERSION, String.valueOf(cmd.prevVersion));
 
@@ -828,9 +816,6 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
         cmdDistrib.distribAdd(cmd, nodes, params, true, replicationTracker);
       } else {
         cmdDistrib.distribAdd(cmd, nodes, params, false, replicationTracker);
-      }
-      } finally {
-        SolrRequestInfo.getRequestInfo().getRsp().addHandledPart(cmd.getSolrInputDocument().getUniquePartRef());
       }
     }
     
@@ -863,39 +848,6 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
     List<Error> errorsForClient = new ArrayList<>(errors.size());
     
     for (final SolrCmdDistributor.Error error : errors) {
-      // FIXME INDEXING - We give feedback per record, but it seems like solr har started to do some of the same. Can we refactor?
-      Exception e = error.e;
-
-      // Multiple operations with a least one operation failing
-      if (e instanceof PartialErrors) {
-        PartialErrors pe = (PartialErrors)e;
-        Map<String, SolrException> pes = SolrResponse.getPartialErrors(null, pe.getPayload());
-        for (String key : pes.keySet()) {
-          SolrRequestInfo.getRequestInfo().getRsp().addPartialError(key, pes.get(key));
-        }
-        // Only one single operation, and it failed
-      } else {
-        SolrException pe;
-        if (e instanceof SolrException) pe = (SolrException)e;
-        else pe = new SolrExceptionCausedByException(ErrorCode.PRECONDITION_FAILED, "Error", e);
-
-        List<SolrInputDocument> docsList = error.req.uReq.getDocuments();
-
-        //List<List<SolrDoc>> docsList = response.sreq.ureq.getDocLists();
-        if (docsList != null && docsList.size() > 0) {
-          // It was a single update operation - just do get(0).get(0) because there is only one
-          SolrRequestInfo.getRequestInfo().getRsp().addPartialError(docsList.get(0).getUniquePartRef(), pe);
-        } else if (error.req.uReq.getDeleteQuery() != null) {
-          String urlCore = error.req.node.getCoreName();
-          SolrRequestInfo.getRequestInfo().getRsp().addPartialError("DBQ: " + urlCore + " " + error.req.uReq.getDeleteQuery().get(0), pe);
-        } else if (error.req.uReq.getDeleteById() != null) {
-          Map<String,Map<String,Object>> idParamsMap = error.req.uReq.getDeleteByIdMap();
-          String id = idParamsMap.keySet().iterator().next();
-          Map<String, Object> params = idParamsMap.get(id);
-          Object version = (params != null)?params.get(UpdateRequest.VER):null;
-          SolrRequestInfo.getRequestInfo().getRsp().addPartialError("DBI: id=" + id + ", version=" + version, pe);
-        }
-      }
 
       if (error.req.node instanceof RetryNode) {
         // if it's a forward, any fail is a problem - 

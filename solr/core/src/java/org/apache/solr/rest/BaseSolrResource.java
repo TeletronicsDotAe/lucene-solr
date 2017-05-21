@@ -35,14 +35,10 @@ import org.apache.solr.servlet.ResponseUtils;
 import org.restlet.data.MediaType;
 import org.restlet.data.Method;
 import org.restlet.data.Status;
-import org.restlet.ext.servlet.ServletUtils;
 import org.restlet.representation.OutputRepresentation;
 import org.restlet.resource.ResourceException;
 import org.restlet.resource.ServerResource;
 import org.slf4j.Logger;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import static org.apache.solr.common.params.CommonParams.JSON;
 
@@ -158,14 +154,14 @@ public abstract class BaseSolrResource extends ServerResource {
       // TODO: For now, don't send the Vary: header, but revisit if/when content negotiation is added
       getDimensions().clear();
     }
-    
-    
+
+
     /** Called by Restlet to get the response body */
     @Override
     public void write(OutputStream outputStream) throws IOException {
-      HttpServletRequest req = ServletUtils.getRequest(getRequest());
-      HttpServletResponse resp = ServletUtils.getResponse(getResponse());
-      ResponseUtils.writeResponse(solrResponse, ServletUtils.getResponse(getResponse()), responseWriter, solrRequest, org.apache.solr.servlet.cache.Method.getMethod(req.getMethod()));
+      if (getRequest().getMethod() != Method.HEAD) {
+        QueryResponseWriterUtil.writeQueryResponse(outputStream, responseWriter, solrRequest, solrResponse, contentType);
+      }
     }
   }
 

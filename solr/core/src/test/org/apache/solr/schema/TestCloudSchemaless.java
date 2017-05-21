@@ -15,6 +15,13 @@
  * limitations under the License.
  */
 package org.apache.solr.schema;
+import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
 import org.apache.solr.SolrTestCaseJ4.SuppressSSL;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
@@ -23,7 +30,6 @@ import org.apache.solr.cloud.AbstractFullDistribZkTestBase;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrException.ErrorCode;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.exceptions.PartialErrors;
 import org.apache.solr.util.BaseTestHarness;
 import org.apache.solr.util.RestTestHarness;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -32,15 +38,6 @@ import org.junit.Test;
 import org.restlet.ext.servlet.ServerServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.lang.Math;
-import java.lang.invoke.MethodHandles;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 /**
  * Tests a schemaless collection configuration with SolrCloud
@@ -93,7 +90,7 @@ public class TestCloudSchemaless extends AbstractFullDistribZkTestBase {
     for (int i = 0; i < numberOfDocs; ++i) {
       String newFieldName = "newTestFieldInt" + i;
       expectedAddFields[1 + i] =
-        "/response/arr[@name='fields']/lst/str[@name='name'][.='" + newFieldName + "']";
+          "/response/arr[@name='fields']/lst/str[@name='name'][.='" + newFieldName + "']";
     }
     return expectedAddFields;
   }
@@ -107,7 +104,7 @@ public class TestCloudSchemaless extends AbstractFullDistribZkTestBase {
     // This tests that the replicas properly handle schema additions.
 
     int slices =  getCommonCloudSolrClient().getZkStateReader().getClusterState()
-      .getActiveSlices("collection1").size();
+        .getActiveSlices("collection1").size();
     int trials = 50;
     // generate enough docs so that we can expect at least a doc per slice
     int numDocsPerTrial = (int)(slices * (Math.log(slices) + 1));
@@ -163,32 +160,9 @@ public class TestCloudSchemaless extends AbstractFullDistribZkTestBase {
       try {
         randomClient.add(docs);
         randomClient.commit();
-        fail("Expected Exception " + i);
+        fail("Expected Bad Request Exception");
       } catch (SolrException se) {
-        PartialErrors pe = (PartialErrors)se;
-        // Both docs has been handled even though one of them fails
-        assertEquals(docs.size(), pe.getSpecializedResponse().getHandledPartsRef().size());
-        Map<String, SolrException> exceptionMap = pe.getSpecializedResponse().getPartialErrors();
-        // Only one fails
-        assertEquals(1, exceptionMap.size());
-
-        SolrException dateDocException = exceptionMap.get(dateDoc.getUniquePartRef());
-        SolrException intDocException = exceptionMap.get(intDoc.getUniquePartRef());
-        assertEquals(1, ((dateDocException == null)?0:1) + ((intDocException == null)?0:1));
-        String expectedMsg;
-        SolrException exception;
-        if (dateDocException != null) {
-          exception = dateDocException;
-          expectedMsg = "Error adding field 'longOrDateField" + i + "'";
-        } else {
-          exception = intDocException;
-          expectedMsg = "Invalid Date String:'123'";
-        }
-        assertNotNull(exception);
-        // It failed with code 400...
-        assertEquals(400, exception.code());
-        // ...and this error-message
-        assertTrue("'" + exception.getMessage() + "' does not contain '" + expectedMsg + "'", exception.getMessage().contains(expectedMsg));
+        assertEquals(ErrorCode.BAD_REQUEST, ErrorCode.getErrorCode(se.code()));
       }
 
       try {

@@ -31,7 +31,6 @@ import org.apache.solr.client.update.IndexingEngineTest.IndexingEngineBatchJob.M
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.exceptions.PartialErrors;
 import org.apache.solr.common.exceptions.update.DocumentAlreadyExists;
 import org.apache.solr.common.exceptions.update.DocumentDoesNotExist;
 import org.apache.solr.common.exceptions.update.VersionConflict;
@@ -501,7 +500,9 @@ public class IndexingEngineTest extends SolrTestCaseJ4 {
     }
     
     public void updateRequestFailed(UpdateRequest updateRequest, Exception e) {
-
+      //FIXME - change partial errors to use solr's TolerantUpdateProcessor. Maybe just delete this class - should be verified
+      // by the other tests in this package
+      /*
       if (e instanceof PartialErrors) {
         Map<String, SolrException> partialErrors = ((PartialErrors)e).getSpecializedResponse().getPartialErrors();
         for (SolrInputDocument doc : updateRequest.getDocuments()) {
@@ -514,13 +515,14 @@ public class IndexingEngineTest extends SolrTestCaseJ4 {
           }
         }
       }
+      */
       // defaulting
-      else {
+      //else {
         for (SolrInputDocument doc : updateRequest.getDocuments()) {
           DocumentStateMachine dsm = idToDocs.get(doc.getFieldValue("id"));
           dsm.moveForwardException(e);
         }
-      }
+      //}
       
       updateFinished();
     }

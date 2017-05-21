@@ -467,12 +467,12 @@ public class OverseerTaskProcessor implements Runnable, Closeable {
         }
 
         if (asyncId != null) {
-          Exception e = (response != null)?response.getException(false):null;
-          if (e != null) {
-            failureMap.put(asyncId, null);
+          if (response != null && (response.getResponse().get("failure") != null
+              || response.getResponse().get("exception") != null)) {
+            failureMap.put(asyncId, SolrResponse.serializable(response));
             log.debug("Updated failed map for task with zkid:[{}]", head.getId());
           } else {
-            completedMap.put(asyncId, null);
+            completedMap.put(asyncId, SolrResponse.serializable(response));
             log.debug("Updated completed map for task with zkid:[{}]", head.getId());
           }
         } else {
@@ -558,7 +558,7 @@ public class OverseerTaskProcessor implements Runnable, Closeable {
     private boolean isSuccessful() {
       if (response == null)
         return false;
-      return (response.getException(false) == null);
+      return !(response.getResponse().get("failure") != null || response.getResponse().get("exception") != null);
     }
   }
 

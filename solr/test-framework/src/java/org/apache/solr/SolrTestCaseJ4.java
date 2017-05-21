@@ -50,9 +50,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
@@ -85,18 +85,16 @@ import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.SolrInputField;
-import org.apache.solr.common.exceptions.PartialErrors;
 import org.apache.solr.common.exceptions.update.VersionConflict;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
+import org.apache.solr.common.params.ShardParams.DQA;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.params.UpdateParams;
 import org.apache.solr.common.util.ContentStream;
 import org.apache.solr.common.util.ContentStreamBase;
 import org.apache.solr.common.util.ObjectReleaseTracker;
-import org.apache.solr.common.params.ShardParams.DQA;
-import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.util.XML;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.CoresLocator;
@@ -141,10 +139,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
+import static java.util.Objects.requireNonNull;
 import static org.apache.solr.update.processor.DistributedUpdateProcessor.DistribPhase;
 import static org.apache.solr.update.processor.DistributingUpdateProcessorFactory.DISTRIB_UPDATE_PARAM;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * A junit4 Solr test harness that extends LuceneTestCaseJ4. To change which core is used when loading the schema and solrconfig.xml, simply
@@ -2015,51 +2012,21 @@ public abstract class SolrTestCaseJ4 extends LuceneTestCase {
     return result;
   }
 
-  public void assertGenericPartialErrorsPayload(PartialErrors pas, int expectedNoOfPartialErrors, int expectedNoOfHandledParts) {
-    NamedList<Object> payload = pas.getPayload();
-    assertEquals(3, payload.size());
-    assertNotNull(payload.get("responseHeader"));
-    Object partialErrorsObj = payload.get("partialerrors");
-    assertNotNull(partialErrorsObj);
-    assertTrue(partialErrorsObj instanceof List<?>);
-    List<NamedList<Object>> partialErrors = (List<NamedList<Object>>)partialErrorsObj;
-    assertEquals(expectedNoOfPartialErrors, partialErrors.size());
-    for (int i = 0; i < expectedNoOfPartialErrors; i++) {
-      NamedList<Object> innerPayload = partialErrors.get(i);
-      assertTrue(innerPayload.size() >= 4);
-      assertNotNull(innerPayload.get("error-code"));
-      assertNotNull(innerPayload.get("error-type"));
-      assertNotNull(innerPayload.get("error-msg"));
-      assertNotNull(innerPayload.get("partRef"));
-    }
-    Object handledPartsObj = payload.get("handledParts");
-    assertNotNull(handledPartsObj);
-    assertTrue(handledPartsObj instanceof List<?>);
-    List<String> handledParts = (List<String>)handledPartsObj;
-    assertEquals(expectedNoOfHandledParts, handledParts.size());
-  }
-
   public void assertVersionConflict(VersionConflict vc, long expectedCurrentVersion, String expectedPartRef, boolean responseHeaderExpected) {
     assertVersionConflict(vc, expectedCurrentVersion, expectedPartRef != null, expectedPartRef, responseHeaderExpected);
   }
 
   public void assertVersionConflict(VersionConflict vc, long expectedCurrentVersion, boolean partRefExpected, String expectedPartRef, boolean responseHeaderExpected) {
-    NamedList<Object> payload = vc.getPayload();
-
     int expectedPayloadSize = 1;
     if (partRefExpected) expectedPayloadSize++;
     if (responseHeaderExpected) expectedPayloadSize++;
-    assertEquals(expectedPayloadSize, payload.size());
+    assertEquals(expectedPayloadSize, vc.getMetadata().size());
 
-    NamedList<Object> properties = (NamedList<Object>)payload.get("properties");
-    assertNotNull(properties);
-    // currentVersion and only currentVersion in properties
-    assertEquals(1, properties.size());
     assertEquals(expectedCurrentVersion, vc.getCurrentVersion());
 
-    if (partRefExpected) assertNotNull(payload.get("partRef"));
-    if (expectedPartRef != null) assertEquals(expectedPartRef, payload.get("partRef"));
-    if (responseHeaderExpected) assertNotNull(payload.get("responseHeader"));
+    //FIXME - figure out how to get the document reference - assume it'll be ID onwards?
+    //if (partRefExpected) assertNotNull(payload.get("partRef"));
+    //if (expectedPartRef != null) assertEquals(expectedPartRef, payload.get("partRef"));
   }
 
   public static void assertXmlFile(final File file, String... xpath)

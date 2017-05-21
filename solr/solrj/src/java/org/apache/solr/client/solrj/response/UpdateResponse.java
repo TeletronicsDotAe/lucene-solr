@@ -16,21 +16,14 @@
  */
 package org.apache.solr.client.solrj.response;
 
-import org.apache.solr.common.SolrException;
-import org.apache.solr.common.SolrInputDocument;
-
 
 /**
  * TODO -- mostly a stub until we have a defined output format
- * 
+ *
  *
  * @since solr 1.3
  */
 public class UpdateResponse extends SolrResponseBase
 {
-
-	public SolrException getPartialError(SolrInputDocument doc) {
-  	return super.getPartialError(doc.getUniquePartRef());
-  }
-
+	// nothing special now...
 }

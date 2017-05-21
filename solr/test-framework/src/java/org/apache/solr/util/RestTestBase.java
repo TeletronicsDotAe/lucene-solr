@@ -137,7 +137,7 @@ abstract public class RestTestBase extends SolrJettyTestBase {
             assertTrue("'" + solrEx.getMessage() + "' does not contain '" + exceptionMsgContains + "'", solrEx.getMessage().contains(exceptionMsgContains));
             // If the exception is as expected, do not throw it. Set response to the payload - it is still worth matching tests at
             //FIXME MERGE - Is using NamedList.toString good enough?
-            response = solrEx.getPayload().toString();
+            response = solrEx.getMetadata().toString();
           } else {
             throw e;
           }
@@ -215,7 +215,7 @@ abstract public class RestTestBase extends SolrJettyTestBase {
           assertTrue("'" + solrEx.getMessage() + "' does not contain '" + exceptionMsgContains + "'", solrEx.getMessage().contains(exceptionMsgContains));
           // If the exception is as expected, do not throw it. Set response to the payload - it is still worth matching tests at
           // FIXME MERGE - Is it good enough to use NamedList.toString()?
-          response = solrEx.getPayload().toString();
+          response = solrEx.getMetadata().toString();
         } else {
           throw e;
         }
