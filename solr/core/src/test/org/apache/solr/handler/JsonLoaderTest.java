@@ -40,14 +40,13 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
   public static void beforeTests() throws Exception {
     initCore("solrconfig.xml","schema.xml");
   }
-  
+
   static String input = json("{\n" +
       "\n" +
       "'add': {\n" +
       "  'doc': {\n" +
       "    'bool': true,\n" +
       "    'f0': 'v0',\n" +
-      "    'nonfield.partref': 'refMiddle',\n" +
       "    'f2': {\n" +
       "      'boost': 2.3,\n" +
       "      'value': 'test'\n" +
@@ -64,15 +63,6 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
       "  'overwrite': false,\n" +
       "  'boost': 3.45,\n" +
       "  'doc': {\n" +
-      "    'f1': 'v1',\n" +
-      "    'f1': 'v2',\n" +
-      "    'f2': null,\n" +
-      "    'nonfield.partref': 'refLast'\n" +      
-      "  }\n" +
-      "},\n" +
-      "'add': {\n" +
-      "  'doc': {\n" +
-      "    'nonfield.partref': 'refFirst',\n" +      
       "    'f1': 'v1',\n" +
       "    'f1': 'v2',\n" +
       "    'f2': null\n" +
@@ -100,12 +90,11 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(input), p);
 
-    assertEquals( 3, p.addCommands.size() );
-    
+    assertEquals( 2, p.addCommands.size() );
+
     AddUpdateCommand add = p.addCommands.get(0);
     SolrInputDocument d = add.solrDoc;
     SolrInputField f = d.getField( "boosted" );
-    assertEquals("refMiddle", d.getUniquePartRef());
     assertEquals(6.7f, f.getBoost(), 0.1);
     assertEquals(2, f.getValues().size());
 
@@ -113,16 +102,11 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     add = p.addCommands.get(1);
     d = add.solrDoc;
     f = d.getField( "f1" );
-    assertEquals("refLast", d.getUniquePartRef());
     assertEquals(2, f.getValues().size());
     assertEquals(3.45f, d.getDocumentBoost(), 0.001);
     assertEquals(false, add.classicOverwrite);
 
     assertEquals(0, d.getField("f2").getValueCount());
-
-    add = p.addCommands.get(2);
-    d = add.solrDoc;
-    assertEquals("refFirst", d.getUniquePartRef());
 
     // parse the commit commands
     assertEquals( 2, p.commitCommands.size() );
@@ -143,17 +127,17 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     assertEquals( delete.id, "ID" );
     assertEquals( delete.query, null );
     assertEquals( delete.commitWithin, -1);
-    
+
     delete = p.deleteCommands.get( 1 );
     assertEquals( delete.id, "ID" );
     assertEquals( delete.query, null );
     assertEquals( delete.commitWithin, 500);
-    
+
     delete = p.deleteCommands.get( 2 );
     assertEquals( delete.id, null );
     assertEquals( delete.query, "QUERY" );
     assertEquals( delete.commitWithin, -1);
-    
+
     delete = p.deleteCommands.get( 3 );
     assertEquals( delete.id, null );
     assertEquals( delete.query, "QUERY" );
@@ -168,7 +152,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
 
   public void testSimpleFormat() throws Exception
   {
-    String str = "[{'nonfield.partref':'refFirst','id':'1'},{'id':'2','nonfield.partref': 'refLast'}]".replace('\'', '"');
+    String str = "[{'id':'1'},{'id':'2'}]".replace('\'', '"');
     SolrQueryRequest req = req("commitWithin","100", "overwrite","false");
     SolrQueryResponse rsp = new SolrQueryResponse();
     BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
@@ -181,16 +165,15 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     SolrInputDocument d = add.solrDoc;
     SolrInputField f = d.getField( "id" );
     assertEquals("1", f.getValue());
-    assertEquals(100, add.commitWithin);
-    assertEquals(false, add.classicOverwrite);
+    assertEquals(add.commitWithin, 100);
+    assertEquals(add.classicOverwrite, false);
 
     add = p.addCommands.get(1);
     d = add.solrDoc;
     f = d.getField( "id" );
-    assertEquals("refLast", d.getUniquePartRef());
     assertEquals("2", f.getValue());
-    assertEquals(100, add.commitWithin);
-    assertEquals(false, add.classicOverwrite);
+    assertEquals(add.commitWithin, 100);
+    assertEquals(add.classicOverwrite, false);
 
     req.close();
   }
@@ -199,11 +182,11 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
   public void testInvalidJsonProducesBadRequestSolrException() throws Exception
   {
     SolrQueryResponse rsp = new SolrQueryResponse();
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null, null, rsp);
     JsonLoader loader = new JsonLoader();
     String invalidJsonString = "}{";
-    
+
     try(SolrQueryRequest req = req()) {
-      BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
       try {
         loader.load(req, rsp, new ContentStreamBase.StringStream(invalidJsonString), p);
         fail("Expected invalid JSON to produce a SolrException.");
@@ -217,7 +200,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
 
   public void testSimpleFormatInAdd() throws Exception
   {
-    String str = "{'add':[{'nonfield.partref':'refFirst','id':'1'},{'id':'2','nonfield.partref': 'refLast'}]}".replace('\'', '"');
+    String str = "{'add':[{'id':'1'},{'id':'2'}]}".replace('\'', '"');
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
     BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
@@ -229,51 +212,18 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     AddUpdateCommand add = p.addCommands.get(0);
     SolrInputDocument d = add.solrDoc;
     SolrInputField f = d.getField( "id" );
-    assertEquals("refFirst", d.getUniquePartRef());
     assertEquals("1", f.getValue());
-    assertEquals(-1, add.commitWithin);
-    assertEquals(true, add.classicOverwrite);
+    assertEquals(add.commitWithin, -1);
+    assertEquals(add.classicOverwrite, true);
 
     add = p.addCommands.get(1);
     d = add.solrDoc;
     f = d.getField( "id" );
-    assertEquals("refLast", d.getUniquePartRef());
     assertEquals("2", f.getValue());
-    assertEquals(-1, add.commitWithin);
-    assertEquals(true, add.classicOverwrite);
+    assertEquals(add.commitWithin, -1);
+    assertEquals(add.classicOverwrite, true);
 
     req.close();
-  }
-
-  public void testWrongPartRefs() throws Exception
-  {
-    String nullStr = "[{'nonfield.partref':null,'id':'1'},{'id':'2','nonfield.partref': 'refLast'}]".replace('\'', '"');
-    String noStr = "[{'nonfield.partref':1234,'id':'1'},{'id':'2','nonfield.partref': 'refLast'}]".replace('\'', '"');
-    String arrayStr = "[{'nonfield.partref':['ref1'],'id':'1'},{'id':'2','nonfield.partref': 'refLast'}]".replace('\'', '"');
-    
-    SolrQueryRequest req = req();
-    SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
-    JsonLoader loader = new JsonLoader();
-    
-    try {
-      loader.load(req, rsp, new ContentStreamBase.StringStream(nullStr), p);
-    } catch (SolrException e) {
-      assertTrue(e.getMessage().contains("nonfield.partref must be a string"));
-    }
-
-    try {
-      loader.load(req, rsp, new ContentStreamBase.StringStream(noStr), p);
-    } catch (SolrException e) {
-      assertTrue(e.getMessage().contains("nonfield.partref must be a string"));
-    }
-
-    try {
-      loader.load(req, rsp, new ContentStreamBase.StringStream(arrayStr), p);
-    } catch (SolrException e) {
-      assertTrue(e.getMessage().contains("nonfield.partref must be a string"));
-    }
-
   }
 
   public void testFieldValueOrdering() throws Exception {
@@ -282,23 +232,23 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
 
     // list
     checkFieldValueOrdering((pre+ "'f':[45,67,89]" +post)
-                            .replace('\'', '"'),
-                            1.0F);
+            .replace('\'', '"'),
+        1.0F);
     // dup fieldname keys
     checkFieldValueOrdering((pre+ "'f':45,'f':67,'f':89" +post)
-                            .replace('\'', '"'),
-                            1.0F);
+            .replace('\'', '"'),
+        1.0F);
     // extended w/boost
     checkFieldValueOrdering((pre+ "'f':{'boost':4.0,'value':[45,67,89]}" +post)
-                            .replace('\'', '"'),
-                            4.0F);
+            .replace('\'', '"'),
+        4.0F);
     // dup keys extended w/ multiplicitive boost
-    checkFieldValueOrdering((pre+ 
-                             "'f':{'boost':2.0,'value':[45,67]}," +
-                             "'f':{'boost':2.0,'value':89}" 
-                             +post)
-                            .replace('\'', '"'),
-                            4.0F);
+    checkFieldValueOrdering((pre+
+            "'f':{'boost':2.0,'value':[45,67]}," +
+            "'f':{'boost':2.0,'value':89}"
+            +post)
+            .replace('\'', '"'),
+        4.0F);
 
   }
   private void checkFieldValueOrdering(String rawJson, float fBoost) throws Exception {
@@ -350,7 +300,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(doc), p);
     assertEquals( 2, p.addCommands.size() );
-     doc = "\n" +
+    doc = "\n" +
         "\n" +
         "{\"bool\": true,\n" +
         " \"f0\": \"v0\",\n" +
@@ -514,7 +464,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
         ,"/response/docs/[0]=={'foo2_s':['hi','there']}"
     );
   }
-  
+
   @Test
   public void testBooleanValuesInAdd() throws Exception {
     String str = "{'add':[{'id':'1','b1':true,'b2':false,'b3':[false,true]}]}".replace('\'', '"');
@@ -596,8 +546,8 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
   @Test
   public void testBigDecimalValuesInAdd() throws Exception {
     String str = ("{'add':[{'id':'1','bd1':0.12345678901234567890123456789012345,"
-                 + "'bd2':12345678901234567890.12345678901234567890,'bd3':0.012345678901234567890123456789012345,"
-                 + "'bd3':123456789012345678900.012345678901234567890}]}").replace('\'', '"');
+        + "'bd2':12345678901234567890.12345678901234567890,'bd3':0.012345678901234567890123456789012345,"
+        + "'bd3':123456789012345678900.012345678901234567890}]}").replace('\'', '"');
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
     BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
@@ -608,7 +558,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
 
     AddUpdateCommand add = p.addCommands.get(0);
     SolrInputDocument d = add.solrDoc;
-    SolrInputField f = d.getField("bd1");                        
+    SolrInputField f = d.getField("bd1");
     assertTrue(f.getValue() instanceof String);
     assertEquals("0.12345678901234567890123456789012345", f.getValue());
     f = d.getField("bd2");
@@ -625,7 +575,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
   @Test
   public void testBigIntegerValuesInAdd() throws Exception {
     String str = ("{'add':[{'id':'1','bi1':123456789012345678901,'bi2':1098765432109876543210,"
-                 + "'bi3':[1234567890123456789012,10987654321098765432109]}]}").replace('\'', '"');
+        + "'bi3':[1234567890123456789012,10987654321098765432109]}]}").replace('\'', '"');
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
     BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
@@ -658,8 +608,8 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
         +"      'big_decimal_s':0.1234567890123456789012345}]" ), params("commit","true"));
     assertJQ(req("q","id:1", "fl","boolean_b,long_l,double_d,big_integer_s,big_decimal_s")
         ,"/response/docs/[0]=={'boolean_b':[false],'long_l':[19],'double_d':[18.6],"
-                             +"'big_integer_s':['12345678901234567890'],"
-                             +"'big_decimal_s':['0.1234567890123456789012345']}]}"
+            +"'big_integer_s':['12345678901234567890'],"
+            +"'big_decimal_s':['0.1234567890123456789012345']}]}"
     );
   }
 
@@ -698,16 +648,16 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
   public void testAddBigDecimalValueToTrieField() throws Exception {
     // Adding a BigDecimal to a double field should succeed by reducing precision
     updateJ(json( "[{'id':'1','big_decimal_td':100000000000000000000000000001234567890.0987654321}]" ),
-            params("commit", "true"));
-    assertJQ(req("q","id:1", "fl","big_decimal_td"), 
-             "/response/docs/[0]=={'big_decimal_td':[1.0E38]}"
+        params("commit", "true"));
+    assertJQ(req("q","id:1", "fl","big_decimal_td"),
+        "/response/docs/[0]=={'big_decimal_td':[1.0E38]}"
     );
 
     // Adding a BigDecimal to a float field should succeed by reducing precision
     updateJ(json( "[{'id':'2','big_decimal_tf':100000000000000000000000000001234567890.0987654321}]" ),
-            params("commit", "true"));
+        params("commit", "true"));
     assertJQ(req("q","id:2", "fl","big_decimal_tf"),
-             "/response/docs/[0]=={'big_decimal_tf':[1.0E38]}"
+        "/response/docs/[0]=={'big_decimal_tf':[1.0E38]}"
     );
   }
 
@@ -836,7 +786,6 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     AddUpdateCommand add = p.addCommands.get(0);
     SolrInputDocument d = add.solrDoc;
     SolrInputField f = d.getField( "id" );
-    assertEquals("refFirst", d.getUniquePartRef());
     assertEquals("1", f.getValue());
 
     SolrInputDocument cd = d.getChildDocuments().get(0);
