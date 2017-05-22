@@ -175,12 +175,7 @@ public class SyncStrategy {
     // we still need to pick one as leader.  A followup sync from the replica to the new leader (with fingerprinting on) should then fail and
     // initiate recovery-by-replication.
     PeerSync peerSync = new PeerSync(core, syncWith, core.getUpdateHandler().getUpdateLog().getNumRecordsToKeep(), true, true, peerSyncOnlyWithActive, false);
-    // FIXME MERGE - Do we really need to have a try/catch here. I saw this on another place too...
-    try {
-      return peerSync.sync();
-    } finally {
-      peerSync.close();
-    }
+    return peerSync.sync();
   }
   
   private void syncToMe(ZkController zkController, String collection,

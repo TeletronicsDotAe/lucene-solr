@@ -435,8 +435,6 @@ public class RecoveryStrategy extends Thread implements Closeable {
           // + " i am:" + zkController.getNodeName());
           PeerSync peerSync = new PeerSync(core,
               Collections.singletonList(leaderUrl), ulog.getNumRecordsToKeep(), false, false);
-          // FIXME MERGE - do we still need to close PeerSync?
-          try {
           peerSync.setStartingVersions(recentVersions);
           boolean syncSuccess = peerSync.sync().isSuccess();
           if (syncSuccess) {
@@ -456,9 +454,6 @@ public class RecoveryStrategy extends Thread implements Closeable {
             // sync success
             successfulRecovery = true;
             return;
-          }
-          } finally {
-            peerSync.close();
           }
 
           LOG.info("PeerSync Recovery was not successful - trying replication.");
