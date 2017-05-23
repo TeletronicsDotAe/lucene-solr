@@ -155,11 +155,8 @@ public class IndexFetcher {
     final ModifiableSolrParams httpClientParams = new ModifiableSolrParams();
     httpClientParams.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, connTimeout != null ? connTimeout : "5000");
     httpClientParams.set(HttpClientUtil.PROP_SO_TIMEOUT, readTimeout != null ? readTimeout : "20000");
-    //FIXME MERGE - Is basic auth credentials not needed on the client..?
-    /*
     httpClientParams.set(HttpClientUtil.PROP_BASIC_AUTH_USER, httpBasicAuthUser);
     httpClientParams.set(HttpClientUtil.PROP_BASIC_AUTH_PASS, httpBasicAuthPassword);
-     */
     httpClientParams.set(HttpClientUtil.PROP_ALLOW_COMPRESSION, useCompression);
 
     return HttpClientUtil.createClient(httpClientParams, core.getCoreDescriptor().getCoreContainer().getUpdateShardHandler().getConnectionManager());
