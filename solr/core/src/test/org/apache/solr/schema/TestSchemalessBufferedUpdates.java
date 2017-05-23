@@ -17,25 +17,6 @@
 
 package org.apache.solr.schema;
 
-import static org.apache.solr.update.processor.DistributingUpdateProcessorFactory.DISTRIB_UPDATE_PARAM;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.solr.SolrTestCaseJ4;
-import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.request.SolrRequestInfo;
-import org.apache.solr.response.SolrQueryResponse;
-import org.apache.solr.update.AddUpdateCommand;
-import org.apache.solr.update.DirectUpdateHandler2;
-import org.apache.solr.update.UpdateLog;
-import org.apache.solr.update.UpdateHandler;
-import org.apache.solr.update.processor.DistributedUpdateProcessorFactory;
-import org.apache.solr.update.processor.UpdateRequestProcessor;
-import org.apache.solr.update.processor.UpdateRequestProcessorChain;
-import org.apache.solr.update.processor.UpdateRequestProcessorFactory;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -45,7 +26,25 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.solr.SolrTestCaseJ4;
+import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.request.SolrRequestInfo;
+import org.apache.solr.response.SolrQueryResponse;
+import org.apache.solr.update.AddUpdateCommand;
+import org.apache.solr.update.DirectUpdateHandler2;
+import org.apache.solr.update.UpdateHandler;
+import org.apache.solr.update.UpdateLog;
 import org.apache.solr.update.processor.DistributedUpdateProcessor.DistribPhase;
+import org.apache.solr.update.processor.DistributedUpdateProcessorFactory;
+import org.apache.solr.update.processor.UpdateRequestProcessor;
+import org.apache.solr.update.processor.UpdateRequestProcessorChain;
+import org.apache.solr.update.processor.UpdateRequestProcessorFactory;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import static org.apache.solr.update.processor.DistributingUpdateProcessorFactory.DISTRIB_UPDATE_PARAM;
 
 public class TestSchemalessBufferedUpdates extends SolrTestCaseJ4 {
 
@@ -140,7 +139,8 @@ public class TestSchemalessBufferedUpdates extends SolrTestCaseJ4 {
     SolrQueryResponse rsp = new SolrQueryResponse();
     SolrQueryRequest req = req();
     try {
-      SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req, rsp));
+      // We do this already as part of the "req()" call above
+      // SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req, rsp));
       AddUpdateCommand cmd = new AddUpdateCommand(req);
       cmd.solrDoc = docIn;
       UpdateRequestProcessor processor = chainUpToDUP.createProcessor(req, rsp);
