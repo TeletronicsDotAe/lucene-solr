@@ -11,6 +11,7 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.exceptions.update.DocumentAlreadyExists;
 import org.apache.solr.common.params.UpdateParams;
+import org.apache.solr.update.VersionInfo;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -62,7 +63,7 @@ public class UpdateSemanticsRequestOverrideTest extends SolrJettyTestBase {
     // Setting _version_ positive means "update" (requires document to already exist)
     SolrInputDocument document = new SolrInputDocument();
     document.addField("id", "A");
-    document.addField(SolrInputDocument.VERSION_FIELD, -1);
+    document.addField(VersionInfo.VERSION_FIELD, -1);
     solrClient.add(document);
     
     solrClient.add(document);

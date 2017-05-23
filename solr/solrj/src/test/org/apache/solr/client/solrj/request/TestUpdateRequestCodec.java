@@ -18,7 +18,6 @@ package org.apache.solr.client.solrj.request;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,7 +29,6 @@ import java.util.Set;
 import junit.framework.Assert;
 
 import org.apache.lucene.util.LuceneTestCase;
-import org.apache.solr.common.RequestPartImpl;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.SolrInputField;
 import org.junit.Test;

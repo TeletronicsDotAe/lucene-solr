@@ -32,40 +32,21 @@ import java.util.Set;
  *
  * @since solr 1.3
  */
-public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInputDocument> implements Iterable<SolrInputField>, RequestPart
+public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInputDocument> implements Iterable<SolrInputField>
 {
-	public static final String VERSION_FIELD="_version_";
   private final Map<String,SolrInputField> _fields;
   private float _documentBoost = 1.0f;
   private List<SolrInputDocument> _childDocuments;
-  private RequestPartImpl partImpl;
-
-  public SolrInputDocument() {
-    partImpl = new RequestPartImpl();
-    _fields = new LinkedHashMap<>();
-  }
 
   public SolrInputDocument(String... fields) {
     _fields = new LinkedHashMap<>();
-    if (fields.length == 1) {
-      // uniquePartRef variant
-      partImpl = new RequestPartImpl(fields[0]);
-    } else {
-      partImpl = new RequestPartImpl();
-      assert fields.length % 2 == 0;
-      for (int i = 0; i < fields.length; i += 2) {
-        addField(fields[i], fields[i + 1]);
-      }
+    assert fields.length % 2 == 0;
+    for (int i = 0; i < fields.length; i += 2) {
+      addField(fields[i], fields[i + 1]);
     }
   }
 
   public SolrInputDocument(Map<String,SolrInputField> fields) {
-    partImpl = new RequestPartImpl();
-    _fields = fields;
-  }
-
-  public SolrInputDocument(Map<String,SolrInputField> fields, String uniquePartRef) {
-    partImpl = new RequestPartImpl(uniquePartRef);
     _fields = fields;
   }
 
@@ -81,23 +62,9 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
     _childDocuments = null;
   }
 
-  public void copyExceptUniquePartRef( SolrInputDocument to )
-  {
-    for( SolrInputField field : this ) {
-      to.addField( field.getName(), field.getValue(), field.getBoost() );
-    }
-    to.setDocumentBoost(this.getDocumentBoost());
-  }
-
-
   ///////////////////////////////////////////////////////////////////
   // Add / Set fields
   ///////////////////////////////////////////////////////////////////
-
-  public String getUniquePartRef()
-  {
-  	return partImpl.getUniquePartRef();
-  }
 
   /**
    * Add a field with implied null value for boost.
@@ -244,16 +211,6 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
     return _documentBoost;
   }
 
-  //FIXME MERGE - Is this used at all..? Merged just to be sure
-  public Long getVersion() {
-    SolrInputField versionField = getField(VERSION_FIELD);
-    if (versionField != null) {
-      Object o = versionField.getValue();
-      return (o instanceof Number)?((Number)o).longValue():Long.parseLong(o.toString());
-    }
-    return null;
-  }
-
   /**
    * Set the document boost.
    * @deprecated Index-time boosts are deprecated. You should instead index
@@ -274,7 +231,7 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
   }
 
   public SolrInputDocument deepCopy() {
-    SolrInputDocument clone = new SolrInputDocument(getUniquePartRef());
+    SolrInputDocument clone = new SolrInputDocument();
     Set<Entry<String,SolrInputField>> entries = _fields.entrySet();
     for (Map.Entry<String,SolrInputField> fieldEntry : entries) {
       clone._fields.put(fieldEntry.getKey(), fieldEntry.getValue().deepCopy());
@@ -352,9 +309,9 @@ public class SolrInputDocument extends SolrDocumentBase<SolrInputField, SolrInpu
 
   @Override
   public void addChildDocument(SolrInputDocument child) {
-   if (_childDocuments == null) {
-     _childDocuments = new ArrayList<>();
-   }
+    if (_childDocuments == null) {
+      _childDocuments = new ArrayList<>();
+    }
     _childDocuments.add(child);
   }
 

@@ -62,39 +62,39 @@ import org.noggit.CharArr;
 public class JavaBinCodec implements PushWriter {
 
   public static final byte
-          NULL = 0,
-          BOOL_TRUE = 1,
-          BOOL_FALSE = 2,
-          BYTE = 3,
-          SHORT = 4,
-          DOUBLE = 5,
-          INT = 6,
-          LONG = 7,
-          FLOAT = 8,
-          DATE = 9,
-          MAP = 10,
-          SOLRDOC = 11,
-          SOLRDOCLST = 12,
-          BYTEARR = 13,
-          ITERATOR = 14,
-          /**
-           * this is a special tag signals an end. No value is associated with it
-           */
-          END = 15,
+      NULL = 0,
+      BOOL_TRUE = 1,
+      BOOL_FALSE = 2,
+      BYTE = 3,
+      SHORT = 4,
+      DOUBLE = 5,
+      INT = 6,
+      LONG = 7,
+      FLOAT = 8,
+      DATE = 9,
+      MAP = 10,
+      SOLRDOC = 11,
+      SOLRDOCLST = 12,
+      BYTEARR = 13,
+      ITERATOR = 14,
+  /**
+   * this is a special tag signals an end. No value is associated with it
+   */
+  END = 15,
 
-          SOLRINPUTDOC = 16,
-          MAP_ENTRY_ITER = 17,
-          ENUM_FIELD_VALUE = 18,
-          MAP_ENTRY = 19,
-          // types that combine tag + length (or other info) in a single byte
-          TAG_AND_LEN = (byte) (1 << 5),
-          STR = (byte) (1 << 5),
-          SINT = (byte) (2 << 5),
-          SLONG = (byte) (3 << 5),
-          ARR = (byte) (4 << 5), //
-          ORDERED_MAP = (byte) (5 << 5), // SimpleOrderedMap (a NamedList subclass, and more common)
-          NAMED_LST = (byte) (6 << 5), // NamedList
-          EXTERN_STRING = (byte) (7 << 5);
+  SOLRINPUTDOC = 16,
+      MAP_ENTRY_ITER = 17,
+      ENUM_FIELD_VALUE = 18,
+      MAP_ENTRY = 19,
+  // types that combine tag + length (or other info) in a single byte
+  TAG_AND_LEN = (byte) (1 << 5),
+      STR = (byte) (1 << 5),
+      SINT = (byte) (2 << 5),
+      SLONG = (byte) (3 << 5),
+      ARR = (byte) (4 << 5), //
+      ORDERED_MAP = (byte) (5 << 5), // SimpleOrderedMap (a NamedList subclass, and more common)
+      NAMED_LST = (byte) (6 << 5), // NamedList
+      EXTERN_STRING = (byte) (7 << 5);
 
   private static final int MAX_UTF8_SIZE_FOR_ARRAY_GROW_STRATEGY = 65536;
 
@@ -139,7 +139,7 @@ public class JavaBinCodec implements PushWriter {
   public ObjectResolver getResolver() {
     return resolver;
   }
-  
+
   public void marshal(Object nl, OutputStream os) throws IOException {
     initWrite(os);
     try {
@@ -542,7 +542,7 @@ public class JavaBinCodec implements PushWriter {
   }
 
   public void writeSolrDocumentList(SolrDocumentList docs)
-          throws IOException {
+      throws IOException {
     writeTag(SOLRDOCLST);
     List<Number> l = new ArrayList<>(3);
     l.add(docs.getNumFound());
@@ -555,9 +555,7 @@ public class JavaBinCodec implements PushWriter {
   public SolrInputDocument readSolrInputDocument(DataInputInputStream dis) throws IOException {
     int sz = readVInt(dis);
     float docBoost = (Float)readVal(dis);
-    String uniquePartRef = (String)readVal(dis);
-    // FIXME MERGE - verify that uniquepartref can be passed as second parameter
-    SolrInputDocument sdoc = new SolrInputDocument(new LinkedHashMap<>(sz), uniquePartRef);
+    SolrInputDocument sdoc = new SolrInputDocument(new LinkedHashMap<>(sz));
     sdoc.setDocumentBoost(docBoost);
     for (int i = 0; i < sz; i++) {
       float boost = 1.0f;
@@ -583,7 +581,6 @@ public class JavaBinCodec implements PushWriter {
     int sz = sdoc.size() + (children==null ? 0 : children.size());
     writeTag(SOLRINPUTDOC, sz);
     writeFloat(sdoc.getDocumentBoost());
-    writeStr(sdoc.getUniquePartRef());
     for (SolrInputField inputField : sdoc.values()) {
       if (inputField.getBoost() != 1.0f) {
         writeFloat(inputField.getBoost());
@@ -611,7 +608,7 @@ public class JavaBinCodec implements PushWriter {
   }
 
   public Map<Object,Object> readMap(DataInputInputStream dis)
-          throws IOException {
+      throws IOException {
     int sz = readVInt(dis);
     Map<Object,Object> m = new LinkedHashMap<>(sz);
     for (int i = 0; i < sz; i++) {
@@ -726,7 +723,7 @@ public class JavaBinCodec implements PushWriter {
     writeInt(enumFieldValue.toInt());
     writeStr(enumFieldValue.toString());
   }
-  
+
   public void writeMapEntry(Entry<Object,Object> val) throws IOException {
     writeTag(MAP_ENTRY);
     writeVal(val.getKey());
@@ -743,7 +740,7 @@ public class JavaBinCodec implements PushWriter {
     String stringValue = (String) readVal(dis);
     return new EnumFieldValue(intValue, stringValue);
   }
-  
+
 
   public Map.Entry<Object,Object> readMapEntry(DataInputInputStream dis) throws IOException {
     final Object key = readVal(dis);

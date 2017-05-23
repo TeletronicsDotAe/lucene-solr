@@ -1081,7 +1081,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
               // forwarded from a collection but we are not buffering so strip original version and apply our own
               // see SOLR-5308
               log.info("Removing version field from doc: " + cmd.getPrintableId());
-              cmd.solrDoc.remove(SolrInputDocument.VERSION_FIELD);
+              cmd.solrDoc.remove(VersionInfo.VERSION_FIELD);
               versionOnUpdate = 0;
             }
 
@@ -1102,7 +1102,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
             long version = vinfo.getNewClock();
             cmd.setVersion(version);
             cmd.setRequestVersion(versionOnUpdate);
-            cmd.getSolrInputDocument().setField(SolrInputDocument.VERSION_FIELD, version);
+            cmd.getSolrInputDocument().setField(VersionInfo.VERSION_FIELD, version);
             bucket.updateHighest(version);
           } else {
             // The leader forwarded us this update.

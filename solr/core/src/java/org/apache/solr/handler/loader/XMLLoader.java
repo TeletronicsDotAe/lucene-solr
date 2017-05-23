@@ -50,7 +50,6 @@ import org.apache.solr.common.util.ContentStream;
 import org.apache.solr.common.util.ContentStreamBase;
 import org.apache.solr.common.util.StrUtils;
 import org.apache.solr.common.util.XMLErrorLogger;
-import org.apache.solr.common.RequestPart;
 import org.apache.solr.core.SolrConfig;
 import org.apache.solr.handler.RequestHandlerUtils;
 import org.apache.solr.handler.UpdateRequestHandler;
@@ -377,35 +376,29 @@ public class XMLLoader extends ContentStreamLoader {
    * @since solr 1.3
    */
   public SolrInputDocument readDoc(XMLStreamReader parser) throws XMLStreamException {
-    String partRef = null;
-    float boost = Float.MIN_VALUE;
+    SolrInputDocument doc = new SolrInputDocument();
+
     String attrName = "";
     for (int i = 0; i < parser.getAttributeCount(); i++) {
       attrName = parser.getAttributeLocalName(i);
       if ("boost".equals(attrName)) {
         String message = "Using document boost: " + parser.getAttributeValue(i) + " != 1.0 will not be supported anymore in 7.0. "
-                  + "Please index scoring factors into a separate field and combine them with the main query's "
-                  + "score using function queries.";
+            + "Please index scoring factors into a separate field and combine them with the main query's "
+            + "score using function queries.";
         if (WARNED_ABOUT_INDEX_TIME_BOOSTS.compareAndSet(false, true)) {
           log.warn(message);
         } else {
           log.debug(message);
         }
-        boost = Float.parseFloat(parser.getAttributeValue(i));
-      } else if (RequestPart.PART_REF_KEY.equals(attrName)) {
-        partRef = parser.getAttributeValue(i);      
+        doc.setDocumentBoost(Float.parseFloat(parser.getAttributeValue(i)));
       } else {
         log.warn("XML element <doc> has invalid XML attr:" + attrName);
       }
     }
-    SolrInputDocument doc = new SolrInputDocument(partRef);
-    if (boost != Float.MIN_VALUE) {
-      doc.setDocumentBoost(boost);
-    }
 
     StringBuilder text = new StringBuilder();
     String name = null;
-    boost = 1.0f;
+    float boost = 1.0f;
     boolean isNull = false;
     String update = null;
     Collection<SolrInputDocument> subDocs = null;

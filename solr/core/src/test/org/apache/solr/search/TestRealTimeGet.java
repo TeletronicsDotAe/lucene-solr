@@ -343,32 +343,27 @@ public class TestRealTimeGet extends TestRTGBase {
     SolrInputDocument doc = null;
     try {
       // try version added directly on doc
-      doc = sdoc("id", "1", "_version_", Long.toString(version - 1));
-      version2 = addAndGetVersion(doc, null);
+      version2 = addAndGetVersion(sdoc("id","1", "_version_", Long.toString(version-1)), null);
       fail();
     } catch (SolrException se) {
       assertTrue(se instanceof VersionConflict);
-      // Hmmm, why partRef included when that update-request is a on-doc-only-request
-      assertVersionConflict((VersionConflict)se, version, doc.getUniquePartRef(), false);
+      assertVersionConflict((VersionConflict)se, version);
       assertEquals(409, se.code());
     }
 
     try {
       // try an update with wrong positive version added as a parameter on the request, saying that it has to exist with this wrong version
-      doc = sdoc("id", "1");
-      version2 = addAndGetVersion(doc, params("_version_", Long.toString(version - 1)));
+      version2 = addAndGetVersion(sdoc("id","1"), params("_version_", Long.toString(version-1)));
       fail();
     } catch (SolrException se) {
       assertTrue(se instanceof VersionConflict);
-      // Hmmm, why partRef included when that update-request is a on-doc-only-request
-      assertVersionConflict((VersionConflict)se, version, doc.getUniquePartRef(), false);
+      assertVersionConflict((VersionConflict)se, version);
       assertEquals(409, se.code());
     }
 
     try {
       // try an update (add) with a negative version, saying that it has to not exist
-      doc = sdoc("id", "1");
-      version2 = addAndGetVersion(doc, params("_version_", Long.toString(-version)));
+      version2 = addAndGetVersion(sdoc("id","1"), params("_version_", Long.toString(-version)));
       fail();
     } catch (SolrException se) {
       assertTrue(se instanceof DocumentAlreadyExists);
@@ -377,13 +372,10 @@ public class TestRealTimeGet extends TestRTGBase {
 
     try {
       // try an update with wrong positive version (greater than current version), saying that it has to exist with this wrong version
-      doc = sdoc("id", "1");
-      version2 = addAndGetVersion(doc, params("_version_", Long.toString(version+random().nextInt(1000)+1)));
+      version2 = addAndGetVersion(sdoc("id","1"), params("_version_", Long.toString(version+random().nextInt(1000)+1)));
       fail();
     } catch (SolrException se) {
       assertTrue(se instanceof VersionConflict);
-      // Hmmm, why partRef included when that update-request is a on-doc-only-request
-      assertVersionConflict((VersionConflict)se, version, doc.getUniquePartRef(), false);
       assertEquals(409, se.code());
     }
 
@@ -397,7 +389,7 @@ public class TestRealTimeGet extends TestRTGBase {
       fail();
     } catch (SolrException se) {
       assertTrue(se instanceof VersionConflict);
-      assertVersionConflict((VersionConflict)se, version, null, false);
+      assertVersionConflict((VersionConflict)se, version);
       assertEquals(409, se.code());
     }
 
@@ -416,7 +408,7 @@ public class TestRealTimeGet extends TestRTGBase {
       fail();
     } catch (SolrException se) {
       assertTrue(se instanceof VersionConflict);
-      assertVersionConflict((VersionConflict)se, version, null, false);
+      assertVersionConflict((VersionConflict)se, version);
       assertEquals(409, se.code());
     }
 
@@ -438,18 +430,16 @@ public class TestRealTimeGet extends TestRTGBase {
     assertTrue(version2 < 0);
 
     // overwrite the document
-    doc = sdoc("id", "1", "_version_", Long.toString(version));
-    version2 = addAndGetVersion(doc, null);
+    version2 = addAndGetVersion(sdoc("id","1", "_version_", Long.toString(version)), null);
     assertTrue(version2 > version);
 
     try {
       // overwriting the previous version should now fail
-      version2 = addAndGetVersion(doc, params("_version_", Long.toString(version)));
+      version2 = addAndGetVersion(sdoc("id","1"), params("_version_", Long.toString(version)));
       fail();
     } catch (SolrException se) {
       assertTrue(se instanceof VersionConflict);
-      // Hmmm, why partRef included when that update-request is a on-doc-only-request
-      assertVersionConflict((VersionConflict)se, version2, doc.getUniquePartRef(), false);
+      assertVersionConflict((VersionConflict)se, version2);
       assertEquals(409, se.code());
     }
 
@@ -459,7 +449,7 @@ public class TestRealTimeGet extends TestRTGBase {
       fail();
     } catch (SolrException se) {
       assertTrue(se instanceof VersionConflict);
-      assertVersionConflict((VersionConflict)se, version2, null, false);
+      assertVersionConflict((VersionConflict)se, version2);
       assertEquals(409, se.code());
     }
 

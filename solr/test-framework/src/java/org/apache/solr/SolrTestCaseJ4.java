@@ -1411,14 +1411,6 @@ public abstract class SolrTestCaseJ4 extends LuceneTestCase {
         }
         out.append(']');
       }
-
-      if (firstField) firstField=false;
-      else out.append(',');
-      //JSONUtil.writeString("partRef", 0, "partRef".length(), out);
-      out.append(JSONUtil.toJSON("nonfield.partref"));
-      out.append(':');
-      out.append(JSONUtil.toJSON(doc.getUniquePartRef()));
-
       out.append('}');
     } catch (IOException e) {
       // should never happen
@@ -2012,21 +2004,15 @@ public abstract class SolrTestCaseJ4 extends LuceneTestCase {
     return result;
   }
 
-  public void assertVersionConflict(VersionConflict vc, long expectedCurrentVersion, String expectedPartRef, boolean responseHeaderExpected) {
-    assertVersionConflict(vc, expectedCurrentVersion, expectedPartRef != null, expectedPartRef, responseHeaderExpected);
+  public void assertVersionConflict(VersionConflict vc, long expectedCurrentVersion) {
+    assertVersionConflict(vc, expectedCurrentVersion, false, null, false);
   }
 
+  @Deprecated
   public void assertVersionConflict(VersionConflict vc, long expectedCurrentVersion, boolean partRefExpected, String expectedPartRef, boolean responseHeaderExpected) {
     int expectedPayloadSize = 1;
-    if (partRefExpected) expectedPayloadSize++;
-    if (responseHeaderExpected) expectedPayloadSize++;
     assertEquals(expectedPayloadSize, vc.getMetadata().size());
-
     assertEquals(expectedCurrentVersion, vc.getCurrentVersion());
-
-    //FIXME - figure out how to get the document reference - assume it'll be ID onwards?
-    //if (partRefExpected) assertNotNull(payload.get("partRef"));
-    //if (expectedPartRef != null) assertEquals(expectedPartRef, payload.get("partRef"));
   }
 
   public static void assertXmlFile(final File file, String... xpath)

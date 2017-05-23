@@ -17,17 +17,15 @@
 
 package org.apache.solr.update;
 
-import java.io.IOException;
-
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import java.io.IOException;
 
 import org.apache.solr.SolrTestCaseJ4;
-import org.apache.solr.SolrTestCaseJ4.XmlDoc;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.exceptions.update.DocumentAlreadyExists;
@@ -127,7 +125,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
   @Test
   public void testBasicUpdateSemanticsDBInsertShouldSucceed() throws Exception {
     // Setting _version_ negative means "insert" (requires document to not already exist)
-    XmlDoc d = doc("id", "A", SolrInputDocument.VERSION_FIELD, "-1");
+    XmlDoc d = doc("id", "A", VersionInfo.VERSION_FIELD, "-1");
     String add = add(d);
     assertU(add);
 
@@ -145,7 +143,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
     assertU(adoc("id", "A"));
     
     // Setting _version_ negative means "insert" (requires document to not already exist)
-    XmlDoc d = doc("id", "A", SolrInputDocument.VERSION_FIELD, "-1");
+    XmlDoc d = doc("id", "A", VersionInfo.VERSION_FIELD, "-1");
     String add = add(d);
     assertUpdateSemanticsException(add, DocumentAlreadyExists.class);
 
@@ -164,7 +162,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
     assertU(delI("A"));
     
     // Setting _version_ negative means "insert" (requires document to not already exist)
-    XmlDoc d = doc("id", "A", SolrInputDocument.VERSION_FIELD, "-100");
+    XmlDoc d = doc("id", "A", VersionInfo.VERSION_FIELD, "-100");
     String add = add(d);
     assertU(add);
 
@@ -185,7 +183,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
     assertU(commit());
     
     // Setting _version_ negative means "insert" (requires document to not already exist)
-    XmlDoc d = doc("id", "A", SolrInputDocument.VERSION_FIELD, "-10000");
+    XmlDoc d = doc("id", "A", VersionInfo.VERSION_FIELD, "-10000");
     String add = add(d);
     assertUpdateSemanticsException(add, DocumentAlreadyExists.class);
 
@@ -208,7 +206,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
     assertU(delI("A"));
 
     // Setting _version_ negative means "insert" (requires document to not already exist)
-    XmlDoc d = doc("id", "A", SolrInputDocument.VERSION_FIELD, "-20");
+    XmlDoc d = doc("id", "A", VersionInfo.VERSION_FIELD, "-20");
     String add = add(d);
     assertU(add);
 
@@ -227,7 +225,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
     
     assertU(add(initialDoc));
     
-    XmlDoc doc = doc("id", "5", "text", WORLD, SolrInputDocument.VERSION_FIELD, "0");
+    XmlDoc doc = doc("id", "5", "text", WORLD, VersionInfo.VERSION_FIELD, "0");
     assertU(add(doc));
     
     assertU(commit());
@@ -244,7 +242,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
     assertU(add(initialDoc));
     assertU(commit());
     
-    XmlDoc doc = doc("id", "5", "text", WORLD, SolrInputDocument.VERSION_FIELD, "0");
+    XmlDoc doc = doc("id", "5", "text", WORLD, VersionInfo.VERSION_FIELD, "0");
     assertU(add(doc));
     
     assertU(commit());
@@ -267,7 +265,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
     assertQ(req("q", "id:A AND _version_:" + versionString),
         "//*[@numFound='1']");
     
-    XmlDoc doc = doc("id", "A", "text", WORLD, SolrInputDocument.VERSION_FIELD, versionString);
+    XmlDoc doc = doc("id", "A", "text", WORLD, VersionInfo.VERSION_FIELD, versionString);
     assertU(add(doc));
     
     assertU(commit());
@@ -280,7 +278,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
   // THEN error: DocumentDoesNotExist
   @Test
   public void shouldFailOnMissingDocument() throws Exception {
-    XmlDoc doc = doc("id", "A", "text", WORLD, SolrInputDocument.VERSION_FIELD, "100");
+    XmlDoc doc = doc("id", "A", "text", WORLD, VersionInfo.VERSION_FIELD, "100");
     boolean failedAsExpected = false;
     
     try {
@@ -305,7 +303,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
     assertU(add(initialDoc));
     assertU(delI("A"));
     
-    XmlDoc doc = doc("id", "A", "text", WORLD, SolrInputDocument.VERSION_FIELD, "10000");
+    XmlDoc doc = doc("id", "A", "text", WORLD, VersionInfo.VERSION_FIELD, "10000");
     
     boolean failedAsExpected = false;
     
@@ -333,7 +331,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
     assertU(commit());
     assertU(delI("A"));
     
-    XmlDoc doc = doc("id", "A", "text", WORLD, SolrInputDocument.VERSION_FIELD, "1");
+    XmlDoc doc = doc("id", "A", "text", WORLD, VersionInfo.VERSION_FIELD, "1");
     
     boolean failedAsExpected = false;
     
@@ -362,7 +360,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
     
     Long version = addAndGetVersion(document, null);
     
-    XmlDoc doc = doc("id", "A", "text", WORLD, SolrInputDocument.VERSION_FIELD, new Long(version + 1).toString());
+    XmlDoc doc = doc("id", "A", "text", WORLD, VersionInfo.VERSION_FIELD, new Long(version + 1).toString());
     
     boolean failedAsExpected = false;
     
@@ -370,8 +368,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
       assertU(add(doc));
     } catch (VersionConflict e) {
     	failedAsExpected = true;
-    	// partRef expected (assigned on server-side) but unknown that it ought to be (not explicitly added to request)
-    	assertVersionConflict(e, version, true, null, false);
+    	assertVersionConflict(e, version);
     }
     
     assertTrue("Did not receive expected VersionConflict exception",
@@ -394,7 +391,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
     Long version = addAndGetVersion(document, null);
     assertU(commit());
     
-    XmlDoc doc = doc("id", "A", "text", WORLD, SolrInputDocument.VERSION_FIELD, new Long(version + 1).toString());
+    XmlDoc doc = doc("id", "A", "text", WORLD, VersionInfo.VERSION_FIELD, new Long(version + 1).toString());
     
     boolean failedAsExpected = false;
     
@@ -431,7 +428,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
     String result = h.query(req("q", "id:A"));
     
     String version = extractVersionStringFromQueryResult(result);
-    XmlDoc doc = doc("id", "A", "text", WORLD, SolrInputDocument.VERSION_FIELD, version.toString());
+    XmlDoc doc = doc("id", "A", "text", WORLD, VersionInfo.VERSION_FIELD, version.toString());
     
     assertU(add(doc));
     

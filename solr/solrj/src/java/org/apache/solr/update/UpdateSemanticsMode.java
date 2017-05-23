@@ -17,8 +17,6 @@
 
 package org.apache.solr.update;
 
-import org.apache.solr.common.SolrInputDocument;
-
 /**
  * UpdateSemanticsMode is used to control details on how updates work semantically in Solr. Find more information under "Update Semantics"
  * on Solr Wiki
@@ -203,12 +201,14 @@ public enum UpdateSemanticsMode {
 	private static final RuleAndReason nonExistingDocRequired;
 	private static final RuleAndReason nonExistingDocRequiredHybrid;
 	static {
+		String VERSION_FIELD = "_version_"; //Cannot depend on VersionInfo.VERSION_FIELD :-/
+
 		notRequired = new RuleAndReason();
 		notRequired.ruleEnforced = false;
 		notRequired.reason = "Not required";
 		versionRequiredForConsistencyUpdate = new RuleAndReason();
 		versionRequiredForConsistencyUpdate.ruleEnforced = true;
-		versionRequiredForConsistencyUpdate.reason = SolrInputDocument.VERSION_FIELD + " field required in schema in order to do consistent document updates (" + SolrInputDocument.VERSION_FIELD + " > 0 specified explicitly in document)";
+		versionRequiredForConsistencyUpdate.reason = VERSION_FIELD + " field required in schema in order to do consistent document updates (" + VERSION_FIELD + " > 0 specified explicitly in document)";
 		uniqueKeyFieldRequiredForClassicOverwrite = new RuleAndReason();
 		uniqueKeyFieldRequiredForClassicOverwrite.ruleEnforced = true;
 		uniqueKeyFieldRequiredForClassicOverwrite.reason = "Unique key field required in schema and document when using overwrite feature";
@@ -223,13 +223,13 @@ public enum UpdateSemanticsMode {
 		updateLogRequiredForConcistency.reason = "Update-log required in order to do consistent document inserts and/or updates";
 		existingDocRquired = new RuleAndReason();
 		existingDocRquired.ruleEnforced = true;
-		existingDocRquired.reason = "Attempt to update (" + SolrInputDocument.VERSION_FIELD + " > 0 specified explicitly in document) document failed. Document does not exist";
+		existingDocRquired.reason = "Attempt to update (" + VERSION_FIELD + " > 0 specified explicitly in document) document failed. Document does not exist";
 		nonExistingDocRequired = new RuleAndReason();
 		nonExistingDocRequired.ruleEnforced = true;
-		nonExistingDocRequired.reason = "Attempt to insert (" + SolrInputDocument.VERSION_FIELD + " <= 0 specified explicitly in document) document failed. Document already exists";
+		nonExistingDocRequired.reason = "Attempt to insert (" + VERSION_FIELD + " <= 0 specified explicitly in document) document failed. Document already exists";
 		nonExistingDocRequiredHybrid = new RuleAndReason();
 		nonExistingDocRequiredHybrid.ruleEnforced = true;
-		nonExistingDocRequiredHybrid.reason = "Attempt to insert (" + SolrInputDocument.VERSION_FIELD + " <= 0 specified explicitly in document) document failed. Document already exists";
+		nonExistingDocRequiredHybrid.reason = "Attempt to insert (" + VERSION_FIELD + " <= 0 specified explicitly in document) document failed. Document already exists";
 	}
 
 	public abstract RuleAndReason requireVersionFieldInSchema(RequestCommand cmd);

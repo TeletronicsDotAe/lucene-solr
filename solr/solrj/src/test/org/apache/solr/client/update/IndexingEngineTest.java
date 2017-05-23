@@ -1,5 +1,6 @@
 package org.apache.solr.client.update;
 
+import javax.naming.OperationNotSupportedException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,10 +17,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.naming.OperationNotSupportedException;
-
 import junit.framework.Assert;
-
 import org.apache.solr.SolrTestCaseJ4;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -29,7 +27,6 @@ import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.client.update.IndexingEngineTest.IndexingEngineBatchJob.IndexInstruction;
 import org.apache.solr.client.update.IndexingEngineTest.IndexingEngineBatchJob.Merger;
 import org.apache.solr.common.SolrDocument;
-import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.exceptions.update.DocumentAlreadyExists;
 import org.apache.solr.common.exceptions.update.DocumentDoesNotExist;
@@ -37,6 +34,7 @@ import org.apache.solr.common.exceptions.update.VersionConflict;
 import org.apache.solr.common.params.CoreAdminParams;
 import org.apache.solr.common.params.UpdateParams;
 import org.apache.solr.update.UpdateSemanticsMode;
+import org.apache.solr.update.VersionInfo;
 import org.apache.solr.util.DefaultSolrThreadFactory;
 import org.junit.After;
 import org.junit.Before;
@@ -285,9 +283,9 @@ public class IndexingEngineTest extends SolrTestCaseJ4 {
         } else {
           nextStep = NextStep.INDEX;
           if (indexInstruction == IndexInstruction.SKIP_IF_EXISTS) {
-            doc.setField(SolrInputDocument.VERSION_FIELD, -1);
+            doc.setField(VersionInfo.VERSION_FIELD, -1);
           } else {
-            doc.setField(SolrInputDocument.VERSION_FIELD, 0);
+            doc.setField(VersionInfo.VERSION_FIELD, 0);
             // TODO support for setting overwrite per document. NOT AS FIELD, we do not want a field called "overwrite" stored. Maybe same way
             // that uniquePartRef is transfered per document in updage-requests
             // Then we would not need overwrite as a field in DefaultDocumentGrouper.Group, because we can mix overwrite and non-overwrite
@@ -344,9 +342,9 @@ public class IndexingEngineTest extends SolrTestCaseJ4 {
         if (nextStep == NextStep.GET_UPDATED_DOC_AND_MERGE) {
           mergedDoc = merger.merge(alreadyInSolr, doc);
           if (alreadyInSolr == null) {
-            mergedDoc.setField(SolrInputDocument.VERSION_FIELD, -1);
+            mergedDoc.setField(VersionInfo.VERSION_FIELD, -1);
           } else {
-            mergedDoc.setField(SolrInputDocument.VERSION_FIELD, alreadyInSolr.getFieldValue(SolrInputDocument.VERSION_FIELD));
+            mergedDoc.setField(VersionInfo.VERSION_FIELD, alreadyInSolr.getFieldValue(VersionInfo.VERSION_FIELD));
           }
           
           nextStep = NextStep.INDEX;
@@ -406,7 +404,7 @@ public class IndexingEngineTest extends SolrTestCaseJ4 {
     
     public static class DefaultDocumentGrouper implements DocumentGrouper<DefaultDocumentGrouper.Group> {
       
-      private static class Group {
+      static class Group {
 
         private static class OverwriteAndNotGroups {
           Group overwrite;
@@ -738,8 +736,7 @@ public class IndexingEngineTest extends SolrTestCaseJ4 {
 
       @Override
       public SolrInputDocument merge(SolrDocument alreadyInSolr, SolrInputDocument doc) {
-        SolrInputDocument mergedDoc = new SolrInputDocument();
-        doc.copyExceptUniquePartRef(mergedDoc);
+        SolrInputDocument mergedDoc = doc.deepCopy();
         mergedDoc.setField("val", (String)alreadyInSolr.getFieldValue("val") + doc.getFieldValue("val") );
         return mergedDoc;
       }

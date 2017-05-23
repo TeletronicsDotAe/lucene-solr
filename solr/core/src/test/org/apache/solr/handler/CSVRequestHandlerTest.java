@@ -17,8 +17,6 @@
 package org.apache.solr.handler;
 
 import org.apache.solr.SolrTestCaseJ4;
-import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.SolrInputField;
 import org.apache.solr.common.util.ContentStreamBase;
 import org.apache.solr.handler.loader.CSVLoader;
 import org.apache.solr.request.SolrQueryRequest;
@@ -52,50 +50,4 @@ public class CSVRequestHandlerTest extends SolrTestCaseJ4 {
 
     req.close();
   }
-
-  protected void fieldsAndPartRefTestTemplate(String csvString) throws Exception {
-    SolrQueryRequest req = req("separator", ";");
-    SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
-
-    CSVLoader loader = new CSVLoader();
-    loader.load(req, rsp, new ContentStreamBase.StringStream.StringStream(csvString), p);
-
-    assertEquals( 2, p.addCommands.size() );
-    
-    AddUpdateCommand add = p.addCommands.get(0);
-    SolrInputDocument d = add.solrDoc;
-    assertEquals("ref1", d.getUniquePartRef());
-    SolrInputField f = d.getField( "id" );
-    assertEquals("123", f.getValue());
-    f = d.getField( "name" );
-    assertEquals("hello", f.getValue());
-
-    add = p.addCommands.get(1);
-    d = add.solrDoc;
-    assertEquals("ref2", d.getUniquePartRef());
-    f = d.getField( "id" );
-    assertEquals("456", f.getValue());
-    f = d.getField( "name" );
-    assertEquals("world", f.getValue());
-
-    req.close();
-  }
-
-  
-  @Test
-  public void testFieldsAndPartRefFirst() throws Exception {
-    fieldsAndPartRefTestTemplate("nonfield.partref;id;name\nref1;123;hello\nref2;456;world");
-  }
-
-  @Test
-  public void testFieldsAndPartRefMiddle() throws Exception {
-    fieldsAndPartRefTestTemplate("id;nonfield.partref;name\n123;ref1;hello\n456;ref2;world");
-  }
-
-  @Test
-  public void testFieldsAndPartRefLast() throws Exception {
-    fieldsAndPartRefTestTemplate("id;name;nonfield.partref\n123;hello;ref1\n456;world;ref2");
-  }
-
 }

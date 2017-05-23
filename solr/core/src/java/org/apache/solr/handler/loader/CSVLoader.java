@@ -18,10 +18,12 @@ package org.apache.solr.handler.loader;
 
 import java.io.IOException;
 
+import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.ContentStream;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
+
 
 public class CSVLoader extends ContentStreamLoader {
   @Override
@@ -39,6 +41,7 @@ class SingleThreadedCSVLoader extends CSVLoaderBase {
   @Override
   void addDoc(int line, String[] vals) throws IOException {
     templateAdd.clear();
-    doAdd(line, vals, templateAdd);
+    SolrInputDocument doc = new SolrInputDocument();
+    doAdd(line, vals, doc, templateAdd);
   }
 }

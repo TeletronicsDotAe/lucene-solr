@@ -236,7 +236,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
       }
     }
 
-    SchemaField versionField = cmd.getReq().getSchema().getFieldOrNull(SolrInputDocument.VERSION_FIELD);
+    SchemaField versionField = cmd.getReq().getSchema().getFieldOrNull(VersionInfo.VERSION_FIELD);
     BytesRef indexedId = cmd.getIndexedId();
     String id = cmd.getPrintableId(null);
     UpdateSemanticsMode.RuleAndReason rar;
@@ -454,7 +454,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
   public void delete(DeleteUpdateCommand cmd) throws IOException {
     UpdateSemanticsMode semanticsMode = getSemanticsMode(cmd);
 
-    SchemaField versionField = cmd.getReq().getSchema().getFieldOrNull(SolrInputDocument.VERSION_FIELD);
+    SchemaField versionField = cmd.getReq().getSchema().getFieldOrNull(VersionInfo.VERSION_FIELD);
     BytesRef indexedId = cmd.getIndexedId();
     String id = cmd.getId();
     UpdateSemanticsMode.RuleAndReason rar;

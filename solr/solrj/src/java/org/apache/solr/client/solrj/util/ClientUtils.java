@@ -26,7 +26,6 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.solr.common.RequestPart;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.SolrInputField;
 import org.apache.solr.common.cloud.Slice;
@@ -40,11 +39,11 @@ import org.apache.solr.common.util.XML;
  *
  * @since solr 1.3
  */
-public class ClientUtils 
+public class ClientUtils
 {
   // Standard Content types
-  public static final String TEXT_XML = "application/xml; charset=UTF-8";  
-  
+  public static final String TEXT_XML = "application/xml; charset=UTF-8";
+
   /**
    * Take a string and make it an iterable ContentStream
    */
@@ -65,7 +64,7 @@ public class ClientUtils
 
   public static void writeXML( SolrInputDocument doc, Writer writer ) throws IOException
   {
-    writer.write("<doc " + RequestPart.PART_REF_KEY + "=\"" + doc.getUniquePartRef() + "\" boost=\""+doc.getDocumentBoost()+"\">");
+    writer.write("<doc boost=\""+doc.getDocumentBoost()+"\">");
 
     for( SolrInputField field : doc ) {
       float boost = field.getBoost();
@@ -104,7 +103,7 @@ public class ClientUtils
         writeXML(childDocument, writer);
       }
     }
-    
+
     writer.write("</doc>");
   }
 
@@ -121,13 +120,13 @@ public class ClientUtils
 
     if (update == null) {
       if( boost != 1.0f ) {
-        XML.writeXML(writer, "field", v.toString(), "name", name, "boost", new Float(boost).toString());
+        XML.writeXML(writer, "field", v.toString(), "name", name, "boost", boost);
       } else if (v != null) {
         XML.writeXML(writer, "field", v.toString(), "name", name );
       }
     } else {
       if( boost != 1.0f ) {
-        XML.writeXML(writer, "field", v.toString(), "name", name, "boost", new Float(boost).toString(), "update", update);
+        XML.writeXML(writer, "field", v.toString(), "name", name, "boost", boost, "update", update);
       } else {
         if (v == null)  {
           XML.writeXML(writer, "field", null, "name", name, "update", update, "null", true);
@@ -162,9 +161,9 @@ public class ClientUtils
       char c = s.charAt(i);
       // These characters are part of the query syntax and must be escaped
       if (c == '\\' || c == '+' || c == '-' || c == '!'  || c == '(' || c == ')' || c == ':'
-        || c == '^' || c == '[' || c == ']' || c == '\"' || c == '{' || c == '}' || c == '~'
-        || c == '*' || c == '?' || c == '|' || c == '&'  || c == ';' || c == '/'
-        || Character.isWhitespace(c)) {
+          || c == '^' || c == '[' || c == ']' || c == '\"' || c == '{' || c == '}' || c == '~'
+          || c == '*' || c == '?' || c == '|' || c == '&'  || c == ';' || c == '/'
+          || Character.isWhitespace(c)) {
         sb.append('\\');
       }
       sb.append(c);

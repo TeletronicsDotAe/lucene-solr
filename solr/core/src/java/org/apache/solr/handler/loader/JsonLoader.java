@@ -531,15 +531,7 @@ public class JsonLoader extends ContentStreamLoader {
         }
         String fieldName = parser.getString();
 
-        if (PART_REF_COLUMN_NAME.equals(fieldName)) {
-          ev = parser.nextEvent();
-          if (ev != JSONParser.STRING) {
-            throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, PART_REF_COLUMN_NAME + " must be a string! ["+ parser.getPosition()+"]" );
-          }
-          SolrInputDocument newSdoc = new SolrInputDocument(parser.getString());
-          sdoc.copyExceptUniquePartRef(newSdoc);
-          sdoc = newSdoc;
-        } else if (fieldName.equals(JsonLoader.CHILD_DOC_KEY)) {
+        if (fieldName.equals(JsonLoader.CHILD_DOC_KEY)) {
           ev = parser.nextEvent();
           assertEvent(ev, JSONParser.ARRAY_START);
           while ((ev = parser.nextEvent()) != JSONParser.ARRAY_END) {
@@ -562,10 +554,6 @@ public class JsonLoader extends ContentStreamLoader {
 
     private void parseFieldValue(SolrInputField sif) throws IOException {
       int ev = parser.nextEvent();
-      if (ev != JSONParser.STRING && PART_REF_COLUMN_NAME.equals(sif.getName())) {
-        throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, PART_REF_COLUMN_NAME + " must be a string! ["+ parser.getPosition()+"]" );
-      }
-
       if (ev == JSONParser.OBJECT_START) {
         parseExtendedFieldValue(sif, ev);
       } else {
