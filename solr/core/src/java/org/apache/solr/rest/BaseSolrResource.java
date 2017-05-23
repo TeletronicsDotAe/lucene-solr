@@ -171,6 +171,8 @@ public abstract class BaseSolrResource extends ServerResource {
    */
   protected void handlePostExecution(Logger log) {
 
+    handleException(log);
+
     // TODO: should status=0 (success?) be left as-is in the response header?
     SolrCore.postDecorateResponse(null, solrRequest, solrResponse);
     addDeprecatedWarning();
