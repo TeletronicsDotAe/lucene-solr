@@ -16,7 +16,12 @@
  */
 package org.apache.solr.handler.dataimport;
 
-import static org.apache.solr.handler.dataimport.DataImporter.IMPORT_CMD;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Constructor;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
@@ -24,27 +29,24 @@ import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.MapSolrParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.SolrParams;
+import org.apache.solr.common.util.ContentStream;
 import org.apache.solr.common.util.ContentStreamBase;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.util.SimpleOrderedMap;
-import org.apache.solr.common.util.ContentStream;
 import org.apache.solr.common.util.StrUtils;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.core.SolrResourceLoader;
 import org.apache.solr.handler.RequestHandlerBase;
-import org.apache.solr.response.RawResponseWriter;
 import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.response.RawResponseWriter;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 import org.apache.solr.update.processor.UpdateRequestProcessorChain;
 import org.apache.solr.util.plugin.SolrCoreAware;
-
-import java.util.*;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Constructor;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.solr.handler.dataimport.DataImporter.IMPORT_CMD;
 
 /**
  * <p>
@@ -171,7 +173,6 @@ public class DataImportHandler extends RequestHandlerBase implements
         UpdateRequestProcessorChain processorChain =
                 req.getCore().getUpdateProcessorChain(params);
         UpdateRequestProcessor processor = processorChain.createProcessor(req, rsp);
-        try {
         SolrResourceLoader loader = req.getCore().getResourceLoader();
         DIHWriter sw = getSolrWriter(processor, loader, requestParams, req);
         
@@ -195,10 +196,7 @@ public class DataImportHandler extends RequestHandlerBase implements
             importer.runCmd(requestParams, sw);
           }
         }
-        } finally {
-          processor.finish();
-        }
-      } else if (DataImporter.RELOAD_CONF_CMD.equals(command)) { 
+      } else if (DataImporter.RELOAD_CONF_CMD.equals(command)) {
         if(importer.maybeReloadConfiguration(requestParams, defaultParams)) {
           message = DataImporter.MSG.CONFIG_RELOADED;
         } else {
