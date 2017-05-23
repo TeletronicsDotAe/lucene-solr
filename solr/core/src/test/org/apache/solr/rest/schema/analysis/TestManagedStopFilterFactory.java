@@ -56,7 +56,7 @@ public class TestManagedStopFilterFactory extends RestTestBase {
     System.setProperty("enable.update.log", "false");
 
     createJettyAndHarness(tmpSolrHome.getAbsolutePath(), "solrconfig-managed-schema.xml", "schema-rest.xml",
-                          "/solr", true, extraServlets);
+        "/solr", true, extraServlets);
   }
 
   @After
@@ -65,7 +65,7 @@ public class TestManagedStopFilterFactory extends RestTestBase {
     jetty = null;
     System.clearProperty("managed.schema.mutable");
     System.clearProperty("enable.update.log");
-    
+
     if (restTestHarness != null) {
       restTestHarness.close();
     }
@@ -84,79 +84,81 @@ public class TestManagedStopFilterFactory extends RestTestBase {
     //// TODO: This returns HTML vs JSON because the exception is thrown
     ////       from the init method of ManagedEndpoint ... need a better solution
     // assertJQ("/schema/analysis/stopwords/bogus", "/error/code==404");
-    
+
     // this endpoint depends on at least one field type containing the following
     // declaration in the schema-rest.xml:
     // 
     //   <filter class="solr.ManagedStopFilterFactory" managed="english" />
     //
     String endpoint = "/schema/analysis/stopwords/english";
-    
+
     // test the initial GET request returns the default stopwords settings
-    assertJQ(endpoint, 
-             "/wordSet/initArgs/ignoreCase==false",
-             "/wordSet/managedList==[]");
-          
+    assertJQ(endpoint,
+        "/wordSet/initArgs/ignoreCase==false",
+        "/wordSet/managedList==[]");
+
     // add some stopwords and verify they were added
-    assertJPut(endpoint, 
-               JSONUtil.toJSON(Arrays.asList("a", "an", "the")),
-               "/responseHeader/status==0");
-          
+    assertJPut(endpoint,
+        JSONUtil.toJSON(Arrays.asList("a", "an", "the")),
+        "/responseHeader/status==0");
+
     // test requesting a specific stop word that exists / does not exist
     assertJQ(endpoint + "/the", "/the=='the'");
     // not exist - 404
-    assertJQ(endpoint + "/foo", 404, "foo not found in /schema/analysis/stopwords/english");
+    assertJQ(endpoint + "/foo", "/error/code==404");
     // wrong case - 404
-    assertJQ(endpoint + "/An", 404, "An not found in /schema/analysis/stopwords/english");
-    
+    assertJQ(endpoint + "/An", "/error/code==404");
+
     // update the ignoreCase initArg to true and make sure case is ignored
-    String updateIgnoreCase = 
+    String updateIgnoreCase =
         "{ 'initArgs':{ 'ignoreCase':true }, "
-        + "'managedList':['A','a','AN','an','THE','the','of','OF'] }";
+            + "'managedList':['A','a','AN','an','THE','the','of','OF'] }";
     assertJPut(endpoint, json(updateIgnoreCase), "/responseHeader/status==0");
-    
-    assertJQ(endpoint, 
-             "/wordSet/initArgs/ignoreCase==true",
-             "/wordSet/managedList==['a','an','of','the']");
-    
+
+    assertJQ(endpoint,
+        "/wordSet/initArgs/ignoreCase==true",
+        "/wordSet/managedList==['a','an','of','the']");
+
     // verify ignoreCase applies when requesting a word
     assertJQ("/schema/analysis/stopwords/english/The", "/The=='the'");
 
     // verify the resource supports XML writer type (wt) as well as JSON
     assertQ(endpoint,
-            "count(/response/lst[@name='wordSet']/arr[@name='managedList']/*) = 4",
-            "(/response/lst[@name='wordSet']/arr[@name='managedList']/str)[1] = 'a'",     
-            "(/response/lst[@name='wordSet']/arr[@name='managedList']/str)[2] = 'an'",        
-            "(/response/lst[@name='wordSet']/arr[@name='managedList']/str)[3] = 'of'",        
-            "(/response/lst[@name='wordSet']/arr[@name='managedList']/str)[4] = 'the'");
+        "count(/response/lst[@name='wordSet']/arr[@name='managedList']/*) = 4",
+        "(/response/lst[@name='wordSet']/arr[@name='managedList']/str)[1] = 'a'",
+        "(/response/lst[@name='wordSet']/arr[@name='managedList']/str)[2] = 'an'",
+        "(/response/lst[@name='wordSet']/arr[@name='managedList']/str)[3] = 'of'",
+        "(/response/lst[@name='wordSet']/arr[@name='managedList']/str)[4] = 'the'");
 
     restTestHarness.reload();  // make the word set available
 
     String newFieldName = "managed_en_field";
     // make sure the new field doesn't already exist
     assertQ("/schema/fields/" + newFieldName + "?indent=on&wt=xml",
-            404, "Field '" + newFieldName + "' not found.");
+        "count(/response/lst[@name='field']) = 0",
+        "/response/lst[@name='responseHeader']/int[@name='status'] = '404'",
+        "/response/lst[@name='error']/int[@name='code'] = '404'");
 
     // add the new field
     assertJPost("/schema/fields", "{add-field : { name :managed_en_field, type : managed_en}}",
-               "/responseHeader/status==0");
+        "/responseHeader/status==0");
 
     // make sure the new field exists now
     assertQ("/schema/fields/" + newFieldName + "?indent=on&wt=xml",
-            "count(/response/lst[@name='field']) = 1",
-            "/response/lst[@name='responseHeader']/int[@name='status'] = '0'");
+        "count(/response/lst[@name='field']) = 1",
+        "/response/lst[@name='responseHeader']/int[@name='status'] = '0'");
 
     assertU(adoc(newFieldName, "This is the one", "id", "6"));
     assertU(commit());
 
     assertQ("/select?q=" + newFieldName + ":This",
-            "/response/lst[@name='responseHeader']/int[@name='status'] = '0'",
-            "/response/result[@name='response'][@numFound='1']",
-            "/response/result[@name='response']/doc/str[@name='id'][.='6']");
+        "/response/lst[@name='responseHeader']/int[@name='status'] = '0'",
+        "/response/result[@name='response'][@numFound='1']",
+        "/response/result[@name='response']/doc/str[@name='id'][.='6']");
 
     assertQ("/select?q=%7B%21raw%20f=" + newFieldName + "%7Dthe",
-            "/response/lst[@name='responseHeader']/int[@name='status'] = '0'",
-            "/response/result[@name='response'][@numFound='0']");
+        "/response/lst[@name='responseHeader']/int[@name='status'] = '0'",
+        "/response/result[@name='response'][@numFound='0']");
 
     // verify delete works
     assertJDelete(endpoint + "/the", "/responseHeader/status==0");
@@ -166,8 +168,8 @@ public class TestManagedStopFilterFactory extends RestTestBase {
     assertU(commit());
 
     assertQ("/select?q=%7B%21raw%20f=" + newFieldName + "%7Dthe",
-            "/response/lst[@name='responseHeader']/int[@name='status'] = '0'",
-            "/response/result[@name='response'][@numFound='0']");
+        "/response/lst[@name='responseHeader']/int[@name='status'] = '0'",
+        "/response/result[@name='response'][@numFound='0']");
 
     restTestHarness.reload();
 
@@ -176,16 +178,16 @@ public class TestManagedStopFilterFactory extends RestTestBase {
     assertU(commit());
 
     assertQ("/select?q=%7B%21raw%20f=" + newFieldName + "%7Dthe",
-            "/response/lst[@name='responseHeader']/int[@name='status'] = '0'",
-            "/response/result[@name='response'][@numFound='1']",
-            "/response/result[@name='response']/doc/str[@name='id'][.='8']");
+        "/response/lst[@name='responseHeader']/int[@name='status'] = '0'",
+        "/response/result[@name='response'][@numFound='1']",
+        "/response/result[@name='response']/doc/str[@name='id'][.='8']");
 
     assertJQ(endpoint,
-             "/wordSet/initArgs/ignoreCase==true",
-             "/wordSet/managedList==['a','an','of']");
-    
+        "/wordSet/initArgs/ignoreCase==true",
+        "/wordSet/managedList==['a','an','of']");
+
     // should fail with 404 as foo doesn't exist
-    assertJDelete(endpoint + "/foo", 404, "foo not found in /schema/analysis/stopwords/english");
+    assertJDelete(endpoint + "/foo", "/error/code==404");
   }
 
   /**
@@ -196,7 +198,7 @@ public class TestManagedStopFilterFactory extends RestTestBase {
     String endpoint = "/schema/analysis/stopwords/german";
 
     //initially it should not exist
-    assertJQ(endpoint + "/schön", 404, "schön not found in /schema/analysis/stopwords/german");
+    assertJQ(endpoint + "/schön", "/error/code==404");
 
     //now we put a stopword with an umlaut
     assertJPut(endpoint,
@@ -210,6 +212,6 @@ public class TestManagedStopFilterFactory extends RestTestBase {
     assertJDelete(endpoint + "/schön", "/responseHeader/status==0");
 
     //and of it is unavailable again
-    assertJQ(endpoint + "/schön", 404, "schön not found in /schema/analysis/stopwords/german");
+    assertJQ(endpoint + "/schön", "/error/code==404");
   }
 }

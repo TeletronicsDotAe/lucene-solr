@@ -34,7 +34,7 @@ import org.noggit.JSONUtil;
 import org.restlet.ext.servlet.ServerServlet;
 
 public class TestManagedSynonymFilterFactory extends RestTestBase {
-  
+
   private static File tmpSolrHome;
 
   /**
@@ -53,7 +53,7 @@ public class TestManagedSynonymFilterFactory extends RestTestBase {
     System.setProperty("managed.schema.mutable", "true");
     System.setProperty("enable.update.log", "false");
     createJettyAndHarness(tmpSolrHome.getAbsolutePath(), "solrconfig-managed-schema.xml", "schema-rest.xml",
-                          "/solr", true, extraServlets);
+        "/solr", true, extraServlets);
   }
 
   @After
@@ -63,13 +63,13 @@ public class TestManagedSynonymFilterFactory extends RestTestBase {
     FileUtils.deleteDirectory(tmpSolrHome);
     System.clearProperty("managed.schema.mutable");
     System.clearProperty("enable.update.log");
-    
+
     if (restTestHarness != null) {
       restTestHarness.close();
     }
     restTestHarness = null;
   }
-  
+
   @Test
   public void testManagedSynonyms() throws Exception {
     // this endpoint depends on at least one field type containing the following
@@ -78,124 +78,126 @@ public class TestManagedSynonymFilterFactory extends RestTestBase {
     //   <filter class="solr.ManagedSynonymFilterFactory" managed="english" />
     //      
     String endpoint = "/schema/analysis/synonyms/english";
-    
-    assertJQ(endpoint, 
-             "/synonymMappings/initArgs/ignoreCase==false",
-             "/synonymMappings/managedMap=={}");
-      
+
+    assertJQ(endpoint,
+        "/synonymMappings/initArgs/ignoreCase==false",
+        "/synonymMappings/managedMap=={}");
+
     // put a new mapping into the synonyms
     Map<String,List<String>> syns = new HashMap<>();
-    syns.put("happy", Arrays.asList("glad","cheerful","joyful"));    
-    assertJPut(endpoint, 
-               JSONUtil.toJSON(syns),
-               "/responseHeader/status==0");
-    
+    syns.put("happy", Arrays.asList("glad","cheerful","joyful"));
+    assertJPut(endpoint,
+        JSONUtil.toJSON(syns),
+        "/responseHeader/status==0");
+
     assertJQ(endpoint,
         "/synonymMappings/managedMap/happy==['cheerful','glad','joyful']");
 
     // request to a specific mapping
-    assertJQ(endpoint+"/happy", 
-             "/happy==['cheerful','glad','joyful']");
+    assertJQ(endpoint+"/happy",
+        "/happy==['cheerful','glad','joyful']");
 
     // does not exist
-    assertJQ(endpoint+"/sad", 
-             404, "sad not found in /schema/analysis/synonyms/english");
-    
-    // verify the user can update the ignoreCase initArg
-    assertJPut(endpoint, 
-               json("{ 'initArgs':{ 'ignoreCase':true } }"), 
-               "responseHeader/status==0");
+    assertJQ(endpoint+"/sad",
+        "/error/code==404");
 
-    assertJQ(endpoint, 
-             "/synonymMappings/initArgs/ignoreCase==true");
-    
+    // verify the user can update the ignoreCase initArg
+    assertJPut(endpoint,
+        json("{ 'initArgs':{ 'ignoreCase':true } }"),
+        "responseHeader/status==0");
+
+    assertJQ(endpoint,
+        "/synonymMappings/initArgs/ignoreCase==true");
+
     syns = new HashMap<>();
-    syns.put("sad", Arrays.asList("unhappy"));    
-    syns.put("SAD", Arrays.asList("bummed"));    
-    assertJPut(endpoint, 
-               JSONUtil.toJSON(syns),
-               "/responseHeader/status==0");
-    
-    assertJQ(endpoint, 
-             "/synonymMappings/managedMap/sad==['unhappy']");
-    assertJQ(endpoint, 
+    syns.put("sad", Arrays.asList("unhappy"));
+    syns.put("SAD", Arrays.asList("bummed"));
+    assertJPut(endpoint,
+        JSONUtil.toJSON(syns),
+        "/responseHeader/status==0");
+
+    assertJQ(endpoint,
+        "/synonymMappings/managedMap/sad==['unhappy']");
+    assertJQ(endpoint,
         "/synonymMappings/managedMap/SAD==['bummed']");
-    
+
     // expect a union of values when requesting the "sad" child
-    assertJQ(endpoint+"/sad", 
+    assertJQ(endpoint+"/sad",
         "/sad==['bummed','unhappy']");
-    
+
     // verify delete works
     assertJDelete(endpoint+"/sad",
-                  "/responseHeader/status==0");
-    
-    assertJQ(endpoint, 
+        "/responseHeader/status==0");
+
+    assertJQ(endpoint,
         "/synonymMappings/managedMap=={'happy':['cheerful','glad','joyful']}");
-    
+
     // should fail with 404 as foo doesn't exist
     assertJDelete(endpoint+"/foo",
-                  404, "foo not found in /schema/analysis/synonyms/english");
-    
+        "/error/code==404");
+
     // verify that a newly added synonym gets expanded on the query side after core reload
-    
+
     String newFieldName = "managed_en_field";
     // make sure the new field doesn't already exist
     assertQ("/schema/fields/" + newFieldName + "?indent=on&wt=xml",
-            404, "Field '" + newFieldName + "' not found.");
+        "count(/response/lst[@name='field']) = 0",
+        "/response/lst[@name='responseHeader']/int[@name='status'] = '404'",
+        "/response/lst[@name='error']/int[@name='code'] = '404'");
 
     // add the new field
     assertJPost("/schema", "{ add-field :  { name: managed_en_field, type : managed_en}}",
-               "/responseHeader/status==0");
+        "/responseHeader/status==0");
 
     // make sure the new field exists now
     assertQ("/schema/fields/" + newFieldName + "?indent=on&wt=xml",
-            "count(/response/lst[@name='field']) = 1",
-            "/response/lst[@name='responseHeader']/int[@name='status'] = '0'");
+        "count(/response/lst[@name='field']) = 1",
+        "/response/lst[@name='responseHeader']/int[@name='status'] = '0'");
 
     assertU(adoc(newFieldName, "I am a happy test today but yesterday I was angry", "id", "5150"));
     assertU(commit());
 
     assertQ("/select?q=" + newFieldName + ":angry",
-            "/response/lst[@name='responseHeader']/int[@name='status'] = '0'",
-            "/response/result[@name='response'][@numFound='1']",
-            "/response/result[@name='response']/doc/str[@name='id'][.='5150']");    
-    
+        "/response/lst[@name='responseHeader']/int[@name='status'] = '0'",
+        "/response/result[@name='response'][@numFound='1']",
+        "/response/result[@name='response']/doc/str[@name='id'][.='5150']");
+
     // add a mapping that will expand a query for "mad" to match docs with "angry"
     syns = new HashMap<>();
-    syns.put("mad", Arrays.asList("angry"));    
-    assertJPut(endpoint, 
-               JSONUtil.toJSON(syns),
-               "/responseHeader/status==0");
-    
-    assertJQ(endpoint, 
+    syns.put("mad", Arrays.asList("angry"));
+    assertJPut(endpoint,
+        JSONUtil.toJSON(syns),
+        "/responseHeader/status==0");
+
+    assertJQ(endpoint,
         "/synonymMappings/managedMap/mad==['angry']");
 
-    // should not match as the synonym mapping between mad and angry does not    
+    // should not match as the synonym mapping between mad and angry does not
     // get applied until core reload
     assertQ("/select?q=" + newFieldName + ":mad",
         "/response/lst[@name='responseHeader']/int[@name='status'] = '0'",
-        "/response/result[@name='response'][@numFound='0']");    
-    
+        "/response/result[@name='response'][@numFound='0']");
+
     restTestHarness.reload();
 
     // now query for mad and we should see our test doc
     assertQ("/select?q=" + newFieldName + ":mad",
         "/response/lst[@name='responseHeader']/int[@name='status'] = '0'",
         "/response/result[@name='response'][@numFound='1']",
-        "/response/result[@name='response']/doc/str[@name='id'][.='5150']");    
-    
+        "/response/result[@name='response']/doc/str[@name='id'][.='5150']");
+
     // test for SOLR-6015
     syns = new HashMap<>();
-    syns.put("mb", Arrays.asList("megabyte"));    
+    syns.put("mb", Arrays.asList("megabyte"));
     assertJPut(endpoint,
         JSONUtil.toJSON(syns),
         "/responseHeader/status==0");
 
-    syns.put("MB", Arrays.asList("MiB", "Megabyte"));    
+    syns.put("MB", Arrays.asList("MiB", "Megabyte"));
     assertJPut(endpoint,
         JSONUtil.toJSON(syns),
         "/responseHeader/status==0");
-    
+
     assertJQ(endpoint + "/MB",
         "/MB==['Megabyte','MiB','megabyte']");
 
@@ -227,7 +229,7 @@ public class TestManagedSynonymFilterFactory extends RestTestBase {
 
     // does not exist
     assertJQ(endpoint+"/fröhlich",
-        404, "fröhlich not found in /schema/analysis/synonyms/german");
+        "/error/code==404");
 
     Map<String,List<String>> syns = new HashMap<>();
 
@@ -248,6 +250,6 @@ public class TestManagedSynonymFilterFactory extends RestTestBase {
 
     // was it really deleted?
     assertJDelete(endpoint+"/fröhlich",
-        404, "fröhlich not found in /schema/analysis/synonyms/german");
+        "/error/code==404");
   }
 }
