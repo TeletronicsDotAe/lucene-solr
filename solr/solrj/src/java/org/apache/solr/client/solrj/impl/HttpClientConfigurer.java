@@ -58,6 +58,12 @@ public class HttpClientConfigurer {
     HttpClientUtil.setUseRetry(httpClient,
         config.getBool(HttpClientUtil.PROP_USE_RETRY, true));
 
+    final String basicAuthUser = config
+        .get(HttpClientUtil.PROP_BASIC_AUTH_USER);
+    final String basicAuthPass = config
+        .get(HttpClientUtil.PROP_BASIC_AUTH_PASS);
+    HttpClientUtil.setBasicAuth(httpClient, basicAuthUser, basicAuthPass);
+
     if (config.get(HttpClientUtil.PROP_ALLOW_COMPRESSION) != null) {
       HttpClientUtil.setAllowCompression(httpClient,
           config.getBool(HttpClientUtil.PROP_ALLOW_COMPRESSION));

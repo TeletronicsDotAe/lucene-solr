@@ -24,7 +24,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.solr.common.util.NamedList;
-import org.apache.solr.common.util.SimpleOrderedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -39,8 +38,7 @@ public class SolrException extends RuntimeException {
   final private Map mdcContext;
 
 	private static Logger log = LoggerFactory.getLogger(SolrException.class);
-	protected NamedList<Object> payload = new SimpleOrderedMap<Object>();
-	
+
   /**
    * This list of valid HTTP Status error codes that Solr may return in 
    * the case of a "Server Side" error.

@@ -16,6 +16,16 @@
  */
 package org.apache.solr.search.stats;
 
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import com.google.common.collect.Lists;
 import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.Term;
@@ -37,16 +47,6 @@ import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.search.SolrIndexSearcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 /**
  * This class implements exact caching of statistics. It requires an additional
@@ -94,8 +94,7 @@ public class ExactStatsCache extends StatsCache {
   public void mergeToGlobalStats(SolrQueryRequest req, List<ShardResponse> responses) {
     Set<Object> allTerms = new HashSet<>();
     for (ShardResponse r : responses) {
-      // todo nocommit
-      LOG.info("SHALIN: Merging to global stats, shard={}, response={}", r.getShard(), r.getSolrResponse().getResponse());
+      LOG.debug("Merging to global stats, shard={}, response={}", r.getShard(), r.getSolrResponse().getResponse());
       String shard = r.getShard();
       SolrResponse res = r.getSolrResponse();
       NamedList<Object> nl = res.getResponse();
@@ -278,7 +277,7 @@ public class ExactStatsCache extends StatsCache {
         }
       }
     }
-    LOG.info("SHALIN: Global collection stats={}", globalColStats); // todo nocommit
+    LOG.debug("Global collection stats={}", globalColStats);
     if (globalTermStats == null) return;
     Map<String,TermStats> termStats = StatsUtil.termStatsMapFromString(globalTermStats);
     if (termStats != null) {

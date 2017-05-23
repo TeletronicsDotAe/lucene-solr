@@ -299,8 +299,7 @@ public class DocBasedVersionConstraintsProcessorFactory extends UpdateRequestPro
       } else {
         // stored fields only...
 
-        //FIXME MERGE _ Do we need this override with null..?
-        oldDoc = RealTimeGetComponent.getInputDocument(core, indexedDocId, null /* TODO */);
+        oldDoc = RealTimeGetComponent.getInputDocument(core, indexedDocId, DistributedUpdateProcessor.updateStats.getGetInputDocumentStatsEntries());
 
         if (null == oldDoc) {
           // log.info("VERSION no doc found, returning true");

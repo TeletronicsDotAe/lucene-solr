@@ -19,6 +19,7 @@ package org.apache.solr.client.solrj.request;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -198,41 +199,34 @@ public class TestUpdateRequestCodec extends LuceneTestCase {
     updateRequest.deleteByQuery("id:3");
 
 
-//    SolrInputDocument.partImpl was introduced as a unique identifier of the document among several documents
-//    in an UpdateRequest, so that a response can tell something (error/success) for each of the individual documents
-//    The bin-codec of course en-/de-codes this field, making binary format of SolrInputDocument incompatible, and therefore
-//    making binary format of UpdateRequest incompatible
-//    TODO The test is good at revealing such incompatibilities, so that we will remember to tell in release notes. We should
-//    note in release notes that compatibility is broken and then make a new solrj/updateReq_x_x.bin with the new format and
-//    use that, in order to be able to reveal if it is broken again
-//    
-//    InputStream is = getClass().getResourceAsStream("/solrj/updateReq_4_5.bin");
-//    assertNotNull("updateReq_4_5.bin was not found", is);
-//    UpdateRequest updateUnmarshalled = new JavaBinUpdateRequestCodec().unmarshal(is, new JavaBinUpdateRequestCodec.StreamingUpdateHandler() {
-//      @Override
-//      public void update(SolrInputDocument document, UpdateRequest req, Integer commitWithin, Boolean override) {
-//        if(commitWithin == null ){
-//                    req.add(document);
-//        }
-//        System.err.println("Doc" + document + " ,commitWithin:"+commitWithin+ " , override:"+ override);
-//      }
-//    });
-//
-//    System.err.println(updateUnmarshalled.getDocumentsMap());
-//    System.err.println(updateUnmarshalled.getDocuments());
-//
-//    for (int i = 0; i < updateRequest.getDocuments().size(); i++) {
-//      SolrInputDocument inDoc = updateRequest.getDocuments().get(i);
-//      SolrInputDocument outDoc = updateUnmarshalled.getDocuments().get(i);
-//      compareDocs("doc#"+i, inDoc, outDoc);
-//    }
-//    Assert.assertEquals(updateUnmarshalled.getDeleteById().get(0) ,
-//        updateRequest.getDeleteById().get(0));
-//    Assert.assertEquals(updateUnmarshalled.getDeleteQuery().get(0) ,
-//        updateRequest.getDeleteQuery().get(0));
-//
-//    assertEquals("b", updateUnmarshalled.getParams().get("a"));
-//    is.close();
+
+    InputStream is = getClass().getResourceAsStream("/solrj/updateReq_4_5.bin");
+    assertNotNull("updateReq_4_5.bin was not found", is);
+    UpdateRequest updateUnmarshalled = new JavaBinUpdateRequestCodec().unmarshal(is, new JavaBinUpdateRequestCodec.StreamingUpdateHandler() {
+      @Override
+      public void update(SolrInputDocument document, UpdateRequest req, Integer commitWithin, Boolean override) {
+        if(commitWithin == null ){
+          req.add(document);
+        }
+        System.err.println("Doc" + document + " ,commitWithin:"+commitWithin+ " , override:"+ override);
+      }
+    });
+
+    System.err.println(updateUnmarshalled.getDocumentsMap());
+    System.err.println(updateUnmarshalled.getDocuments());
+
+    for (int i = 0; i < updateRequest.getDocuments().size(); i++) {
+      SolrInputDocument inDoc = updateRequest.getDocuments().get(i);
+      SolrInputDocument outDoc = updateUnmarshalled.getDocuments().get(i);
+      compareDocs("doc#"+i, inDoc, outDoc);
+    }
+    Assert.assertEquals(updateUnmarshalled.getDeleteById().get(0) ,
+        updateRequest.getDeleteById().get(0));
+    Assert.assertEquals(updateUnmarshalled.getDeleteQuery().get(0) ,
+        updateRequest.getDeleteQuery().get(0));
+
+    assertEquals("b", updateUnmarshalled.getParams().get("a"));
+    is.close();
   }
 
 

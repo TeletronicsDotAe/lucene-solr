@@ -123,6 +123,7 @@ abstract public class RestTestBase extends SolrJettyTestBase {
       }
       request = path + '?' + setParam(query, "indent", "on");
 
+      //FIXME partRef - not sure we need this after the per-document-feedback thing was scrapped?
       String response;
       try {
         response = restTestHarness.query(request);

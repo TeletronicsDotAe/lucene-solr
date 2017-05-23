@@ -42,7 +42,6 @@ import org.junit.Test;
 /**
  * 
  */
-//FIXME MERGE - Figure out if we really need this requestinfo stuff!
 public class SignatureUpdateProcessorFactoryTest extends SolrTestCaseJ4 {
 
   @BeforeClass
