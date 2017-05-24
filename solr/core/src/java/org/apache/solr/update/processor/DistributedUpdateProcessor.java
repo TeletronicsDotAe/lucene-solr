@@ -1107,6 +1107,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
           } else {
             // The leader forwarded us this update.
             cmd.setVersion(versionOnUpdate);
+            cmd.setRequestVersion(versionOnUpdate);
 
             if (ulog.getState() != UpdateLog.State.ACTIVE && isReplayOrPeersync == false) {
               // we're not in an active state, and this update isn't from a replay, so buffer it.
@@ -1670,6 +1671,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
     try {
 
       if (versionsStored) {
+        cmd.setRequestVersion(cmd.getVersion());
         if (leaderLogic) {
           long version = vinfo.getNewClock();
           cmd.setVersion(-version);
@@ -1805,9 +1807,11 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
 
             long version = vinfo.getNewClock();
             cmd.setVersion(-version);
+            cmd.setRequestVersion(signedVersionOnUpdate);
             bucket.updateHighest(version);
           } else {
             cmd.setVersion(-versionOnUpdate);
+            cmd.setRequestVersion(versionOnUpdate);
 
             if (ulog.getState() != UpdateLog.State.ACTIVE && isReplayOrPeersync == false) {
               // we're not in an active state, and this update isn't from a replay, so buffer it.
