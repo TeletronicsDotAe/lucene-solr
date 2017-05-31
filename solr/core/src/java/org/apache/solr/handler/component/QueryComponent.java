@@ -796,6 +796,7 @@ public class QueryComponent extends SearchComponent
 
     // Code stolen from QueryComponent.createRetrieveDocs
     HashMap<String, Collection<ShardDoc>> shardMap = new HashMap<String,Collection<ShardDoc>>();
+    //FIXME TEST - sometimes AnalyticsMergeStrategyTest throws a NullPointer in the line below
     for (ShardDoc sdoc : rb.resultIds.values()) {
       Collection<ShardDoc> shardDocs = shardMap.get(sdoc.shard);
       if (shardDocs == null) {
