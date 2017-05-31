@@ -109,7 +109,9 @@ public enum UpdateSemanticsMode {
 	CLASSIC_CONSISTENCY_HYBRID("classic-consistency-hybrid") {
 		@Override
 		public RuleAndReason requireVersionFieldInSchema(RequestCommand cmd) {
-			return (cmd.getRequestVersion() > 0)?versionRequiredForConsistencyUpdate:notRequired;
+			// FIXME CONSISTENCY - have someone validate that changing requestVersion 0 to 1 is actually okay (which I believe it is,
+			// according to https://cwiki.apache.org/confluence/display/solr/Updating+Parts+of+Documents#UpdatingPartsofDocuments-OptimisticConcurrency)
+			return (cmd.getRequestVersion() > 1)?versionRequiredForConsistencyUpdate:notRequired;
 		}
 		
     @Override

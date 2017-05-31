@@ -815,7 +815,7 @@ public class TestTolerantUpdateProcessorCloud extends SolrCloudTestCase {
       .process(client);
     assertEquals(0, rsp.getStatus());
     assertUpdateTolerantErrors("shard2 add fail, shard1 delI fail", rsp,
-                               delIErr(docId1, "version conflict"),
+                               delIErr(docId1, "Document already exists"),
                                addErr(docId22,"not_a_num"));
     
     // attempt a request containing 4 errors of various types (add, delI, delQ)
@@ -832,9 +832,9 @@ public class TestTolerantUpdateProcessorCloud extends SolrCloudTestCase {
       
       assertEquals(0, rsp.getStatus());
       assertUpdateTolerantErrors("failed variety of updates", rsp,
-                                 delIErr(docId1, "version conflict"),
+                                 delIErr(docId1, "Document already exists"),
                                  delQErr("malformed:[", "SyntaxError"),
-                                 delIErr(docId21,"version conflict"),
+                                 delIErr(docId21,"Document already exists"),
                                  addErr(docId22,"bogus_val"));
     }
     
@@ -896,7 +896,7 @@ public class TestTolerantUpdateProcessorCloud extends SolrCloudTestCase {
       .process(client);
     assertEquals(0, rsp.getStatus());
     assertUpdateTolerantErrors("mix fails with one valid DELQ", rsp,
-                               delIErr(docId1, "version conflict"),
+                               delIErr(docId1, "Document already exists"),
                                delQErr("zot_i:[42 to gibberish..."),
                                addErr(docId22,"not_a_num"));
     // one of our previous docs should have been deleted now

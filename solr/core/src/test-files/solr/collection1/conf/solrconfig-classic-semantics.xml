@@ -55,7 +55,6 @@
     <maxBufferedDocs>10</maxBufferedDocs>
     <mergePolicy class="org.apache.lucene.index.LogDocMergePolicy"/>
     <lockType>single</lockType>
-    <unlockOnStartup>true</unlockOnStartup>
   </indexConfig>
   
   <updateHandler class="solr.DirectUpdateHandler2">
@@ -233,8 +232,6 @@
   </requestHandler>
 
   <requestHandler name="mock" class="org.apache.solr.core.MockQuerySenderListenerReqHandler"/>
-
-  <requestHandler name="/admin/" class="org.apache.solr.handler.admin.AdminHandlers" />
 
   <!-- test query parameter defaults -->
   <requestHandler name="defaults" class="solr.StandardRequestHandler">
@@ -520,11 +517,11 @@
   </updateRequestProcessorChain>
   <updateRequestProcessorChain name="uniq-fields">
     <processor class="org.apache.solr.update.processor.UniqFieldsUpdateProcessorFactory">
-      <lst name="fields">
+      <arr name="fieldName">
         <str>uniq</str>
         <str>uniq2</str>
         <str>uniq3</str>
-      </lst>      
+      </arr>
     </processor>
     <processor class="solr.RunUpdateProcessorFactory" />
   </updateRequestProcessorChain>  

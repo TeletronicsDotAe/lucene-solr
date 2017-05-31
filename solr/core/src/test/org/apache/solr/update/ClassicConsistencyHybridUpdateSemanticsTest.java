@@ -135,7 +135,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
         "//result/doc[1]/str[@name='id'][.='A']");
   }
 
-  // GIVEN doc ID = A exists in db 
+  // GIVEN doc ID = A exists in db
   // WHEN inserting doc ID = A 
   // THEN error: DocumentAlreadyExists
   @Test
@@ -248,9 +248,33 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
     assertU(commit());
     assertQ(req("q", "id:5 AND text:" + WORLD), "//*[@numFound='1']");
   }
+
+  // GIVEN doc ID = A exists in db with _version_=X
+  // WHEN updating (doc existence and no version check, because _version_ is exactly 1) doc ID = A with _version_=X
+  // THEN no error
+  @Test
+  public void shouldDoSimpleUnconditionalUpdate() throws Exception {
+    SolrInputDocument document = new SolrInputDocument();
+    document.addField("id", "A");
+
+    Long version = addAndGetVersion(document, null);
+
+    assertU(commit());
+    String versionString = version.toString();
+
+    assertQ(req("q", "id:A AND _version_:" + versionString),
+        "//*[@numFound='1']");
+
+    XmlDoc doc = doc("id", "A", "text", WORLD, VersionInfo.VERSION_FIELD, "1");
+    assertU(add(doc));
+
+    assertU(commit());
+    assertQ(req("q", "id:A AND _version_:" + versionString),
+        "//*[@numFound='0']");
+  }
   
   // GIVEN doc ID = A exists in db with _version_=X
-  // WHEN updating (doc existence and version check, because _version_ is positive) doc ID = A with _version_=X
+  // WHEN updating (doc existence and version check, because _version_ is larger than 1) doc ID = A with _version_=X
   // THEN no error
   @Test
   public void shouldDoSimpleUpdateSunshineScenario() throws Exception {
@@ -274,7 +298,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
   }
   
   // GIVEN empty db
-  // WHEN updating (doc existence and version check, because _version_ is positive) doc ID = A with _version_=100
+  // WHEN updating (doc existence and version check, because _version_ is larger than 1) doc ID = A with _version_=100
   // THEN error: DocumentDoesNotExist
   @Test
   public void shouldFailOnMissingDocument() throws Exception {
@@ -294,7 +318,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
   }
 
   // GIVEN doc ID = A exists in db
-  // WHEN deleting doc A before updating (doc existence and version check, because _version_ is positive) doc ID = A with _version_=10000
+  // WHEN deleting doc A before updating (doc existence and version check, because _version_ is larger than 1) doc ID = A with _version_=10000
   // THEN error: DocumentDoesNotExist
   @Test
   public void shouldFailOnDeletedDocumentNoCommit() throws Exception {
@@ -321,7 +345,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
   }
   
   // GIVEN doc ID = A exists in db comitting, deleting doc A again (no commit now)
-  // WHEN updating (doc existence and version check, because _version_ is positive) doc ID = A with _version_=1
+  // WHEN updating (doc existence and version check, because _version_ is larger than 1) doc ID = A with _version_=1
   // THEN error: DocumentDoesNotExist
   @Test
   public void shouldFailOnDeletedDocumentWithCommit() throws Exception {
@@ -349,7 +373,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
   }
   
   // GIVEN doc ID = A exists in db with _version_=X
-  // WHEN updating (doc existence and version check, because _version_ is positive) doc ID = A with _version_!=X (X+1)
+  // WHEN updating (doc existence and version check, because _version_ is larger than 1) doc ID = A with _version_!=X (X+1)
   // THEN error: VersionConflict
   @Test
   public void shouldFailWhenVersionDiffersFromExpectedNoCommit()
@@ -379,7 +403,7 @@ public class ClassicConsistencyHybridUpdateSemanticsTest extends
   }
   
   // GIVEN doc ID = A exists in db with _version_=X and comitting
-  // WHEN updating (doc existence and version check, because _version_ is positive) doc ID = A with _version_!=X (X+1)
+  // WHEN updating (doc existence and version check, because _version_ is larger than 1) doc ID = A with _version_!=X (X+1)
   // THEN error: VersionConflict
   @Test
   public void shouldFailWhenVersionDiffersFromExpectedWithCommit()
