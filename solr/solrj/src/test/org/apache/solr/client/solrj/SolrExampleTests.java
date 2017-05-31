@@ -1646,7 +1646,7 @@ abstract public class SolrExampleTests extends SolrExampleTestsBase
 
       }
     } catch (SolrException se) {
-      assertTrue("No identifiable error message", se.getMessage().contains("version conflict for unique"));
+      assertTrue("No identifiable error message", se.getMessage().contains("does not match current version"));
     }
 
     //update "price", use correct version (optimistic locking)
