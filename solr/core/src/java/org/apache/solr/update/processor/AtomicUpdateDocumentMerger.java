@@ -51,17 +51,17 @@ import org.slf4j.LoggerFactory;
  * @lucene.experimental
  */
 public class AtomicUpdateDocumentMerger {
-  
+
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-  
+
   protected final IndexSchema schema;
   protected final SchemaField idField;
-  
+
   public AtomicUpdateDocumentMerger(SolrQueryRequest queryReq) {
     schema = queryReq.getSchema();
     idField = schema.getUniqueKeyField();
   }
-  
+
   /**
    * Utility method that examines the SolrInputDocument in an AddUpdateCommand
    * and returns true if the documents contains atomic update instructions.
@@ -73,20 +73,20 @@ public class AtomicUpdateDocumentMerger {
         return true;
       }
     }
-    
+
     return false;
   }
-  
+
   /**
    * Merges the fromDoc into the toDoc using the atomic update syntax.
-   * 
+   *
    * @param fromDoc SolrInputDocument which will merged into the toDoc
    * @param toDoc the final SolrInputDocument that will be mutated with the values from the fromDoc atomic commands
    * @return toDoc with mutated values
    */
   public SolrInputDocument merge(final SolrInputDocument fromDoc, SolrInputDocument toDoc) {
     for (SolrInputField sif : fromDoc.values()) {
-     Object val = sif.getValue();
+      Object val = sif.getValue();
       if (val instanceof Map) {
         for (Entry<String,Object> entry : ((Map<String,Object>) val).entrySet()) {
           String key = entry.getKey();
@@ -129,7 +129,7 @@ public class AtomicUpdateDocumentMerger {
         toDoc.put(sif.getName(), sif);
       }
     }
-    
+
     return toDoc;
   }
 
@@ -139,21 +139,21 @@ public class AtomicUpdateDocumentMerger {
    * only then is such an update command executed as an in-place update.
    */
   private static boolean isSupportedFieldForInPlaceUpdate(SchemaField schemaField) {
-    return !(schemaField.indexed() || schemaField.stored() || !schemaField.hasDocValues() || 
+    return !(schemaField.indexed() || schemaField.stored() || !schemaField.hasDocValues() ||
         schemaField.multiValued() || !(schemaField.getType() instanceof NumericValueFieldType));
   }
-  
+
   /**
    * Given an add update command, compute a list of fields that can be updated in-place. If there is even a single
    * field in the update that cannot be updated in-place, the entire update cannot be executed in-place (and empty set
    * will be returned in that case).
-   * 
+   *
    * @return Return a set of fields that can be in-place updated.
    */
   public static Set<String> computeInPlaceUpdatableFields(AddUpdateCommand cmd) throws IOException {
     SolrInputDocument sdoc = cmd.getSolrInputDocument();
     IndexSchema schema = cmd.getReq().getSchema();
-    
+
     final SchemaField uniqueKeyField = schema.getUniqueKeyField();
     final String uniqueKeyFieldName = null == uniqueKeyField ? null : uniqueKeyField.getName();
 
@@ -164,7 +164,7 @@ public class AtomicUpdateDocumentMerger {
     if (versionField == null || !isSupportedFieldForInPlaceUpdate(versionField)) {
       return Collections.emptySet();
     }
-    
+
     // first pass, check the things that are virtually free,
     // and bail out early if anything is obviously not a valid in-place update
     for (String fieldName : sdoc.getFieldNames()) {
@@ -198,7 +198,7 @@ public class AtomicUpdateDocumentMerger {
 
       if (!isSupportedFieldForInPlaceUpdate(schemaField)) {
         return Collections.emptySet();
-      } 
+      }
 
       // if this field has copy target which is not supported for in place, then empty
       for (CopyField copyField: schema.getCopyFieldsList(fieldName)) {
@@ -206,7 +206,7 @@ public class AtomicUpdateDocumentMerger {
           return Collections.emptySet();
       }
     }
-    
+
     // third pass: requiring checks against the actual IndexWriter due to internal DV update limitations
     SolrCore core = cmd.getReq().getCore();
     RefCounted<IndexWriter> holder = core.getSolrCoreState().getIndexWriter(core);
@@ -227,10 +227,10 @@ public class AtomicUpdateDocumentMerger {
         return Collections.emptySet(); // if this is used for segment sorting, DV updates can't work
       }
     }
-    
+
     return candidateFields;
   }
-  
+
   /**
    * Given an AddUpdateCommand containing update operations (e.g. set, inc), merge and resolve the operations into
    * a partial document that can be used for indexing the in-place updates. The AddUpdateCommand is modified to contain
@@ -247,19 +247,19 @@ public class AtomicUpdateDocumentMerger {
 
     updatedFields.add(DistributedUpdateProcessor.VERSION_FIELD); // add the version field so that it is fetched too
     SolrInputDocument oldDocument = RealTimeGetComponent.getInputDocument
-      (cmd.getReq().getCore(), idBytes,
-       null, // don't want the version to be returned
-       true, // avoid stored fields from index
-       updatedFields,
-       true, DistributedUpdateProcessor.updateStats.getGetInputDocumentStatsEntries()); // resolve the full document
-                                              
+        (cmd.getReq().getCore(), idBytes,
+            null, // don't want the version to be returned
+            true, // avoid stored fields from index
+            updatedFields,
+            true); // resolve the full document
+
     if (oldDocument == RealTimeGetComponent.DELETED || oldDocument == null) {
       // This doc was deleted recently. In-place update cannot work, hence a full atomic update should be tried.
       return false;
     }
 
     if (oldDocument.containsKey(DistributedUpdateProcessor.VERSION_FIELD) == false) {
-      throw new SolrException (ErrorCode.INVALID_STATE, "There is no _version_ in previous document. id=" + 
+      throw new SolrException (ErrorCode.INVALID_STATE, "There is no _version_ in previous document. id=" +
           cmd.getPrintableId());
     }
     Long oldVersion = (Long) oldDocument.remove(DistributedUpdateProcessor.VERSION_FIELD).getValue();
@@ -290,12 +290,12 @@ public class AtomicUpdateDocumentMerger {
         partialDoc.addField(fieldName, oldDocument.getFieldValue(fieldName));
       }
     }
-    
+
     merge(inputDoc, partialDoc);
 
     // Populate the id field if not already populated (this can happen since stored fields were avoided during fetch from RTGC)
     if (!partialDoc.containsKey(schema.getUniqueKeyField().getName())) {
-      partialDoc.addField(idField.getName(), 
+      partialDoc.addField(idField.getName(),
           inputDoc.getField(schema.getUniqueKeyField().getName()).getFirstValue());
     }
 
@@ -397,5 +397,5 @@ public class AtomicUpdateDocumentMerger {
     }
     return patterns;
   }
-  
+
 }

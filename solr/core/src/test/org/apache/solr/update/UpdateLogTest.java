@@ -71,14 +71,14 @@ public class UpdateLogTest extends SolrTestCaseJ4 {
   /**
    * @see org.apache.solr.update.UpdateLog#applyPartialUpdates(BytesRef,long,long,SolrDocumentBase)
    */
-  public void testApplyPartialUpdatesOnMultipleInPlaceUpdatesInSequence() {    
+  public void testApplyPartialUpdatesOnMultipleInPlaceUpdatesInSequence() {
     // Add a full update, two in-place updates and verify applying partial updates is working
     ulogAdd(ulog, null, sdoc("id", "1", "title_s", "title1", "val1_i_dvo", "1", "_version_", "100"));
     ulogAdd(ulog, 100L, sdoc("id", "1", "price", "1000", "val1_i_dvo", "2", "_version_", "101"));
     ulogAdd(ulog, 101L, sdoc("id", "1", "val1_i_dvo", "3", "_version_", "102"));
 
-    Object partialUpdate = ulog.lookup(DOC_1_INDEXED_ID, null, false);
-    SolrDocument partialDoc = RealTimeGetComponent.toSolrDoc((SolrInputDocument)((List)partialUpdate).get(4), 
+    Object partialUpdate = ulog.lookup(DOC_1_INDEXED_ID);
+    SolrDocument partialDoc = RealTimeGetComponent.toSolrDoc((SolrInputDocument)((List)partialUpdate).get(4),
         h.getCore().getLatestSchema());
     long prevVersion = (Long)((List)partialUpdate).get(3);
     long prevPointer = (Long)((List)partialUpdate).get(2);
@@ -102,7 +102,7 @@ public class UpdateLogTest extends SolrTestCaseJ4 {
     ulogAdd(ulog, 102L, sdoc("id", "1", "price", "2000", "val1_i_dvo", "4", "_version_", "200"));
     ulogAdd(ulog, 200L, sdoc("id", "1", "val1_i_dvo", "5", "_version_", "201"));
 
-    partialUpdate = ulog.lookup(DOC_1_INDEXED_ID, null, true);
+    partialUpdate = ulog.lookup(DOC_1_INDEXED_ID);
     partialDoc = RealTimeGetComponent.toSolrDoc((SolrInputDocument)((List)partialUpdate).get(4), h.getCore().getLatestSchema());
     prevVersion = (Long)((List)partialUpdate).get(3);
     prevPointer = (Long)((List)partialUpdate).get(2);
@@ -117,9 +117,9 @@ public class UpdateLogTest extends SolrTestCaseJ4 {
     assertEquals(5L, ((NumericDocValuesField)partialDoc.getFieldValue("val1_i_dvo")).numericValue());
     assertEquals("title1", partialDoc.getFieldValue("title_s"));
   }
-  
+
   @Test
-  public void testApplyPartialUpdatesAfterMultipleCommits() {    
+  public void testApplyPartialUpdatesAfterMultipleCommits() {
     ulogAdd(ulog, null, sdoc("id", "1", "title_s", "title1", "val1_i_dvo", "1", "_version_", "100"));
     ulogAdd(ulog, 100L, sdoc("id", "1", "price", "1000", "val1_i_dvo", "2", "_version_", "101"));
     ulogAdd(ulog, 101L, sdoc("id", "1", "val1_i_dvo", "3", "_version_", "102"));
@@ -129,7 +129,7 @@ public class UpdateLogTest extends SolrTestCaseJ4 {
       ulogCommit(ulog);
     ulogAdd(ulog, 101L, sdoc("id", "1", "val1_i_dvo", "6", "_version_", "300"));
 
-    Object partialUpdate = ulog.lookup(DOC_1_INDEXED_ID, null, true);
+    Object partialUpdate = ulog.lookup(DOC_1_INDEXED_ID);
     SolrDocument partialDoc = RealTimeGetComponent.toSolrDoc((SolrInputDocument)((List)partialUpdate).get(4), h.getCore().getLatestSchema());
     long prevVersion = (Long)((List)partialUpdate).get(3);
     long prevPointer = (Long)((List)partialUpdate).get(2);
@@ -149,7 +149,7 @@ public class UpdateLogTest extends SolrTestCaseJ4 {
     ulogAdd(ulog, 500L, sdoc("id", "1", "val1_i_dvo", "2", "_version_", "501"));
     ulogAdd(ulog, 501L, sdoc("id", "1", "val1_i_dvo", "3", "_version_", "502"));
 
-    Object partialUpdate = ulog.lookup(DOC_1_INDEXED_ID, null, true);
+    Object partialUpdate = ulog.lookup(DOC_1_INDEXED_ID);
     SolrDocument partialDoc = RealTimeGetComponent.toSolrDoc((SolrInputDocument)((List)partialUpdate).get(4), h.getCore().getLatestSchema());
     long prevVersion = (Long)((List)partialUpdate).get(3);
     long prevPointer = (Long)((List)partialUpdate).get(2);
@@ -160,10 +160,10 @@ public class UpdateLogTest extends SolrTestCaseJ4 {
 
     // If an in-place update depends on a non-add (i.e. DBI), assert that an exception is thrown.
     SolrException ex = expectThrows(SolrException.class, () -> {
-        long returnVal = ulog.applyPartialUpdates(DOC_1_INDEXED_ID, prevPointer, prevVersion, null, partialDoc);
-        fail("502 depends on 501, 501 depends on 500, but 500 is a"
-             + " DELETE. This should've generated an exception. returnVal is: "+returnVal);
-      });
+      long returnVal = ulog.applyPartialUpdates(DOC_1_INDEXED_ID, prevPointer, prevVersion, null, partialDoc);
+      fail("502 depends on 501, 501 depends on 500, but 500 is a"
+          + " DELETE. This should've generated an exception. returnVal is: "+returnVal);
+    });
     assertEquals(ex.toString(), SolrException.ErrorCode.INVALID_STATE.code, ex.code());
     assertThat(ex.getMessage(), containsString("should've been either ADD or UPDATE_INPLACE"));
     assertThat(ex.getMessage(), containsString("looking for id=1"));
@@ -174,25 +174,25 @@ public class UpdateLogTest extends SolrTestCaseJ4 {
     ulogAdd(ulog, null, sdoc("id", "1", "title_s", "title1", "val1_i_dvo", "1", "_version_", "100"));
     ulogAdd(ulog, 100L, sdoc("id", "1", "val1_i_dvo", "2", "_version_", "101")); // in-place update
     ulogAdd(ulog, 101L, sdoc("id", "1", "val1_i_dvo", "3", "_version_", "102")); // in-place update
-    
+
     // sanity check that the update log has one document, and RTG returns the document
     assertEquals(1, ulog.map.size());
     assertJQ(req("qt","/get", "id","1")
-             , "=={'doc':{ 'id':'1', 'val1_i_dvo':3, '_version_':102, 'title_s':'title1', "
-             // fields with default values
-             + "'inplace_updatable_int_with_default':666, 'inplace_updatable_float_with_default':42.0}}");
-    
+        , "=={'doc':{ 'id':'1', 'val1_i_dvo':3, '_version_':102, 'title_s':'title1', "
+            // fields with default values
+            + "'inplace_updatable_int_with_default':666, 'inplace_updatable_float_with_default':42.0}}");
+
     boolean dbq = random().nextBoolean();
     ulogDelete(ulog, "1", 200L, dbq); // delete id:1 document
     if (dbq) {
-      assertNull(ulog.lookup(DOC_1_INDEXED_ID, null, true)); // any DBQ clears out the ulog, so this document shouldn't exist
+      assertNull(ulog.lookup(DOC_1_INDEXED_ID)); // any DBQ clears out the ulog, so this document shouldn't exist
       assertEquals(0, ulog.map.size());
       assertTrue(String.valueOf(ulog.prevMap), ulog.prevMap == null || ulog.prevMap.size() == 0);
       assertTrue(String.valueOf(ulog.prevMap2), ulog.prevMap2 == null || ulog.prevMap2.size() == 0);
       // verify that the document is deleted, by doing an RTG call
       assertJQ(req("qt","/get", "id","1"), "=={'doc':null}");
     } else { // dbi
-      List entry = ((List)ulog.lookup(DOC_1_INDEXED_ID, null, true));
+      List entry = ((List)ulog.lookup(DOC_1_INDEXED_ID));
       assertEquals(UpdateLog.DELETE, (int)entry.get(UpdateLog.FLAGS_IDX) & UpdateLog.OPERATION_MASK);
     }
   }
@@ -261,7 +261,7 @@ public class UpdateLogTest extends SolrTestCaseJ4 {
    * in the context of the specified <code>SolrQueryRequest</code>. 
    *
    * NOTE: For test simplicity, the Solr input document must include the <code>_version_</code> field.
-   */ 
+   */
   public static AddUpdateCommand buildAddUpdateCommand(final SolrQueryRequest req, final SolrInputDocument sdoc) {
     AddUpdateCommand cmd = new AddUpdateCommand(req);
     cmd.solrDoc = sdoc;

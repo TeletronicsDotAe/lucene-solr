@@ -261,7 +261,7 @@ public class DocBasedVersionConstraintsProcessorFactory extends UpdateRequestPro
       SolrInputDocument oldDoc = null;
 
       if (useFieldCache) {
-        oldDoc = RealTimeGetComponent.getInputDocumentFromTlog(core, indexedDocId, null, null, true, DistributedUpdateProcessor.updateStats.getGetInputDocumentStatsEntries());
+        oldDoc = RealTimeGetComponent.getInputDocumentFromTlog(core, indexedDocId, null, null, true);
         if (oldDoc == RealTimeGetComponent.DELETED) {
           return true;
         }
@@ -299,7 +299,7 @@ public class DocBasedVersionConstraintsProcessorFactory extends UpdateRequestPro
       } else {
         // stored fields only...
 
-        oldDoc = RealTimeGetComponent.getInputDocument(core, indexedDocId, DistributedUpdateProcessor.updateStats.getGetInputDocumentStatsEntries());
+        oldDoc = RealTimeGetComponent.getInputDocument(core, indexedDocId);
 
         if (null == oldDoc) {
           // log.info("VERSION no doc found, returning true");

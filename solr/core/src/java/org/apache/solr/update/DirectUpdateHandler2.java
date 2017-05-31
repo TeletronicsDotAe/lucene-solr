@@ -43,12 +43,11 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.util.BytesRefHash;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.BytesRefHash;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrException.ErrorCode;
-import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.exceptions.WrongUsage;
 import org.apache.solr.common.exceptions.update.DocumentAlreadyExists;
 import org.apache.solr.common.exceptions.update.DocumentDoesNotExist;
@@ -71,7 +70,6 @@ import org.apache.solr.search.QueryUtils;
 import org.apache.solr.search.SolrIndexSearcher;
 import org.apache.solr.search.SyntaxError;
 import org.apache.solr.search.function.ValueSourceRangeFilter;
-import org.apache.solr.update.processor.DistributedUpdateProcessor;
 import org.apache.solr.util.RefCounted;
 import org.apache.solr.util.TestInjection;
 import org.slf4j.Logger;
@@ -199,7 +197,6 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
 
   @Override
   public int addDoc(AddUpdateCommand cmd) throws IOException {
-    long startTimeNanosecs = System.nanoTime();
     try {
       return addDoc0(cmd);
     } catch (SolrException e) {
@@ -215,8 +212,6 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
       throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
           String.format(Locale.ROOT, "Exception writing document id %s to the index; possible analysis error.",
           cmd.getPrintableId()), t);
-    } finally {
-      DistributedUpdateProcessor.updateStats.registerDirectUpdateHandler2AddDoc(startTimeNanosecs);
     }
   }
 
@@ -254,7 +249,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
     if (getAndCheckAgainstExisting) {
       // here we do not need latest version originating from delete, because this
       // is not used for reorder check
-      Long currentVersion = ulog.lookupVersion(indexedId, DistributedUpdateProcessor.updateStats.getDirectUpdateHandler2AddDocUpdateLogLookupVersionStatsEntries());
+      Long currentVersion = ulog.lookupVersion(indexedId);
       if (currentVersion == null) currentVersion = -1L;
 
       // TODO actually by currentVersion < 0 we do not know that it does not exist. It may exist but have no version field
@@ -278,9 +273,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
         }
 
         if (deletesAfter != null) {
-          long startTimeAddAndDeleteNanosecs = System.nanoTime();
           addAndDelete(cmd, deletesAfter);
-          DistributedUpdateProcessor.updateStats.registerDirectUpdateHandler2AddDocAddAndDelete(startTimeAddAndDeleteNanosecs);
         } else {
           doNormalUpdate(cmd);
         }
@@ -312,7 +305,6 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
   }
 
   private void allowDuplicateUpdate(AddUpdateCommand cmd) throws IOException {
-    long startTimeWriterAddDocNanosecs = System.nanoTime();
     RefCounted<IndexWriter> iw = solrCoreState.getIndexWriter(core);
     try {
       IndexWriter writer = iw.get();
@@ -322,12 +314,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
       } else {
         writer.addDocument(cmd.getLuceneDocument());
       }
-      DistributedUpdateProcessor.updateStats.registerDirectUpdateHandler2AddDocWriterAddDocument(startTimeWriterAddDocNanosecs);
-      if (ulog != null) {
-        long startTimeULogAddNanosecs = System.nanoTime();
-        ulog.add(cmd);
-        DistributedUpdateProcessor.updateStats.registerDirectUpdateHandler2AddDocUlogAdd(startTimeULogAddNanosecs);
-      }
+      if (ulog != null) ulog.add(cmd);
 
     } finally {
       iw.decref();
@@ -358,9 +345,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
         bq.add(new BooleanClause(new TermQuery(updateTerm),
             Occur.MUST_NOT));
         bq.add(new BooleanClause(new TermQuery(idTerm), Occur.MUST));
-        long startTimeWriterDeleteDocNanosecs = System.nanoTime();
         writer.deleteDocuments(new DeleteByQueryWrapper(bq.build(), core.getLatestSchema()));
-        DistributedUpdateProcessor.updateStats.registerDirectUpdateHandler2AddDocWriterDeleteDocument(startTimeWriterDeleteDocNanosecs);
       }
 
 
@@ -371,11 +356,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
       // This also ensures that if a commit sneaks in-between, that we
       // know everything in a particular
       // log version was definitely committed.
-      if (ulog != null) {
-        long startTimeULogAddNanosecs = System.nanoTime();
-        ulog.add(cmd);
-        DistributedUpdateProcessor.updateStats.registerDirectUpdateHandler2AddDocUlogAdd(startTimeULogAddNanosecs);
-      }
+      if (ulog != null) ulog.add(cmd);
 
     } finally {
       iw.decref();
@@ -467,7 +448,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
     if (getAndCheckAgainstExisting) {
       // here we do not need latest version originating from delete, because this
       // is not used for reorder check
-      Long currentVersion = ulog.lookupVersion(indexedId, null);
+      Long currentVersion = ulog.lookupVersion(indexedId);
       if (currentVersion == null) currentVersion = -1L;
 
       if (currentVersion < 0 && (rar = semanticsMode.requireExistingDocument(cmd)).ruleEnforced) throw new DocumentDoesNotExist(ErrorCode.CONFLICT, rar.reason);
@@ -1007,7 +988,6 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
   }
 
   private void updateDocument(AddUpdateCommand cmd, IndexWriter writer, Term updateTerm) throws IOException {
-    long startTimeWriterUpdateDocNanosecs = System.nanoTime();
     if (cmd.isBlock()) {
       log.debug("updateDocuments({})", cmd);
       writer.updateDocuments(updateTerm, cmd);
@@ -1016,7 +996,6 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
       log.debug("updateDocument({})", cmd);
       writer.updateDocument(updateTerm, luceneDocument);
     }
-    DistributedUpdateProcessor.updateStats.registerDirectUpdateHandler2AddDocWriterUpdateDocument(startTimeWriterUpdateDocNanosecs);
   }
 
 

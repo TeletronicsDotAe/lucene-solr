@@ -187,7 +187,7 @@ public class SkipExistingDocumentsProcessorFactory extends UpdateRequestProcesso
 
       // we don't need any fields populated, we just need to know if the doc is in the tlog...
       SolrInputDocument oldDoc = RealTimeGetComponent.getInputDocumentFromTlog(core, indexedDocId, null,
-                                                                               Collections.<String>emptySet(), false, null);
+                                                                               Collections.<String>emptySet(), false);
       if (oldDoc == RealTimeGetComponent.DELETED) {
         return false;
       }

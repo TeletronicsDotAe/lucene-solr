@@ -63,15 +63,10 @@ import org.apache.solr.request.LocalSolrQueryRequest;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.request.SolrRequestInfo;
 import org.apache.solr.response.SolrQueryResponse;
-import org.apache.solr.schema.FieldType;
-import org.apache.solr.schema.SchemaField;
 import org.apache.solr.search.SolrIndexSearcher;
-import org.apache.solr.update.RecentlyLookedUpOrUpdatedDocumentsHandler.FoundLocation;
 import org.apache.solr.update.processor.DistributedUpdateProcessor;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 import org.apache.solr.update.processor.UpdateRequestProcessorChain;
-import org.apache.solr.update.statistics.UpdateLogStats.LookupStatsEntries;
-import org.apache.solr.update.statistics.UpdateLogStats.LookupVersionStatsEntries;
 import org.apache.solr.util.DefaultSolrThreadFactory;
 import org.apache.solr.util.RTimer;
 import org.apache.solr.util.RefCounted;
@@ -93,17 +88,6 @@ public class UpdateLog implements PluginInfoInitialized, SolrMetricProducer {
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
   private boolean debug = log.isDebugEnabled();
   private boolean trace = log.isTraceEnabled();
-
-  //FIXME MERGE START - Do we need this..?
-  private static volatile int nextUniqueId = 1;
-  // An id that is unique among all UpdateLog instances in this VM (classloader)
-  public final String uniqueId;
-  {
-    synchronized(UpdateLog.class) {
-      uniqueId = "ULog" + (nextUniqueId++) + "_";
-    }
-  }
-  //FIXME MERGE END - Do we need this..?
 
   // TODO: hack
   public FileSystem getFs() {
@@ -158,8 +142,8 @@ public class UpdateLog implements PluginInfoInitialized, SolrMetricProducer {
   /**
    * The index of the _version_ value in an entry from the transaction log.
    */
-public static final int VERSION_IDX = 1;
-  
+  public static final int VERSION_IDX = 1;
+
   /**
    * The index of the previous pointer in an entry from the transaction log.
    * This is only relevant if flags (indexed at FLAGS_IDX) includes UPDATE_INPLACE.
@@ -171,7 +155,7 @@ public static final int VERSION_IDX = 1;
    * This is only relevant if flags (indexed at FLAGS_IDX) includes UPDATE_INPLACE.
    */
   public static final int PREV_VERSION_IDX = 3;
-  
+
   public static class RecoveryInfo {
     public long positionOfStart;
 
@@ -239,7 +223,6 @@ public static final int VERSION_IDX = 1;
   protected String lastDataDir;
 
   protected VersionInfo versionInfo;
-  protected FieldType idFieldType;
 
   protected SyncLevel defaultSyncLevel = SyncLevel.FLUSH;
 
@@ -261,7 +244,7 @@ public static final int VERSION_IDX = 1;
     /**
      * Creates an object that contains the position and version of an update. In this constructor,
      * the effective value of the previousPointer is -1.
-     * 
+     *
      * @param pointer Position in the transaction log of an update
      * @param version Version of the update at the given position
      */
@@ -270,10 +253,10 @@ public static final int VERSION_IDX = 1;
     }
 
     /**
-     * 
+     *
      * @param pointer Position in the transaction log of an update
      * @param version Version of the update at the given position
-     * @param previousPointer Position, in the transaction log, of an update on which the current update depends 
+     * @param previousPointer Position, in the transaction log, of an update on which the current update depends
      */
     public LogPtr(long pointer, long version, long previousPointer) {
       this.pointer = pointer;
@@ -395,7 +378,7 @@ public static final int VERSION_IDX = 1;
     } catch (SolrException e) {
       log.error("Unable to use updateLog: " + e.getMessage(), e);
       throw new SolrException(SolrException.ErrorCode.SERVER_ERROR,
-                              "Unable to use updateLog: " + e.getMessage(), e);
+          "Unable to use updateLog: " + e.getMessage(), e);
     }
 
     // TODO: these startingVersions assume that we successfully recover from all non-complete tlogs.
@@ -419,12 +402,6 @@ public static final int VERSION_IDX = 1;
       }
 
     }
-
-    SchemaField idField = core.getLatestSchema().getUniqueKeyField();
-    if (idField != null) {
-      idFieldType = idField.getType();
-    }
-
     core.getCoreMetricManager().registerMetricProducer(SolrInfoMBean.Category.TLOG.toString(), this);
   }
 
@@ -555,10 +532,6 @@ public static final int VERSION_IDX = 1;
         // only update our map if we're not buffering
         if ((cmd.getFlags() & UpdateCommand.BUFFERING) == 0) {
           map.put(cmd.getIndexedId(), ptr);
-
-          if (idFieldType != null && cmd.getIndexedId() != null) {
-            RecentlyLookedUpOrUpdatedDocumentsHandler.getRecentlyLookedUpOrUpdatedDocuments().addDocument(this, cmd.getIndexedId(), cmd.getSolrInputDocument(), FoundLocation.New);
-          }
         }
 
         if (trace) {
@@ -598,7 +571,7 @@ public static final int VERSION_IDX = 1;
         }
       }
     }
-    return -1;   
+    return -1;
   }
 
 
@@ -619,10 +592,6 @@ public static final int VERSION_IDX = 1;
       // only update our map if we're not buffering
       if ((cmd.getFlags() & UpdateCommand.BUFFERING) == 0) {
         map.put(br, ptr);
-
-        if (idFieldType != null && cmd.getIndexedId() != null) {
-          RecentlyLookedUpOrUpdatedDocumentsHandler.getRecentlyLookedUpOrUpdatedDocuments().deleteDocument(this, cmd.getIndexedId(), cmd.getVersion());
-        }
 
         oldDeletes.put(br, ptr);
       }
@@ -673,7 +642,6 @@ public static final int VERSION_IDX = 1;
       }
 
       if (map != null) map.clear();
-      RecentlyLookedUpOrUpdatedDocumentsHandler.getRecentlyLookedUpOrUpdatedDocuments().deleteAll(this);
       if (prevMap != null) prevMap.clear();
       if (prevMap2 != null) prevMap2.clear();
     }
@@ -691,7 +659,6 @@ public static final int VERSION_IDX = 1;
       }
 
       if (map != null) map.clear();
-      RecentlyLookedUpOrUpdatedDocumentsHandler.getRecentlyLookedUpOrUpdatedDocuments().deleteAll(this);
       if (prevMap != null) prevMap.clear();
       if (prevMap2 != null) prevMap2.clear();
 
@@ -869,8 +836,8 @@ public static final int VERSION_IDX = 1;
    * to be found in the tlogs, but couldn't be found (because the logs were rotated) then the prevPointer is returned.
    */
   synchronized public long applyPartialUpdates(BytesRef id, long prevPointer, long prevVersion,
-      Set<String> onlyTheseFields, SolrDocumentBase latestPartialDoc) {
-    
+                                               Set<String> onlyTheseFields, SolrDocumentBase latestPartialDoc) {
+
     SolrInputDocument partialUpdateDoc = null;
 
     List<TransactionLog> lookupLogs = Arrays.asList(tlog, prevMapLog, prevMapLog2);
@@ -882,11 +849,11 @@ public static final int VERSION_IDX = 1;
         return prevPointer; // a previous update was supposed to be found, but wasn't found (due to log rotation)
       }
       int flags = (int) entry.get(UpdateLog.FLAGS_IDX);
-      
+
       // since updates can depend only upon ADD updates or other UPDATE_INPLACE updates, we assert that we aren't
       // getting something else
       if ((flags & UpdateLog.ADD) != UpdateLog.ADD && (flags & UpdateLog.UPDATE_INPLACE) != UpdateLog.UPDATE_INPLACE) {
-        throw new SolrException(ErrorCode.INVALID_STATE, entry + " should've been either ADD or UPDATE_INPLACE update" + 
+        throw new SolrException(ErrorCode.INVALID_STATE, entry + " should've been either ADD or UPDATE_INPLACE update" +
             ", while looking for id=" + new String(id.bytes, Charset.forName("UTF-8")));
       }
       // if this is an ADD (i.e. full document update), stop here
@@ -896,7 +863,7 @@ public static final int VERSION_IDX = 1;
         return 0; // Full document was found in the tlog itself
       }
       if (entry.size() < 5) {
-        throw new SolrException(ErrorCode.INVALID_STATE, entry + " is not a partial doc" + 
+        throw new SolrException(ErrorCode.INVALID_STATE, entry + " is not a partial doc" +
             ", while looking for id=" + new String(id.bytes, Charset.forName("UTF-8")));
       }
       // This update is an inplace update, get the partial doc. The input doc is always at last position.
@@ -904,7 +871,7 @@ public static final int VERSION_IDX = 1;
       applyOlderUpdates(latestPartialDoc, partialUpdateDoc, onlyTheseFields);
       prevPointer = (long) entry.get(UpdateLog.PREV_POINTER_IDX);
       prevVersion = (long) entry.get(UpdateLog.PREV_VERSION_IDX);
-      
+
       if (onlyTheseFields != null && latestPartialDoc.keySet().containsAll(onlyTheseFields)) {
         return 0; // all the onlyTheseFields have been resolved, safe to abort now.
       }
@@ -912,7 +879,7 @@ public static final int VERSION_IDX = 1;
 
     return -1; // last full document is not supposed to be in tlogs, but it must be in the index
   }
-  
+
   /**
    * Add all fields from olderDoc into newerDoc if not already present in newerDoc
    */
@@ -952,7 +919,7 @@ public static final int VERSION_IDX = 1;
 
           if (obj != null && obj instanceof List) {
             List tmpEntry = (List) obj;
-            if (tmpEntry.size() >= 2 && 
+            if (tmpEntry.size() >= 2 &&
                 (tmpEntry.get(UpdateLog.VERSION_IDX) instanceof Long) &&
                 ((Long) tmpEntry.get(UpdateLog.VERSION_IDX)).equals(lookupVersion)) {
               return tmpEntry;
@@ -966,50 +933,10 @@ public static final int VERSION_IDX = 1;
     return null;
   }
 
-  public static class LookupResult {
-    // The document found
-    private SolrInputDocument sid;
-    // If sid = null, this one tells if it might be found in index. If sid != null, this will always be false
-    private boolean maybeInIndex;
-
-    private LookupResult(SolrInputDocument sid) {
-      assert sid != null;
-      this.sid = sid;
-      maybeInIndex = false;
-    }
-
-    private LookupResult(boolean maybeInIndex) {
-      sid = null;
-      this.maybeInIndex = maybeInIndex;
-    }
-
-    public SolrInputDocument getSid() {
-      return sid;
-    }
-
-    public boolean isMaybeInIndex() {
-      return maybeInIndex;
-    }
-
-  }
-  public LookupResult lookup(BytesRef indexedId, LookupStatsEntries lookupStatsEntries, boolean updateGetStats) {
-    long startTimeNanosecs = System.nanoTime();
-    try {
-
-    if (idFieldType != null && indexedId != null) {
-      long startTimeCacheNanosecs = System.nanoTime();
-      SolrInputDocument sid = RecentlyLookedUpOrUpdatedDocumentsHandler.getRecentlyLookedUpOrUpdatedDocuments().getDocument(this, indexedId, updateGetStats);
-      if (lookupStatsEntries != null) lookupStatsEntries.registerCache(startTimeCacheNanosecs);
-      if (sid != null) {
-        return new LookupResult(sid);
-      }
-    }
-
+  public Object lookup(BytesRef indexedId) {
     LogPtr entry;
     TransactionLog lookupLog;
 
-    long startTimeUpdateLogNanosecs = System.nanoTime();
-    try {
     synchronized (this) {
       entry = map.get(indexedId);
       lookupLog = tlog;  // something found in "map" will always be in "tlog"
@@ -1028,70 +955,28 @@ public static final int VERSION_IDX = 1;
       }
 
       if (entry == null) {
-        return new LookupResult(true);
+        return null;
       }
       lookupLog.incref();
     }
 
     try {
       // now do the lookup outside of the sync block for concurrency
-      Object entryObj = lookupLog.lookup(entry.pointer);
-      if (entryObj != null) {
-        List entryList = (List)entryObj;
-        assert entryList.size() >= 3;
-        int oper = (Integer)entryList.get(0) & UpdateLog.OPERATION_MASK;
-        switch (oper) {
-          case UpdateLog.ADD:
-            SolrInputDocument doc = (SolrInputDocument)entryList.get(entryList.size()-1);
-            if (idFieldType != null) {
-              RecentlyLookedUpOrUpdatedDocumentsHandler.getRecentlyLookedUpOrUpdatedDocuments().addDocument(this, indexedId, doc, FoundLocation.ULog);
-            }
-            return new LookupResult(doc);
-          case UpdateLog.DELETE:
-            Long version = (Long) entryList.get(1);
-            if (idFieldType != null) {
-              RecentlyLookedUpOrUpdatedDocumentsHandler.getRecentlyLookedUpOrUpdatedDocuments().deleteDocument(this, indexedId, version);
-            }
-            return new LookupResult(false);
-          default:
-            throw new SolrException(SolrException.ErrorCode.SERVER_ERROR,  "Unknown Operation! " + oper);
-        }
-      } else {
-        return new LookupResult(true);
-      }
+      return lookupLog.lookup(entry.pointer);
     } finally {
       lookupLog.decref();
     }
-    } finally {
-      if (lookupStatsEntries != null) lookupStatsEntries.registerUpdateLog(startTimeUpdateLogNanosecs);
-    }
-    } finally {
-      if (lookupStatsEntries != null) lookupStatsEntries.registerTotal(startTimeNanosecs);
-    }
+
   }
 
   // This method works like realtime-get... it only guarantees to return the latest
-  // version of the *completed* updates. There can be updates in progress concurrently
+  // version of the *completed* update.  There can be updates in progress concurrently
   // that have already grabbed higher version numbers.  Higher level coordination or
   // synchronization is needed for stronger guarantees (as VersionUpdateProcessor does).
-
-  public Long lookupVersion(BytesRef indexedId, LookupVersionStatsEntries lookupVersionStatsEntries) {
-    long startTimeNanosecs = System.nanoTime();
-    try {
-      if (idFieldType != null && indexedId != null) {
-        final long startTimeCacheNanosec = System.nanoTime();
-        Long cachedVersion = RecentlyLookedUpOrUpdatedDocumentsHandler.getRecentlyLookedUpOrUpdatedDocuments().getVersion(this, indexedId);
-
-        if (lookupVersionStatsEntries != null) lookupVersionStatsEntries.registerCache(startTimeCacheNanosec);
-        if (cachedVersion != null) {
-          return cachedVersion;
-        }
-      }
-
+  public Long lookupVersion(BytesRef indexedId) {
     LogPtr entry;
     TransactionLog lookupLog;
 
-    final long startTimeUpdateLogNanosec = System.nanoTime();
     synchronized (this) {
       entry = map.get(indexedId);
       lookupLog = tlog;  // something found in "map" will always be in "tlog"
@@ -1109,22 +994,18 @@ public static final int VERSION_IDX = 1;
         // SolrCore.verbose("TLOG: lookup ver: for id ",indexedId.utf8ToString(),"in prevMap2",System.identityHashCode(map),"got",entry,"lookupLog=",lookupLog);
       }
     }
-    if (lookupVersionStatsEntries != null) lookupVersionStatsEntries.registerUpdateLog(startTimeUpdateLogNanosec);
 
-    FoundLocation fl = null;
-    Long version = null;
     if (entry != null) {
-      fl = FoundLocation.ULog;
-      version = entry.version;
+      return entry.version;
     }
 
-    if (version == null) {
     // Now check real index
-    version = versionInfo.getVersionFromIndex(indexedId, lookupVersionStatsEntries);
+    Long version = versionInfo.getVersionFromIndex(indexedId);
 
     if (version != null) {
-      fl = FoundLocation.Index;
-    } else {
+      return version;
+    }
+
     // We can't get any version info for deletes from the index, so if the doc
     // wasn't found, check a cache of recent deletes.
 
@@ -1133,17 +1014,10 @@ public static final int VERSION_IDX = 1;
     }
 
     if (entry != null) {
-      fl = FoundLocation.ULog;
-      version = entry.version;
-    }
-    }
+      return entry.version;
     }
 
-    if (version != null) RecentlyLookedUpOrUpdatedDocumentsHandler.getRecentlyLookedUpOrUpdatedDocuments().addVersion(this, indexedId, version, fl);
-      return version;
-    } finally {
-      if (lookupVersionStatsEntries != null) lookupVersionStatsEntries.registerTotal(startTimeNanosecs);
-    }
+    return null;
   }
 
   public void finish(SyncLevel syncLevel) {
@@ -1747,7 +1621,6 @@ public static final int VERSION_IDX = 1;
               case UpdateLog.ADD: {
                 recoveryInfo.adds++;
                 AddUpdateCommand cmd = convertTlogEntryToAddUpdateCommand(req, entry, oper, version);
-                cmd.setRequestVersion(version);
                 cmd.setFlags(UpdateCommand.REPLAY | UpdateCommand.IGNORE_AUTOCOMMIT);
                 log.debug("{} {}", oper == ADD ? "add" : "update", cmd);
                 proc.processAdd(cmd);
@@ -1759,7 +1632,6 @@ public static final int VERSION_IDX = 1;
                 DeleteUpdateCommand cmd = new DeleteUpdateCommand(req);
                 cmd.setIndexedId(new BytesRef(idBytes));
                 cmd.setVersion(version);
-                cmd.setRequestVersion(version);
                 cmd.setFlags(UpdateCommand.REPLAY | UpdateCommand.IGNORE_AUTOCOMMIT);
                 if (debug) log.debug("delete " + cmd);
                 proc.processDelete(cmd);
@@ -1772,7 +1644,6 @@ public static final int VERSION_IDX = 1;
                 DeleteUpdateCommand cmd = new DeleteUpdateCommand(req);
                 cmd.query = query;
                 cmd.setVersion(version);
-                cmd.setRequestVersion(version);
                 cmd.setFlags(UpdateCommand.REPLAY | UpdateCommand.IGNORE_AUTOCOMMIT);
                 if (debug) log.debug("deleteByQuery " + cmd);
                 proc.processDelete(cmd);
@@ -1823,7 +1694,6 @@ public static final int VERSION_IDX = 1;
 
         CommitUpdateCommand cmd = new CommitUpdateCommand(req, false);
         cmd.setVersion(commitVersion);
-        cmd.setRequestVersion(commitVersion);
         cmd.softCommit = false;
         cmd.waitSearcher = true;
         cmd.setFlags(UpdateCommand.REPLAY);
@@ -1877,14 +1747,14 @@ public static final int VERSION_IDX = 1;
     AddUpdateCommand cmd = new AddUpdateCommand(req);
     cmd.solrDoc = sdoc;
     cmd.setVersion(version);
-    
+
     if (operation == UPDATE_INPLACE) {
       long prevVersion = (Long) entry.get(UpdateLog.PREV_VERSION_IDX);
       cmd.prevVersion = prevVersion;
     }
     return cmd;
   }
-  
+
   public void cancelApplyBufferedUpdates() {
     this.cancelApplyBufferUpdate = true;
   }

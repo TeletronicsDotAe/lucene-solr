@@ -74,7 +74,6 @@ import org.apache.solr.handler.component.RealTimeGetComponent;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.schema.SchemaField;
-import org.apache.solr.servlet.SolrDispatchFilter;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.CommitUpdateCommand;
 import org.apache.solr.update.DeleteUpdateCommand;
@@ -90,7 +89,6 @@ import org.apache.solr.update.UpdateLog;
 import org.apache.solr.update.UpdateShardHandler;
 import org.apache.solr.update.VersionBucket;
 import org.apache.solr.update.VersionInfo;
-import org.apache.solr.update.statistics.UpdateStats;
 import org.apache.solr.util.TestInjection;
 import org.apache.solr.util.TimeOut;
 import org.apache.zookeeper.KeeperException;
@@ -111,11 +109,6 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
   public static final String DISTRIB_INPLACE_PREVVERSION = "distrib.inplace.prevversion";
   private static final String TEST_DISTRIB_SKIP_SERVERS = "test.distrib.skip.servers";
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
-  public static final UpdateStats updateStats = new UpdateStats();
-  static {
-    SolrDispatchFilter.statsAndPrimProfHandler.addToBeLogged(updateStats);
-  }
 
   /**
    * Values this processor supports for the <code>DISTRIB_UPDATE_PARAM</code>.
@@ -1058,7 +1051,6 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
     vinfo.lockForUpdate();
     try {
       synchronized (bucket) {
-        updateStats.registerSynch(synchStartTimeNanosec);
         bucket.notifyAll(); //just in case anyone is waiting let them know that we have a new update
         // we obtain the version when synchronized and then do the add so we can ensure that
         // if version1 < version2 then version1 is actually added before version2.
@@ -1085,9 +1077,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
               versionOnUpdate = 0;
             }
 
-            long getUpdatedDocStartTimeNanosec = System.nanoTime();
-            /*boolean updated = */getUpdatedDocument(cmd, versionOnUpdate);
-            updateStats.registerGetUpdatedDocument(getUpdatedDocStartTimeNanosec);
+            boolean updated = getUpdatedDocument(cmd, versionOnUpdate);
 
             // leaders can also be in buffering state during "migrate" API call, see SOLR-5308
             if (forwardedFromCollection && ulog.getState() != UpdateLog.State.ACTIVE
@@ -1118,7 +1108,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
 
             if (cmd.isInPlaceUpdate()) {
               long prev = cmd.prevVersion;
-              Long lastVersion = vinfo.lookupVersion(cmd.getIndexedId(), updateStats.getVinfoUpdateLogLookupVersionStatsEntries());
+              Long lastVersion = vinfo.lookupVersion(cmd.getIndexedId());
               if (lastVersion == null || Math.abs(lastVersion) < prev) {
                 // this was checked for (in waitForDependentUpdates()) before entering the synchronized block.
                 // So we shouldn't be here, unless what must've happened is:
@@ -1169,7 +1159,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
               } else {
                 // there have been updates higher than the current update.  we need to check
                 // the specific version for this id.
-                Long lastVersion = vinfo.lookupVersion(cmd.getIndexedId(), updateStats.getVinfoUpdateLogLookupVersionStatsEntries());
+                Long lastVersion = vinfo.lookupVersion(cmd.getIndexedId());
                 if (lastVersion != null && Math.abs(lastVersion) >= versionOnUpdate) {
                   // This update is a repeat, or was reordered.  We need to drop this update.
                   log.debug("Dropping add update due to version {}", idBytes.utf8ToString());
@@ -1220,7 +1210,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
     vinfo.lockForUpdate();
     try {
       synchronized (bucket) {
-        Long lookedUpVersion = vinfo.lookupVersion(cmd.getIndexedId(), updateStats.getVinfoUpdateLogLookupVersionStatsEntries());
+        Long lookedUpVersion = vinfo.lookupVersion(cmd.getIndexedId());
         lastFoundVersion = lookedUpVersion == null ? 0L: lookedUpVersion;
 
         if (Math.abs(lastFoundVersion) < cmd.prevVersion) {
@@ -1237,7 +1227,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
           } catch (InterruptedException ie) {
             throw new RuntimeException(ie);
           }
-          lookedUpVersion = vinfo.lookupVersion(cmd.getIndexedId(), updateStats.getVinfoUpdateLogLookupVersionStatsEntries());
+          lookedUpVersion = vinfo.lookupVersion(cmd.getIndexedId());
           lastFoundVersion = lookedUpVersion == null ? 0L: lookedUpVersion;
         }
       }
@@ -1361,8 +1351,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
     // full (non-inplace) atomic update
     SolrInputDocument sdoc = cmd.getSolrInputDocument();
     BytesRef id = cmd.getIndexedId();
-    SolrInputDocument oldDoc = RealTimeGetComponent.getInputDocument(cmd.getReq().getCore(), id, updateStats.getGetInputDocumentStatsEntries());
-    oldDoc = (oldDoc == null) ? null : oldDoc.deepCopy();
+    SolrInputDocument oldDoc = RealTimeGetComponent.getInputDocument(cmd.getReq().getCore(), id);
 
     if (oldDoc == null) {
       // create a new doc by default if an old one wasn't found
@@ -1777,12 +1766,10 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
 
     VersionBucket bucket = vinfo.bucket(bucketHash);
 
-    long synchStartTimeNanosec = System.nanoTime();
     vinfo.lockForUpdate();
     try {
 
       synchronized (bucket) {
-        updateStats.registerSynch(synchStartTimeNanosec);
         if (versionsStored) {
           long bucketVersion = bucket.highest;
 
@@ -1828,7 +1815,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
             } else {
               // there have been updates higher than the current update.  we need to check
               // the specific version for this id.
-              Long lastVersion = vinfo.lookupVersion(cmd.getIndexedId(), null);
+              Long lastVersion = vinfo.lookupVersion(cmd.getIndexedId());
               if (lastVersion != null && Math.abs(lastVersion) >= versionOnUpdate) {
                 // This update is a repeat, or was reordered.  We need to drop this update.
                 log.debug("Dropping delete update due to version {}", idBytes.utf8ToString());
