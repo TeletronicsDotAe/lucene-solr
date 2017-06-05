@@ -56,7 +56,9 @@
     <mergePolicy class="org.apache.lucene.index.LogDocMergePolicy"/>
     <lockType>single</lockType>
   </indexConfig>
-  
+
+  <schemaFactory class="ClassicIndexSchemaFactory"/>
+
   <updateHandler class="solr.DirectUpdateHandler2">
 
     <!-- autocommit pending docs if certain criteria are met
