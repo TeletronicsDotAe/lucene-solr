@@ -18,8 +18,8 @@
 package org.apache.solr.cloud;
 
 import java.lang.invoke.MethodHandles;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -36,11 +36,15 @@ import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrDocument;
+import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.cloud.ClusterState;
 import org.apache.solr.common.cloud.Replica;
 import org.apache.solr.common.cloud.Slice;
 import org.apache.solr.common.cloud.ZkStateReader;
+import org.apache.solr.common.exceptions.update.DocumentDoesNotExist;
+import org.apache.solr.common.exceptions.update.DocumentUpdateBaseException;
+import org.apache.solr.common.exceptions.update.VersionConflict;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.util.NamedList;
 import org.apache.zookeeper.KeeperException;
@@ -233,7 +237,8 @@ public class TestStressInPlaceUpdates extends AbstractFullDistribZkTestBase {
                   log.info(delType + ": Deleting id=" + id + ", version=" + info.version 
                            + ".  Returned version=" + returnedVersion);
                 } catch (RuntimeException e) {
-                  if (e.getMessage() != null && e.getMessage().contains("version conflict")
+                  Class rootExceptionType = (e instanceof SolrException) ? Class.forName(((SolrException) e).getThrowable()) : null;
+                  if (DocumentUpdateBaseException.class.isAssignableFrom(rootExceptionType) || e.getMessage() != null && e.getMessage().contains("version conflict")
                       || e.getMessage() != null && e.getMessage().contains("Conflict")) {
                     // Its okay for a leader to reject a concurrent request
                     log.warn("Conflict during {}, rejected id={}, {}", delType, id, e);
@@ -269,7 +274,8 @@ public class TestStressInPlaceUpdates extends AbstractFullDistribZkTestBase {
                     log.info("FULL: Writing id=" + id + ", val=[" + nextVal1 + "," + nextVal2 + "], version=" + info.version + ", Prev was=[" + val1 + "," + val2 + "].  Returned version=" + returnedVersion);
 
                   } catch (RuntimeException e) {
-                    if (e.getMessage() != null && e.getMessage().contains("version conflict")
+                    Class rootExceptionType = (e instanceof SolrException) ? Class.forName(((SolrException) e).getThrowable()) : null;
+                    if (DocumentUpdateBaseException.class.isAssignableFrom(rootExceptionType) || e.getMessage() != null && e.getMessage().contains("version conflict")
                         || e.getMessage() != null && e.getMessage().contains("Conflict")) {
                       // Its okay for a leader to reject a concurrent request
                       log.warn("Conflict during full update, rejected id={}, {}", id, e);
@@ -285,11 +291,12 @@ public class TestStressInPlaceUpdates extends AbstractFullDistribZkTestBase {
                     returnedVersion = addDocAndGetVersion("id", id, "val2_l_dvo", map("inc", String.valueOf(val1)), "_version_", info.version);
                     log.info("PARTIAL: Writing id=" + id + ", val=[" + nextVal1 + "," + nextVal2 + "], version=" + info.version + ", Prev was=[" + val1 + "," + val2 + "].  Returned version=" + returnedVersion);
                   } catch (RuntimeException e) {
-                    if (e.getMessage() != null && e.getMessage().contains("version conflict")
+                    Class rootExceptionType = (e instanceof SolrException) ? Class.forName(((SolrException) e).getThrowable()) : null;
+                    if (VersionConflict.class.equals(rootExceptionType) || e.getMessage() != null && e.getMessage().contains("version conflict")
                         || e.getMessage() != null && e.getMessage().contains("Conflict")) {
                       // Its okay for a leader to reject a concurrent request
                       log.warn("Conflict during partial update, rejected id={}, {}", id, e);
-                    } else if (e.getMessage() != null && e.getMessage().contains("Document not found for update.") 
+                    } else if (DocumentDoesNotExist.class.equals(rootExceptionType) || e.getMessage() != null && e.getMessage().contains("Document not found for update.")
                                && e.getMessage().contains("id="+id)) {
                       log.warn("Attempted a partial update for a recently deleted document, rejected id={}, {}", id, e);
                     } else {
