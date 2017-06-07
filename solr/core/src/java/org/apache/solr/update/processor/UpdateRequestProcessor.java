@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
 import org.apache.solr.common.SolrException;
+import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.CommitUpdateCommand;
 import org.apache.solr.update.DeleteUpdateCommand;
@@ -28,26 +30,23 @@ import org.apache.solr.update.MergeIndexesCommand;
 import org.apache.solr.update.RollbackUpdateCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.request.SolrRequestInfo;
-import org.apache.solr.response.SolrQueryResponse;
 
 /**
- * This is a good place for subclassed update handlers to process the document before it is 
- * indexed.  You may wish to add/remove fields or check if the requested user is allowed to 
+ * This is a good place for subclassed update handlers to process the document before it is
+ * indexed.  You may wish to add/remove fields or check if the requested user is allowed to
  * update the given document...
- * 
+ *
  * Perhaps you continue adding an error message (without indexing the document)...
  * perhaps you throw an error and halt indexing (remove anything already indexed??)
- * 
+ *
  * By default, this just passes the request to the next processor in the chain.
- * 
+ *
  * @since solr 1.3
  */
 public abstract class UpdateRequestProcessor implements Closeable {
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-  protected final SolrRequestInfo requestInfoSet;
+  //protected final SolrRequestInfo requestInfoSet;
   protected final SolrQueryRequest req;
   protected final SolrQueryResponse rsp;
   protected final UpdateRequestProcessor next;
@@ -56,12 +55,14 @@ public abstract class UpdateRequestProcessor implements Closeable {
     this.next = next;
     this.req = req;
     this.rsp = rsp;
+    /*
     if (SolrRequestInfo.getRequestInfo() == null) {
       requestInfoSet = new SolrRequestInfo(req, rsp);
       SolrRequestInfo.setRequestInfo(requestInfoSet);
     } else {
       requestInfoSet = null;
     }
+    */
   }
 
   public void processAdd(AddUpdateCommand cmd) throws IOException {
@@ -96,10 +97,10 @@ public abstract class UpdateRequestProcessor implements Closeable {
   }
 
   public void finish() throws IOException {
-    if (next != null) next.finish();    
-    if (requestInfoSet != null && SolrRequestInfo.getRequestInfo() == requestInfoSet) SolrRequestInfo.clearRequestInfo();
+    if (next != null) next.finish();
+    //if (requestInfoSet != null && SolrRequestInfo.getRequestInfo() == requestInfoSet) SolrRequestInfo.clearRequestInfo();
   }
-  
+
   @Override
   public final void close() throws IOException {
     UpdateRequestProcessor p = this;
