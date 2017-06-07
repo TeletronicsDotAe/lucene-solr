@@ -8,6 +8,7 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.exceptions.update.DocumentAlreadyExists;
 import org.apache.solr.common.params.UpdateParams;
@@ -74,8 +75,12 @@ public class UpdateSemanticsRequestOverrideTest extends SolrJettyTestBase {
       req.add(document);
       req.setParam(UpdateParams.REQ_SEMANTICS_MODE, "consistency");
       req.process(solrClient);
-    } catch (DocumentAlreadyExists e) {
-      failedAsExpected = true;
+    } catch (Exception e) {
+      if (e instanceof SolrException) {
+        SolrException se = (SolrException) e;
+        assertEquals(DocumentAlreadyExists.class.getName(), se.getThrowable());
+        failedAsExpected = true;
+      }
     }
     assertTrue("Processing of the request did not fail as expected.",
         failedAsExpected);
