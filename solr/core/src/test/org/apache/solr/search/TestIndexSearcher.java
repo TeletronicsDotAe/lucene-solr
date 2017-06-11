@@ -16,8 +16,9 @@
  */
 package org.apache.solr.search;
 
-import org.apache.lucene.document.Document;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -27,6 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
@@ -53,12 +55,6 @@ import org.apache.solr.servlet.DirectSolrConnection;
 import org.apache.solr.util.plugin.SolrCoreAware;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.io.IOException;
 
 public class TestIndexSearcher extends SolrTestCaseJ4 {
 
@@ -520,14 +516,14 @@ public class TestIndexSearcher extends SolrTestCaseJ4 {
       // Asking for fields ...
       doc = sr.getSearcher().doc(0, new HashSet<>(Arrays.asList("*")));
       // ... should return the fields ...
-      assertEquals(9, doc.getFields().size());
+      assertEquals(8, doc.getFields().size());
       // ... and have to access the store
       assertEquals(1, CountingWrapper.getTotalDocumentCountAndReset(wrapper.getWrappers()));
 
       // Asking for score only again ...
       doc = sr.getSearcher().doc(0, new HashSet<>(Arrays.asList(SolrReturnFields.SCORE)));
       // ... happens to return the fields, because doc is in cache ...
-      assertEquals(9, doc.getFields().size());
+      assertEquals(8, doc.getFields().size());
       // ... but should not access the store (because it is in the cache)
       assertEquals(0, CountingWrapper.getTotalDocumentCountAndReset(wrapper.getWrappers()));
     } finally {
