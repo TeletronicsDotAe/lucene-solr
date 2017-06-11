@@ -57,7 +57,7 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.exceptions.update.VersionConflict;
+import org.apache.solr.common.exceptions.update.DocumentUpdateBaseException;
 import org.apache.solr.common.luke.FieldFlag;
 import org.apache.solr.common.params.AnalysisParams;
 import org.apache.solr.common.params.CommonParams;
@@ -1642,8 +1642,11 @@ abstract public class SolrExampleTests extends SolrExampleTestsBase
         ErrorTrackingConcurrentUpdateSolrClient concurrentClient = (ErrorTrackingConcurrentUpdateSolrClient) client;
         assertNotNull("ConcurrentUpdateSolrClient did not report an error", concurrentClient.lastError);
         Throwable t = concurrentClient.lastError;
-        assertTrue("ConcurrentUpdateSolrClient did not report an error", t != null && (t instanceof VersionConflict) && t.getMessage().contains("Attempt to update document with uniqueKey unique failed. Version in document to be updated " + (version+1) + " does not match current version " + version));
-
+        Class rootExceptionType = (t instanceof SolrException) ? Class.forName(((SolrException) t).getThrowable()) : null;
+        assertTrue("ConcurrentUpdateSolrClient did not report an error",
+            DocumentUpdateBaseException.class.isAssignableFrom(rootExceptionType)
+                || t.getMessage().contains("Attempt to update document with uniqueKey unique failed. Version in document to be updated " + (version+1) + " does not match current version " + version)
+        );
       }
     } catch (SolrException se) {
       assertTrue("No identifiable error message", se.getMessage().contains("does not match current version"));
