@@ -206,7 +206,7 @@ public class TestScoreJoinQPNoScore extends SolrTestCaseJ4 {
       
       req = req("{!join from=dept_id_s to=dept_ss"+score+"}text_t:develop");
       SolrQueryResponse rsp = new SolrQueryResponse();
-      SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req, rsp));
+      //SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req, rsp));
       
       {
         final Query query = QParser.getParser(req.getParams().get("q"), req).getQuery();
