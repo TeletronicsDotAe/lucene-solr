@@ -72,7 +72,7 @@ public class TestHarness extends BaseTestHarness {
   public String coreName;
   protected volatile CoreContainer container;
   public UpdateRequestHandler updater;
- 
+
   /**
    * Creates a SolrConfig object for the specified coreName assuming it 
    * follows the basic conventions of being a relative path in the solrHome 
@@ -88,7 +88,7 @@ public class TestHarness extends BaseTestHarness {
       throw new RuntimeException(xany);
     }
   }
-  
+
   /**
    * Creates a SolrConfig object for the default test core using {@link #createConfig(Path,String,String)}
    */
@@ -102,32 +102,32 @@ public class TestHarness extends BaseTestHarness {
    * @param solrConfig solronfig instance
    * @param schemaFile schema filename
    */
-     public TestHarness( String coreName,
-                         String dataDirectory,
-                         SolrConfig solrConfig,
-                         String schemaFile) {
+  public TestHarness( String coreName,
+                      String dataDirectory,
+                      SolrConfig solrConfig,
+                      String schemaFile) {
     this( coreName, dataDirectory, solrConfig, IndexSchemaFactory.buildIndexSchema(schemaFile, solrConfig));
   }
 
-   /**
-    * @param dataDirectory path for index data, will not be cleaned up
-    * @param solrConfig solronfig instance
-    * @param schemaFile schema filename
-    */
-      public TestHarness( String dataDirectory,
-                          SolrConfig solrConfig,
-                          String schemaFile) {
-     this( dataDirectory, solrConfig, IndexSchemaFactory.buildIndexSchema(schemaFile, solrConfig));
-   }
-   /**
-    * @param dataDirectory path for index data, will not be cleaned up
-    * @param solrConfig solrconfig instance
-    * @param indexSchema schema instance
-    */
+  /**
+   * @param dataDirectory path for index data, will not be cleaned up
+   * @param solrConfig solronfig instance
+   * @param schemaFile schema filename
+   */
+  public TestHarness( String dataDirectory,
+                      SolrConfig solrConfig,
+                      String schemaFile) {
+    this( dataDirectory, solrConfig, IndexSchemaFactory.buildIndexSchema(schemaFile, solrConfig));
+  }
+  /**
+   * @param dataDirectory path for index data, will not be cleaned up
+   * @param solrConfig solrconfig instance
+   * @param indexSchema schema instance
+   */
   public TestHarness( String dataDirectory,
                       SolrConfig solrConfig,
                       IndexSchema indexSchema) {
-      this(SolrTestCaseJ4.DEFAULT_TEST_CORENAME, dataDirectory, solrConfig, indexSchema);
+    this(SolrTestCaseJ4.DEFAULT_TEST_CORENAME, dataDirectory, solrConfig, indexSchema);
   }
 
   /**
@@ -181,16 +181,16 @@ public class TestHarness extends BaseTestHarness {
 
   public static NodeConfig buildTestNodeConfig(SolrResourceLoader loader) {
     CloudConfig cloudConfig = new CloudConfig.CloudConfigBuilder(System.getProperty("host"),
-                                                                 Integer.getInteger("hostPort", 8983),
-                                                                 System.getProperty("hostContext", ""))
+        Integer.getInteger("hostPort", 8983),
+        System.getProperty("hostContext", ""))
         .setZkClientTimeout(Integer.getInteger("zkClientTimeout", 30000))
         .build();
     if (System.getProperty("zkHost") == null)
       cloudConfig = null;
     UpdateShardHandlerConfig updateShardHandlerConfig
         = new UpdateShardHandlerConfig(UpdateShardHandlerConfig.DEFAULT_MAXUPDATECONNECTIONS,
-                                       UpdateShardHandlerConfig.DEFAULT_MAXUPDATECONNECTIONSPERHOST,
-                                       30000, 30000, 5000, 50000,
+        UpdateShardHandlerConfig.DEFAULT_MAXUPDATECONNECTIONSPERHOST,
+        30000, 30000, 5000, 50000,
         UpdateShardHandlerConfig.DEFAULT_METRICNAMESTRATEGY);
     // universal default metric reporter
     Map<String,String> attributes = new HashMap<>();
@@ -230,7 +230,7 @@ public class TestHarness extends BaseTestHarness {
           CoreDescriptor.CORE_SHARD, System.getProperty("shard", "shard1")));
     }
   }
-  
+
   public CoreContainer getCoreContainer() {
     return container;
   }
@@ -282,8 +282,8 @@ public class TestHarness extends BaseTestHarness {
       throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, e);
     }
   }
-  
-        
+
+
   /**
    * Validates a "query" response against an array of XPath test strings
    *
@@ -294,12 +294,12 @@ public class TestHarness extends BaseTestHarness {
    * @see LocalSolrQueryRequest
    */
   public String validateQuery(SolrQueryRequest req, String... tests)
-    throws Exception {
-                
+      throws Exception {
+
     String res = query(req);
     return validateXPath(res, tests);
   }
-            
+
   /**
    * Processes a "query" using a user constructed SolrQueryRequest
    *
@@ -326,14 +326,8 @@ public class TestHarness extends BaseTestHarness {
   public String query(String handler, SolrQueryRequest req) throws Exception {
     try {
       SolrCore core = req.getCore();
-      SolrRequestInfo reqInfo;
-      SolrQueryResponse rsp;
-      if ((reqInfo = SolrRequestInfo.getRequestInfo()) == null) {
-        rsp = new SolrQueryResponse();
+      SolrQueryResponse rsp = new SolrQueryResponse();
       SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req, rsp));
-      } else {
-        rsp = reqInfo.getRsp();
-      }
       core.execute(core.getRequestHandler(handler),req,rsp);
       if (rsp.getException() != null) {
         throw rsp.getException();
@@ -377,7 +371,7 @@ public class TestHarness extends BaseTestHarness {
       for (SolrCore c : container.getCores()) {
         if (c.getOpenCount() > 1)
           throw new RuntimeException("SolrCore.getOpenCount()=="+c.getOpenCount());
-      }      
+      }
     }
 
     if (container != null) {
@@ -386,20 +380,16 @@ public class TestHarness extends BaseTestHarness {
     }
   }
 
-  public LocalRequestFactory getRequestFactory() {
-    return new LocalRequestFactory();
-  }
-
   public LocalRequestFactory getRequestFactory(String qtype,
                                                int start,
                                                int limit) {
-    LocalRequestFactory f = getRequestFactory();
+    LocalRequestFactory f = new LocalRequestFactory();
     f.qtype = qtype;
     f.start = start;
     f.limit = limit;
     return f;
   }
-    
+
   /**
    * 0 and Even numbered args are keys, Odd numbered args are values.
    */
@@ -411,9 +401,9 @@ public class TestHarness extends BaseTestHarness {
       f.args.put(args[i], args[i+1]);
     }
     return f;
-        
+
   }
-    
+
   public LocalRequestFactory getRequestFactory(String qtype,
                                                int start, int limit,
                                                Map<String,String> args) {
@@ -422,7 +412,7 @@ public class TestHarness extends BaseTestHarness {
     f.args.putAll(args);
     return f;
   }
-    
+
   /**
    * A Factory that generates LocalSolrQueryRequest objects using a
    * specified set of default options.
@@ -456,16 +446,12 @@ public class TestHarness extends BaseTestHarness {
      * Perhaps the best we could do is increment the core reference count
      * and decrement it in the request close() method?
      */
-    public LocalSolrQueryRequest makeRequestInfo(String ... q) {
-    	return makeRequest(q);
-    }
-    
     public LocalSolrQueryRequest makeRequest(String ... q) {
       if (q.length==1) {
         return new LocalSolrQueryRequest(TestHarness.this.getCore(),
-                                       q[0], qtype, start, limit, args);
+            q[0], qtype, start, limit, args);
       }
-      if (q.length%2 != 0) { 
+      if (q.length%2 != 0) {
         throw new RuntimeException("The length of the string array (query arguments) needs to be even");
       }
       Map.Entry<String, String> [] entries = new NamedListEntry[q.length / 2];
