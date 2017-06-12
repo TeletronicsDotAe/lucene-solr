@@ -168,7 +168,7 @@ public class BasicZkTest extends AbstractZkTestCase {
   }
   
   public SolrQueryRequest request(String... q) {
-    SolrQueryRequest req = lrf.makeRequestInfo(q).getReq();
+    SolrQueryRequest req = lrf.makeRequest(q);
     ModifiableSolrParams params = new ModifiableSolrParams();
     params.add(req.getParams());
     params.set("distrib", false);

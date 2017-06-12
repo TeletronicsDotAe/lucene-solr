@@ -107,10 +107,10 @@ public class TestDocBuilder2 extends AbstractDataImportHandlerTestCase {
     rows.add(createMap("id", "101", "desc", "ApacheSolr"));
     MockDataSource.setIterator("select * from books where category='search'", rows.iterator());
 
-    SolrQueryRequest request = lrf.makeRequestInfo("command", "full-import",
+    SolrQueryRequest request = lrf.makeRequest("command", "full-import",
             "debug", "on", "clean", "true", "commit", "true",
             "category", "search",
-            "dataConfig", requestParamAsVariable).getReq();
+            "dataConfig", requestParamAsVariable);
     h.query("/dataimport", request);
     assertQ(req("desc:ApacheSolr"), "//*[@numFound='1']");
   }
@@ -136,10 +136,10 @@ public class TestDocBuilder2 extends AbstractDataImportHandlerTestCase {
     rows.add(createMap("mypk", "101", "text", "ApacheSolr"));
     MockDataSource.setIterator("select * from x", rows.iterator());
 
-    SolrQueryRequest request = lrf.makeRequestInfo("command", "full-import",
+    SolrQueryRequest request = lrf.makeRequest("command", "full-import",
             "debug", "on", "clean", "true", "commit", "true",
             "mypk", "id", "text", "desc",
-            "dataConfig", dataConfigWithTemplatizedFieldNames).getReq();
+            "dataConfig", dataConfigWithTemplatizedFieldNames);
     h.query("/dataimport", request);
     assertQ(req("id:101"), "//*[@numFound='1']");
   }

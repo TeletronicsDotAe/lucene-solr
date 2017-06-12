@@ -360,14 +360,12 @@ public class TestHarness extends BaseTestHarness {
    * This method does not set/clear SolrRequestInfo */
   public SolrQueryResponse queryAndResponse(String handler, SolrQueryRequest req) throws Exception {
     try (SolrCore core = getCoreInc()) {
-      SolrQueryResponse rsp = getRequestFactory().makeRequestInfo().getRsp();
+      SolrQueryResponse rsp = new SolrQueryResponse();
       core.execute(core.getRequestHandler(handler), req, rsp);
       if (rsp.getException() != null) {
         throw rsp.getException();
       }
       return rsp;
-    } finally {
-      SolrRequestInfo.clearRequestInfo();
     }
   }
 
@@ -458,11 +456,8 @@ public class TestHarness extends BaseTestHarness {
      * Perhaps the best we could do is increment the core reference count
      * and decrement it in the request close() method?
      */
-    public SolrRequestInfo makeRequestInfo(String ... q) {
-    	SolrRequestInfo result = new SolrRequestInfo(makeRequest(q), new SolrQueryResponse());
-      SolrRequestInfo.clearRequestInfo();
-      SolrRequestInfo.setRequestInfo(result);
-      return result;
+    public LocalSolrQueryRequest makeRequestInfo(String ... q) {
+    	return makeRequest(q);
     }
     
     public LocalSolrQueryRequest makeRequest(String ... q) {

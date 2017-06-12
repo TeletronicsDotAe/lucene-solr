@@ -20,7 +20,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.apache.solr.util.AbstractSolrTestCase;
 import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.request.SolrRequestInfo;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.update.processor.UpdateRequestProcessorChain;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
@@ -37,7 +36,7 @@ import java.io.IOException;
  */
 public class TestSearchPerf extends AbstractSolrTestCase {
 
-  
+
   @BeforeClass
   public static void beforeClass() throws Exception {
     initCore("solrconfig.xml", "schema11.xml");
@@ -64,10 +63,10 @@ public class TestSearchPerf extends AbstractSolrTestCase {
     assertU(delQ("*:*"));
     for (int i=0; i<nDocs; i++) {
       assertU(adoc("id", Float.toString(i)
- //             ,"foo1_s",t(0)
- //             ,"foo2_s",t(r.nextInt(2))
- //             ,"foo4_s",t(r.nextInt(3))
-              ,"foomany_s",t(r.nextInt(nDocs*10))
+          //             ,"foo1_s",t(0)
+          //             ,"foo2_s",t(r.nextInt(2))
+          //             ,"foo4_s",t(r.nextInt(3))
+          ,"foomany_s",t(r.nextInt(nDocs*10))
       ));
     }
     // assertU(optimize()); // squeeze out any possible deleted docs
@@ -79,9 +78,8 @@ public class TestSearchPerf extends AbstractSolrTestCase {
   void createIndex2(int nDocs, String... fields) throws IOException {
     Set<String> fieldSet = new HashSet<>(Arrays.asList(fields));
 
-    SolrRequestInfo reqInfo = lrf.makeRequestInfo();
-    SolrQueryRequest req = reqInfo.getReq();
-    SolrQueryResponse rsp = reqInfo.getRsp();
+    SolrQueryRequest req = lrf.makeRequest();
+    SolrQueryResponse rsp = new SolrQueryResponse();
     UpdateRequestProcessorChain processorChain = req.getCore().getUpdateProcessingChain(null);
     UpdateRequestProcessor processor = processorChain.createProcessor(req, rsp);
 
@@ -92,7 +90,7 @@ public class TestSearchPerf extends AbstractSolrTestCase {
     boolean foo8_s = fieldSet.contains("foo8_s");
     boolean t10_100_ws = fieldSet.contains("t10_100_ws");
 
-    
+
     for (int i=0; i<nDocs; i++) {
       SolrInputDocument doc = new SolrInputDocument();
       doc.addField("id",Float.toString(i));
@@ -130,14 +128,14 @@ public class TestSearchPerf extends AbstractSolrTestCase {
 
     assertU(commit());
 
-    req = lrf.makeRequestInfo().getReq();
+    req = lrf.makeRequest();
     assertEquals(nDocs, req.getSearcher().maxDoc());
     req.close();
   }
 
 
   int doSetGen(int iter, Query q) throws Exception {
-    SolrQueryRequest req = lrf.makeRequestInfo().getReq();
+    SolrQueryRequest req = lrf.makeRequest();
 
     SolrIndexSearcher searcher = req.getSearcher();
 
@@ -158,7 +156,7 @@ public class TestSearchPerf extends AbstractSolrTestCase {
   }
 
   int doListGen(int iter, Query q, List<Query> filt, boolean cacheQuery, boolean cacheFilt) throws Exception {
-    SolrQueryRequest req = lrf.makeRequestInfo().getReq();
+    SolrQueryRequest req = lrf.makeRequest();
 
     SolrIndexSearcher searcher = req.getSearcher();
 
@@ -189,7 +187,7 @@ public class TestSearchPerf extends AbstractSolrTestCase {
     BooleanQuery.Builder bq = new BooleanQuery.Builder();
     bq.add(new TermQuery(new Term("foo2_s",t(0))), BooleanClause.Occur.SHOULD);
     bq.add(new TermQuery(new Term("foo2_s",t(1))), BooleanClause.Occur.SHOULD);
-    doSetGen(5000, bq.build()); 
+    doSetGen(5000, bq.build());
   }
 
   /** test range query performance */
@@ -198,12 +196,12 @@ public class TestSearchPerf extends AbstractSolrTestCase {
     float fractionCovered=1.0f;
 
     String l=t(0);
-    String u=t((int)(indexSize*10*fractionCovered));   
+    String u=t((int)(indexSize*10*fractionCovered));
 
-    SolrQueryRequest req = lrf.makeRequestInfo().getReq();
+    SolrQueryRequest req = lrf.makeRequest();
     QParser parser = QParser.getParser("foomany_s:[" + l + " TO " + u + "]", req);
     Query range = parser.getQuery();
-                                     
+
     QParser parser2 = QParser.getParser("{!frange l="+l+" u="+u+"}foomany_s", req);
     Query frange = parser2.getQuery();
     req.close();
@@ -225,7 +223,7 @@ public class TestSearchPerf extends AbstractSolrTestCase {
     String l=t(0);
     String u=t((int)(indexSize*10*fractionCovered));
 
-    SolrQueryRequest req = lrf.makeRequestInfo().getReq();
+    SolrQueryRequest req = lrf.makeRequest();
 
     QParser parser = QParser.getParser("foomany_s:[" + l + " TO " + u + "]", req);
     Query rangeQ = parser.getQuery();
@@ -245,7 +243,7 @@ public class TestSearchPerf extends AbstractSolrTestCase {
     doListGen(500, q, filters, false, true);
 
     req.close();
-  }  
+  }
 
 
 }

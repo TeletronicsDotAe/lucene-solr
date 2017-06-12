@@ -30,7 +30,7 @@ public class TestValueSourceCache extends SolrTestCaseJ4 {
   @BeforeClass
   public static void beforeClass() throws Exception {
     initCore("solrconfig.xml", "schema.xml");
-    _func = QParser.getParser(null, FunctionQParserPlugin.NAME, lrf.makeRequestInfo().getReq());
+    _func = QParser.getParser(null, FunctionQParserPlugin.NAME, lrf.makeRequest());
   }
 
   static QParser _func;

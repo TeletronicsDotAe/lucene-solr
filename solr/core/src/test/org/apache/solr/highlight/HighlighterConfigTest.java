@@ -75,7 +75,7 @@ public class HighlighterConfigTest extends AbstractSolrTestCase {
             sumLRF.makeRequest("long"),
             //FIXME MERGE - What is the right one..?
             /*
-            sumLRF.makeRequestInfo("long").getReq(),
+            sumLRF.makeRequest("long"),
             */
             "//lst[@name='highlighting']/str[@name='dummy']"
             );
