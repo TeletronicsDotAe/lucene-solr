@@ -16,12 +16,12 @@
  */
 package org.apache.solr.handler;
 
+import org.apache.solr.SolrTestCaseJ4;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.solr.SolrTestCaseJ4;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.MapSolrParams;
 import org.apache.solr.common.util.ContentStream;
@@ -30,9 +30,8 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.handler.loader.XMLLoader;
 import org.apache.solr.request.LocalSolrQueryRequest;
-import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.request.SolrRequestInfo;
 import org.apache.solr.response.QueryResponseWriter;
+import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.processor.BufferingRequestProcessor;
@@ -41,7 +40,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class XsltUpdateRequestHandlerTest extends SolrTestCaseJ4 {
-  
+
   @BeforeClass
   public static void beforeTests() throws Exception {
     initCore("solrconfig.xml","schema.xml");
@@ -58,28 +57,26 @@ public class XsltUpdateRequestHandlerTest extends SolrTestCaseJ4 {
   @Test
   public void testUpdate() throws Exception
   {
-    String xml = 
-      "<random>" +
-      " <document>" +
-      "  <node name=\"id\" value=\"12345\"/>" +
-      "  <node name=\"name\" value=\"kitten\"/>" +
-      "  <node name=\"text\" enhance=\"3\" value=\"some other day\"/>" +
-      "  <node name=\"title\" enhance=\"4\" value=\"A story\"/>" +
-      "  <node name=\"timestamp\" enhance=\"5\" value=\"2011-07-01T10:31:57.140Z\"/>" +
-      " </document>" +
-      "</random>";
+    String xml =
+        "<random>" +
+            " <document>" +
+            "  <node name=\"id\" value=\"12345\"/>" +
+            "  <node name=\"name\" value=\"kitten\"/>" +
+            "  <node name=\"text\" enhance=\"3\" value=\"some other day\"/>" +
+            "  <node name=\"title\" enhance=\"4\" value=\"A story\"/>" +
+            "  <node name=\"timestamp\" enhance=\"5\" value=\"2011-07-01T10:31:57.140Z\"/>" +
+            " </document>" +
+            "</random>";
 
     Map<String,String> args = new HashMap<>();
     args.put(CommonParams.TR, "xsl-update-handler-test.xsl");
-      
+
     SolrCore core = h.getCore();
     LocalSolrQueryRequest req = new LocalSolrQueryRequest( core, new MapSolrParams( args) );
     ArrayList<ContentStream> streams = new ArrayList<>();
     streams.add(new ContentStreamBase.StringStream(xml));
     req.setContentStreams(streams);
     SolrQueryResponse rsp = new SolrQueryResponse();
-  	SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req, rsp));
-  	try {
     UpdateRequestHandler handler = new UpdateRequestHandler();
     handler.init(new NamedList<String>());
     handler.handleRequestBody(req, rsp);
@@ -90,35 +87,33 @@ public class XsltUpdateRequestHandlerTest extends SolrTestCaseJ4 {
     String response = sw.toString();
     assertU(response);
     assertU(commit());
+
     assertQ("test document was correctly committed", req("q","*:*")
-            , "//result[@numFound='1']"
-            , "//int[@name='id'][.='12345']"
-        );
-    } finally {
-      SolrRequestInfo.clearRequestInfo();
-    }
+        , "//result[@numFound='1']"
+        , "//int[@name='id'][.='12345']"
+    );
   }
-  
+
   @Test
   public void testEntities() throws Exception
   {
     // use a binary file, so when it's loaded fail with XML eror:
     String file = getFile("mailing_lists.pdf").toURI().toASCIIString();
-    String xml = 
-      "<?xml version=\"1.0\"?>" +
-      "<!DOCTYPE foo [" + 
-      // check that external entities are not resolved!
-      "<!ENTITY bar SYSTEM \""+file+"\">"+
-      // but named entities should be
-      "<!ENTITY wacky \"zzz\">"+
-      "]>" +
-      "<random>" +
-      " &bar;" +
-      " <document>" +
-      "  <node name=\"id\" value=\"12345\"/>" +
-      "  <node name=\"foo_s\" value=\"&wacky;\"/>" +
-      " </document>" +
-      "</random>";
+    String xml =
+        "<?xml version=\"1.0\"?>" +
+            "<!DOCTYPE foo [" +
+            // check that external entities are not resolved!
+            "<!ENTITY bar SYSTEM \""+file+"\">"+
+            // but named entities should be
+            "<!ENTITY wacky \"zzz\">"+
+            "]>" +
+            "<random>" +
+            " &bar;" +
+            " <document>" +
+            "  <node name=\"id\" value=\"12345\"/>" +
+            "  <node name=\"foo_s\" value=\"&wacky;\"/>" +
+            " </document>" +
+            "</random>";
     SolrQueryRequest req = req(CommonParams.TR, "xsl-update-handler-test.xsl");
     SolrQueryResponse rsp = new SolrQueryResponse();
     BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
@@ -129,5 +124,5 @@ public class XsltUpdateRequestHandlerTest extends SolrTestCaseJ4 {
     assertEquals("12345", add.solrDoc.getField("id").getFirstValue());
     assertEquals("zzz", add.solrDoc.getField("foo_s").getFirstValue());
     req.close();
-  }  
+  }
 }
