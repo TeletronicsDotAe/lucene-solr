@@ -51,7 +51,7 @@ public class BinaryUpdateRequestHandlerTest extends SolrTestCaseJ4 {
     UpdateRequestHandler handler = new UpdateRequestHandler();
     handler.init(new NamedList());
     SolrQueryRequest req = req();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     ContentStreamLoader csl = handler.newLoader(req, p);
 
     csl.load(req, rsp, brw.getContentStream(ureq), p);

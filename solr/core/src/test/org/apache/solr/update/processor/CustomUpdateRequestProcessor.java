@@ -24,8 +24,8 @@ import org.apache.solr.response.SolrQueryResponse;
  * A passthrough processor that does nothing.
  */
 public class CustomUpdateRequestProcessor extends UpdateRequestProcessor {
-  public CustomUpdateRequestProcessor(UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
-    super(next, req, rsp);
+  public CustomUpdateRequestProcessor(UpdateRequestProcessor next) {
+    super(next);
   }
 }
 

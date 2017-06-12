@@ -55,7 +55,7 @@ public class UIMAUpdateRequestProcessor extends UpdateRequestProcessor {
   public UIMAUpdateRequestProcessor(UpdateRequestProcessor next,
       String coreName, SolrUIMAConfiguration config, AnalysisEngine ae,
       JCasPool pool, SolrQueryRequest req, SolrQueryResponse rsp) {
-    super(next, req, rsp);
+    super(next);
     this.ae = ae;
     this.pool = pool;
     solrUIMAConfiguration = config;

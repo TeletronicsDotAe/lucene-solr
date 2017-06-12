@@ -58,7 +58,7 @@ public final class IgnoreFieldUpdateProcessorFactory extends FieldMutatingUpdate
   public UpdateRequestProcessor getInstance(SolrQueryRequest req,
                                             SolrQueryResponse rsp,
                                             UpdateRequestProcessor next) {
-    return mutator(getSelector(), next, src -> null, req, rsp);
+    return mutator(getSelector(), next, src -> null);
 
   }
 

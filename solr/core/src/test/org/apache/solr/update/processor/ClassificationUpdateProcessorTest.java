@@ -96,7 +96,7 @@ public class ClassificationUpdateProcessorTest extends SolrTestCaseJ4 {
     ClassificationUpdateProcessorParams params = initParams(ClassificationUpdateProcessorFactory.Algorithm.KNN);
     params.setPredictedClassField(PREDICTED_CLASS);
 
-    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,null,null,reader,req().getSchema());
+    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,reader,req().getSchema());
     updateProcessorToTest.processAdd(update);
 
     assertThat(unseenDocument1.getFieldValue(PREDICTED_CLASS),is("class1"));
@@ -116,7 +116,7 @@ public class ClassificationUpdateProcessorTest extends SolrTestCaseJ4 {
 
     ClassificationUpdateProcessorParams params = initParams(ClassificationUpdateProcessorFactory.Algorithm.KNN);
 
-    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,null,null,reader,req().getSchema());
+    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,reader,req().getSchema());
     updateProcessorToTest.processAdd(update);
 
     assertThat(unseenDocument1.getFieldValue(TRAINING_CLASS),is("class1"));
@@ -137,7 +137,7 @@ public class ClassificationUpdateProcessorTest extends SolrTestCaseJ4 {
     ClassificationUpdateProcessorParams params = initParams(ClassificationUpdateProcessorFactory.Algorithm.KNN);
     params.setInputFieldNames(new String[]{TITLE + "^1.5", CONTENT + "^0.5", AUTHOR + "^2.5"});
 
-    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,null,null,reader,req().getSchema());
+    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,reader,req().getSchema());
 
     updateProcessorToTest.processAdd(update);
 
@@ -158,7 +158,7 @@ public class ClassificationUpdateProcessorTest extends SolrTestCaseJ4 {
 
     ClassificationUpdateProcessorParams params= initParams(ClassificationUpdateProcessorFactory.Algorithm.BAYES);
 
-    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,null,null,reader,req().getSchema());
+    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,reader,req().getSchema());
     updateProcessorToTest.processAdd(update);
 
     assertThat(unseenDocument1.getFieldValue(TRAINING_CLASS),is("class1"));
@@ -180,7 +180,7 @@ public class ClassificationUpdateProcessorTest extends SolrTestCaseJ4 {
     Query class3DocsChunk=new TermQuery(new Term(TITLE,"word6"));
     params.setTrainingFilterQuery(class3DocsChunk);
 
-    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,null,null,reader,req().getSchema());
+    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,reader,req().getSchema());
     updateProcessorToTest.processAdd(update);
 
     assertThat(unseenDocument1.getFieldValue(TRAINING_CLASS),is("class3"));
@@ -201,7 +201,7 @@ public class ClassificationUpdateProcessorTest extends SolrTestCaseJ4 {
     ClassificationUpdateProcessorParams params= initParams(ClassificationUpdateProcessorFactory.Algorithm.BAYES);
     params.setInputFieldNames(new String[]{TITLE+"^1.5",CONTENT+"^0.5",AUTHOR+"^2.5"});
 
-    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,null,null,reader,req().getSchema());
+    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,reader,req().getSchema());
 
     updateProcessorToTest.processAdd(update);
 
@@ -223,7 +223,7 @@ public class ClassificationUpdateProcessorTest extends SolrTestCaseJ4 {
     ClassificationUpdateProcessorParams params= initParams(ClassificationUpdateProcessorFactory.Algorithm.KNN);
     params.setMaxPredictedClasses(100);
 
-    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,null,null,reader,req().getSchema());
+    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,reader,req().getSchema());
     updateProcessorToTest.processAdd(update);
 
     ArrayList<Object> assignedClasses = (ArrayList)unseenDocument1.getFieldValues(TRAINING_CLASS);
@@ -246,7 +246,7 @@ public class ClassificationUpdateProcessorTest extends SolrTestCaseJ4 {
     ClassificationUpdateProcessorParams params= initParams(ClassificationUpdateProcessorFactory.Algorithm.KNN);
     params.setMaxPredictedClasses(2);
 
-    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,null,null,reader,req().getSchema());
+    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,reader,req().getSchema());
     updateProcessorToTest.processAdd(update);
 
     ArrayList<Object> assignedClasses = (ArrayList)unseenDocument1.getFieldValues(TRAINING_CLASS);
@@ -270,7 +270,7 @@ public class ClassificationUpdateProcessorTest extends SolrTestCaseJ4 {
     ClassificationUpdateProcessorParams params= initParams(ClassificationUpdateProcessorFactory.Algorithm.BAYES);
     params.setMaxPredictedClasses(2);
 
-    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,null,null,reader,req().getSchema());
+    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,reader,req().getSchema());
     updateProcessorToTest.processAdd(update);
 
     ArrayList<Object> assignedClasses = (ArrayList)unseenDocument1.getFieldValues(TRAINING_CLASS);
@@ -295,7 +295,7 @@ public class ClassificationUpdateProcessorTest extends SolrTestCaseJ4 {
     params.setInputFieldNames(new String[]{TITLE+"^1.5",CONTENT+"^0.5",AUTHOR+"^2.5"});
     params.setMaxPredictedClasses(2);
 
-    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,null,null,reader,req().getSchema());
+    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,reader,req().getSchema());
 
     updateProcessorToTest.processAdd(update);
 
@@ -321,7 +321,7 @@ public class ClassificationUpdateProcessorTest extends SolrTestCaseJ4 {
     params.setInputFieldNames(new String[]{TITLE+"^1.5",CONTENT+"^0.5",AUTHOR+"^2.5"});
     params.setMaxPredictedClasses(2);
 
-    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,null,null,reader,req().getSchema());
+    updateProcessorToTest=new ClassificationUpdateProcessor(params,mockProcessor,reader,req().getSchema());
 
     updateProcessorToTest.processAdd(update);
 

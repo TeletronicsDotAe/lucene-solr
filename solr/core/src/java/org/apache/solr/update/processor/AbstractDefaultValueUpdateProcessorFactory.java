@@ -78,8 +78,8 @@ public abstract class AbstractDefaultValueUpdateProcessorFactory
     final String fieldName;
 
     public DefaultValueUpdateProcessor(final String fieldName,
-                                       final UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
-      super(next, req, rsp);
+                                       final UpdateRequestProcessor next) {
+      super(next);
       this.fieldName = fieldName;
     }
 

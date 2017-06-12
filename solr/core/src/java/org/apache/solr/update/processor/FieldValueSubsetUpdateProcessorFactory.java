@@ -42,7 +42,7 @@ public abstract class FieldValueSubsetUpdateProcessorFactory extends FieldMutati
       result.setValue(pickSubset(src.getValues()),
           src.getBoost());
       return result;
-    }, req, rsp);
+    });
   }
 
   /**

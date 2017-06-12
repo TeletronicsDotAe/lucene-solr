@@ -155,7 +155,7 @@ public class SkipExistingDocumentsProcessorFactory extends UpdateRequestProcesso
                                          UpdateRequestProcessor next,
                                          boolean skipInsertIfExists,
                                          boolean skipUpdateIfMissing) {
-      super(next, req, rsp);
+      super(next);
       this.skipInsertIfExists = skipInsertIfExists;
       this.skipUpdateIfMissing = skipUpdateIfMissing;
       this.core = req.getCore();

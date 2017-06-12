@@ -84,7 +84,7 @@ public final class ConcatFieldUpdateProcessorFactory extends FieldMutatingUpdate
       result.setValue(StringUtils.join(src.getValues(), delimiter),
           src.getBoost());
       return result;
-    }, req, rsp);
+    });
   }
 
   @Override

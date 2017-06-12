@@ -47,8 +47,8 @@ public abstract class FieldValueMutatingUpdateProcessor
     };
 
   public FieldValueMutatingUpdateProcessor(FieldNameSelector selector,
-                                           UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
-    super(selector, next, req, rsp);
+                                           UpdateRequestProcessor next) {
+    super(selector, next);
   }
   
   /**
@@ -88,10 +88,8 @@ public abstract class FieldValueMutatingUpdateProcessor
 
   public static FieldValueMutatingUpdateProcessor valueMutator(FieldNameSelector selector,
                                                                UpdateRequestProcessor next,
-                                                               SolrQueryRequest req,
-                                                               SolrQueryResponse rsp,
                                                                Function<Object, Object> fun) {
-    return new FieldValueMutatingUpdateProcessor(selector, next, req, rsp) {
+    return new FieldValueMutatingUpdateProcessor(selector, next) {
       @Override
       protected Object mutateValue(Object src) {
         return fun.apply(src);

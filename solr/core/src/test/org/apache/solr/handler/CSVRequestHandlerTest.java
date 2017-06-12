@@ -40,7 +40,7 @@ public class CSVRequestHandlerTest extends SolrTestCaseJ4 {
     SolrQueryRequest req = req("separator", ";",
                                "commitWithin", "200");
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
 
     CSVLoader loader = new CSVLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream.StringStream(csvString), p);

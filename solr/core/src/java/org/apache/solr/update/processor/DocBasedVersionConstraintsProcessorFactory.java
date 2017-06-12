@@ -196,7 +196,7 @@ public class DocBasedVersionConstraintsProcessorFactory extends UpdateRequestPro
                                                SolrQueryRequest req, 
                                                SolrQueryResponse rsp, 
                                                UpdateRequestProcessor next ) {
-      super(next, req, rsp);
+      super(next);
       this.ignoreOldUpdates = ignoreOldUpdates;
       this.deleteVersionParamName = deleteVersionParamName;
       this.core = req.getCore();

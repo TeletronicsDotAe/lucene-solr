@@ -33,12 +33,12 @@ import org.apache.solr.update.*;
  * @since solr 1.3
  * @see DistributingUpdateProcessorFactory
  */
-public class RunUpdateProcessorFactory extends UpdateRequestProcessorFactory 
+public class RunUpdateProcessorFactory extends UpdateRequestProcessorFactory
 {
   @Override
-  public UpdateRequestProcessor getInstance(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next) 
+  public UpdateRequestProcessor getInstance(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next)
   {
-    return new RunUpdateProcessor(req, rsp, next);
+    return new RunUpdateProcessor(req, next);
   }
 }
 
@@ -49,8 +49,8 @@ class RunUpdateProcessor extends UpdateRequestProcessor
 
   private boolean changesSinceCommit = false;
 
-  public RunUpdateProcessor(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next) {
-    super( next, req, rsp );
+  public RunUpdateProcessor(SolrQueryRequest req, UpdateRequestProcessor next) {
+    super( next );
     this.req = req;
     this.updateHandler = req.getCore().getUpdateHandler();
   }

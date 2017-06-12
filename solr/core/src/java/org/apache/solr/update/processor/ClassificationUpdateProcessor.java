@@ -59,8 +59,8 @@ class ClassificationUpdateProcessor
    * @param indexReader     index reader
    * @param schema          schema
    */
-  public ClassificationUpdateProcessor(ClassificationUpdateProcessorParams classificationParams, UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp, IndexReader indexReader, IndexSchema schema) {
-    super(next, req, rsp);
+  public ClassificationUpdateProcessor(ClassificationUpdateProcessorParams classificationParams, UpdateRequestProcessor next, IndexReader indexReader, IndexSchema schema) {
+    super(next);
     this.trainingClassField = classificationParams.getTrainingClassField();
     this.predictedClassField = classificationParams.getPredictedClassField();
     this.maxOutputClasses = classificationParams.getMaxPredictedClasses();

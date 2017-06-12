@@ -74,7 +74,7 @@ public class RegexpBoostProcessor extends UpdateRequestProcessor {
                        SolrQueryResponse response,
                        UpdateRequestProcessor nextProcessor,
                        final Map<Object, Object> sharedObjectCache) {
-    super(nextProcessor, request, response);
+    super(nextProcessor);
     this.initParameters(parameters);
 
     if (this.boostFilename == null) {

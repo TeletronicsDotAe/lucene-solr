@@ -60,8 +60,8 @@ public abstract class FieldMutatingUpdateProcessor
 
   private final FieldNameSelector selector;
   public FieldMutatingUpdateProcessor(FieldNameSelector selector,
-                                      UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
-    super(next, req, rsp);
+                                      UpdateRequestProcessor next) {
+    super(next);
     this.selector = selector;
   }
   
@@ -290,8 +290,8 @@ public abstract class FieldMutatingUpdateProcessor
    }
   public static FieldMutatingUpdateProcessor mutator(FieldNameSelector selector,
                                                      UpdateRequestProcessor next,
-                                                     Function<SolrInputField, SolrInputField> fun, SolrQueryRequest req, SolrQueryResponse rsp){
-    return new FieldMutatingUpdateProcessor(selector, next, req, rsp) {
+                                                     Function<SolrInputField, SolrInputField> fun){
+    return new FieldMutatingUpdateProcessor(selector, next) {
       @Override
       protected SolrInputField mutate(SolrInputField src) {
         return fun.apply(src);

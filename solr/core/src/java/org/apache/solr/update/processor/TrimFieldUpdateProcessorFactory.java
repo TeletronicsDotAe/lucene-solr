@@ -55,7 +55,7 @@ public final class TrimFieldUpdateProcessorFactory extends FieldMutatingUpdatePr
   public UpdateRequestProcessor getInstance(SolrQueryRequest req,
                                             SolrQueryResponse rsp,
                                             UpdateRequestProcessor next) {
-    return valueMutator(getSelector(), next, req, rsp, src -> {
+    return valueMutator(getSelector(), next, src -> {
       if (src instanceof CharSequence) {
         return src.toString().trim();
       }

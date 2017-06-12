@@ -76,7 +76,7 @@ public final class RecordingUpdateProcessorFactory
                                            UpdateRequestProcessor next,
                                            SolrQueryRequest req, 
                                            SolrQueryResponse rsp) {
-      super(next, req, rsp);
+      super(next);
       this.commandQueue = commandQueue;
     }
 

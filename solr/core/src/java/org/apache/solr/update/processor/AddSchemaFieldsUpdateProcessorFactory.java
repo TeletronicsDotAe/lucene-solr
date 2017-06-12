@@ -86,7 +86,7 @@ import static org.apache.solr.core.ConfigSetProperties.IMMUTABLE_CONFIGSET_ARG;
  * <p>
  * Example configuration:
  * </p>
- * 
+ *
  * <pre class="prettyprint">
  * &lt;processor class="solr.AddSchemaFieldsUpdateProcessorFactory"&gt;
  *   &lt;str name="defaultFieldType"&gt;text_general&lt;/str&gt;
@@ -128,7 +128,7 @@ public class AddSchemaFieldsUpdateProcessorFactory extends UpdateRequestProcesso
   private static final String VALUE_CLASS_PARAM = "valueClass";
   private static final String FIELD_TYPE_PARAM = "fieldType";
   private static final String DEFAULT_FIELD_TYPE_PARAM = "defaultFieldType";
-  
+
   private List<TypeMapping> typeMappings = Collections.emptyList();
   private SelectorParams inclusions = new SelectorParams();
   private Collection<SelectorParams> exclusions = new ArrayList<>();
@@ -136,10 +136,10 @@ public class AddSchemaFieldsUpdateProcessorFactory extends UpdateRequestProcesso
   private String defaultFieldType;
 
   @Override
-  public UpdateRequestProcessor getInstance(SolrQueryRequest req, 
-                                            SolrQueryResponse rsp, 
+  public UpdateRequestProcessor getInstance(SolrQueryRequest req,
+                                            SolrQueryResponse rsp,
                                             UpdateRequestProcessor next) {
-    return new AddSchemaFieldsUpdateProcessor(next, req, rsp);
+    return new AddSchemaFieldsUpdateProcessor(next);
   }
 
   @Override
@@ -204,13 +204,13 @@ public class AddSchemaFieldsUpdateProcessorFactory extends UpdateRequestProcesso
       Collection<String> valueClasses
           = typeMappingNamedList.removeConfigArgs(VALUE_CLASS_PARAM);
       if (valueClasses.isEmpty()) {
-        throw new SolrException(SERVER_ERROR, 
+        throw new SolrException(SERVER_ERROR,
             "Each '" + TYPE_MAPPING_PARAM + "' <lst/> must contain at least one '" + VALUE_CLASS_PARAM + "' <str>");
       }
       typeMappings.add(new TypeMapping(fieldType, valueClasses));
 
       if (0 != typeMappingNamedList.size()) {
-        throw new SolrException(SERVER_ERROR, 
+        throw new SolrException(SERVER_ERROR,
             "Unexpected '" + TYPE_MAPPING_PARAM + "' init sub-param(s): '" + typeMappingNamedList.toString() + "'");
       }
       args.remove(TYPE_MAPPING_PARAM);
@@ -260,10 +260,10 @@ public class AddSchemaFieldsUpdateProcessorFactory extends UpdateRequestProcesso
   }
 
   private class AddSchemaFieldsUpdateProcessor extends UpdateRequestProcessor {
-    public AddSchemaFieldsUpdateProcessor(UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
-      super(next, req, rsp);
+    public AddSchemaFieldsUpdateProcessor(UpdateRequestProcessor next) {
+      super(next);
     }
-    
+
     @Override
     public void processAdd(AddUpdateCommand cmd) throws IOException {
       if ( ! cmd.getReq().getSchema().isMutable()) {
@@ -361,7 +361,7 @@ public class AddSchemaFieldsUpdateProcessorFactory extends UpdateRequestProcesso
 
     /**
      * Maps all given field values' classes to a field type using the configured type mapping rules.
-     * 
+     *
      * @param fields one or more (same-named) field values from one or more documents
      */
     private String mapValueClassesToFieldType(List<SolrInputField> fields) {
@@ -387,11 +387,11 @@ public class AddSchemaFieldsUpdateProcessorFactory extends UpdateRequestProcesso
 
     private FieldNameSelector buildSelector(IndexSchema schema) {
       FieldNameSelector selector = FieldMutatingUpdateProcessor.createFieldNameSelector
-        (solrResourceLoader, schema, inclusions, fieldName -> null == schema.getFieldTypeNoEx(fieldName));
+          (solrResourceLoader, schema, inclusions, fieldName -> null == schema.getFieldTypeNoEx(fieldName));
 
       for (SelectorParams exc : exclusions) {
         selector = FieldMutatingUpdateProcessor.wrap(selector, FieldMutatingUpdateProcessor.createFieldNameSelector
-          (solrResourceLoader, schema, exc, FieldMutatingUpdateProcessor.SELECT_NO_FIELDS));
+            (solrResourceLoader, schema, exc, FieldMutatingUpdateProcessor.SELECT_NO_FIELDS));
       }
       return selector;
     }

@@ -100,7 +100,7 @@ public class IgnoreCommitOptimizeUpdateProcessorFactory extends UpdateRequestPro
                                         IgnoreCommitOptimizeUpdateProcessorFactory factory,
                                         UpdateRequestProcessor next)
     {
-      super(next, req, rsp);
+      super(next);
       this.rsp = rsp;
       this.errorCode = factory.errorCode;
       this.responseMsg = factory.responseMsg;

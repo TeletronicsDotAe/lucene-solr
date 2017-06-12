@@ -80,7 +80,7 @@ public class ParseBooleanFieldUpdateProcessorFactory extends FieldMutatingUpdate
   public UpdateRequestProcessor getInstance(SolrQueryRequest req, 
                                             SolrQueryResponse rsp, 
                                             UpdateRequestProcessor next) {
-    return new AllValuesOrNoneFieldMutatingUpdateProcessor(getSelector(), next, req, rsp) {
+    return new AllValuesOrNoneFieldMutatingUpdateProcessor(getSelector(), next) {
       @Override
       protected Object mutateValue(Object srcVal) {
         if (srcVal instanceof CharSequence) {

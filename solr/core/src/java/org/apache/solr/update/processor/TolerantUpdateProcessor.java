@@ -125,7 +125,7 @@ public class TolerantUpdateProcessor extends UpdateRequestProcessor {
   private final DistribPhase distribPhase;
 
   public TolerantUpdateProcessor(SolrQueryRequest req, SolrQueryResponse rsp, UpdateRequestProcessor next, int maxErrors, DistribPhase distribPhase) {
-    super(next, req, rsp);
+    super(next);
     assert maxErrors >= -1;
       
     header = rsp.getResponseHeader();

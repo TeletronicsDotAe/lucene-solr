@@ -86,7 +86,7 @@ public final class TruncateFieldUpdateProcessorFactory
   public UpdateRequestProcessor getInstance(SolrQueryRequest req,
                                             SolrQueryResponse rsp,
                                             UpdateRequestProcessor next) {
-    return valueMutator(getSelector(), next, req, rsp, src -> {
+    return valueMutator(getSelector(), next, src -> {
       if (src instanceof CharSequence) {
         CharSequence s = (CharSequence) src;
         if (maxLength < s.length()) {

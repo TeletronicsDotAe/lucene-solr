@@ -86,7 +86,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
   {
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(input), p);
 
@@ -155,7 +155,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     String str = "[{'id':'1'},{'id':'2'}]".replace('\'', '"');
     SolrQueryRequest req = req("commitWithin","100", "overwrite","false");
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(str), p);
 
@@ -182,7 +182,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
   public void testInvalidJsonProducesBadRequestSolrException() throws Exception
   {
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, null, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     String invalidJsonString = "}{";
 
@@ -203,7 +203,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     String str = "{'add':[{'id':'1'},{'id':'2'}]}".replace('\'', '"');
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(str), p);
 
@@ -254,7 +254,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
   private void checkFieldValueOrdering(String rawJson, float fBoost) throws Exception {
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(rawJson), p);
     assertEquals( 2, p.addCommands.size() );
@@ -296,7 +296,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     SolrQueryRequest req = req("srcField","_src_");
     req.getContext().put("path","/update/json/docs");
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(doc), p);
     assertEquals( 2, p.addCommands.size() );
@@ -323,7 +323,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     req = req("srcField","_src_");
     req.getContext().put("path","/update/json/docs");
     rsp = new SolrQueryResponse();
-    p = new BufferingRequestProcessor(null, req, rsp);
+    p = new BufferingRequestProcessor(null);
     loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(doc), p);
 
@@ -349,7 +349,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     req = req("srcField","_src_");
     req.getContext().put("path","/update/json/docs");
     rsp = new SolrQueryResponse();
-    p = new BufferingRequestProcessor(null, req, rsp);
+    p = new BufferingRequestProcessor(null);
     loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(doc), p);
     assertEquals( 2, p.addCommands.size() );
@@ -370,7 +370,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     req = req("split", "/|/a/b"   );
     req.getContext().put("path","/update/json/docs");
     rsp = new SolrQueryResponse();
-    p = new BufferingRequestProcessor(null, req, rsp);
+    p = new BufferingRequestProcessor(null);
     loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(json), p);
 
@@ -422,7 +422,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
         "f", "cat:/children/grandchildren/cat");
     req.getContext().put("path", "/update/json/docs");
     rsp = new SolrQueryResponse();
-    p = new BufferingRequestProcessor(null, req, rsp);
+    p = new BufferingRequestProcessor(null);
     loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(json), p);
     assertEquals(2, p.addCommands.get(0).solrDoc.getChildDocuments().size());
@@ -436,7 +436,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     String str = "[{'id':'1', 'val_s':{'add':'foo'}}]".replace('\'', '"');
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(str), p);
 
@@ -470,7 +470,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     String str = "{'add':[{'id':'1','b1':true,'b2':false,'b3':[false,true]}]}".replace('\'', '"');
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(str), p);
 
@@ -495,7 +495,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     String str = "{'add':[{'id':'1','i1':256,'i2':-5123456789,'i3':[0,1]}]}".replace('\'', '"');
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(str), p);
 
@@ -521,7 +521,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     String str = "{'add':[{'id':'1','d1':256.78,'d2':-5123456789.0,'d3':0.0,'d3':1.0,'d4':1.7E-10}]}".replace('\'', '"');
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(str), p);
 
@@ -550,7 +550,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
         + "'bd3':123456789012345678900.012345678901234567890}]}").replace('\'', '"');
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(str), p);
 
@@ -578,7 +578,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
         + "'bi3':[1234567890123456789012,10987654321098765432109]}]}").replace('\'', '"');
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(str), p);
 
@@ -674,7 +674,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
     str = str.replace('\'', '"');
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(str), p);
 
@@ -777,7 +777,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
   private void checkTwoChildDocs(String rawJsonStr) throws Exception {
     SolrQueryRequest req = req("commit","true");
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(rawJsonStr), p);
 
@@ -815,7 +815,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
         "}";
     SolrQueryRequest req = req("commit","true");
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(str), p);
 
@@ -859,7 +859,7 @@ public class JsonLoaderTest extends SolrTestCaseJ4 {
 
     SolrQueryRequest req = req("commit","true");
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     JsonLoader loader = new JsonLoader();
     loader.load(req, rsp, new ContentStreamBase.StringStream(str), p);
 

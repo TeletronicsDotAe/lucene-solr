@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
 import org.apache.solr.common.SolrException;
-import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.CommitUpdateCommand;
 import org.apache.solr.update.DeleteUpdateCommand;
@@ -30,6 +28,7 @@ import org.apache.solr.update.MergeIndexesCommand;
 import org.apache.solr.update.RollbackUpdateCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * This is a good place for subclassed update handlers to process the document before it is
@@ -46,43 +45,26 @@ import org.slf4j.LoggerFactory;
 public abstract class UpdateRequestProcessor implements Closeable {
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-  //protected final SolrRequestInfo requestInfoSet;
-  protected final SolrQueryRequest req;
-  protected final SolrQueryResponse rsp;
   protected final UpdateRequestProcessor next;
 
-  public UpdateRequestProcessor( UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
+  public UpdateRequestProcessor( UpdateRequestProcessor next) {
     this.next = next;
-    this.req = req;
-    this.rsp = rsp;
-    /*
-    if (SolrRequestInfo.getRequestInfo() == null) {
-      requestInfoSet = new SolrRequestInfo(req, rsp);
-      SolrRequestInfo.setRequestInfo(requestInfoSet);
-    } else {
-      requestInfoSet = null;
-    }
-    */
   }
 
   public void processAdd(AddUpdateCommand cmd) throws IOException {
-    // This should hold, but seems not to? assert cmd.getReq() == req;
     if (next != null) next.processAdd(cmd);
   }
 
   public void processDelete(DeleteUpdateCommand cmd) throws IOException {
-	// This should hold, but seems not to? assert cmd.getReq() == req;
     if (next != null) next.processDelete(cmd);
   }
 
   public void processMergeIndexes(MergeIndexesCommand cmd) throws IOException {
-	// This should hold, but seems not to? assert cmd.getReq() == req;
     if (next != null) next.processMergeIndexes(cmd);
   }
 
   public void processCommit(CommitUpdateCommand cmd) throws IOException
   {
-	// This should hold, but seems not to? assert cmd.getReq() == req;
     if (next != null) next.processCommit(cmd);
   }
 
@@ -91,14 +73,11 @@ public abstract class UpdateRequestProcessor implements Closeable {
    */
   public void processRollback(RollbackUpdateCommand cmd) throws IOException
   {
-    // FIXME MERGE - Is this assert still necessary?
-    assert cmd.getReq() == req;
     if (next != null) next.processRollback(cmd);
   }
 
   public void finish() throws IOException {
     if (next != null) next.finish();
-    //if (requestInfoSet != null && SolrRequestInfo.getRequestInfo() == requestInfoSet) SolrRequestInfo.clearRequestInfo();
   }
 
   @Override

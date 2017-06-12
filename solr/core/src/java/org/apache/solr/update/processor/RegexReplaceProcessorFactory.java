@@ -130,7 +130,7 @@ public final class RegexReplaceProcessorFactory extends FieldMutatingUpdateProce
   public UpdateRequestProcessor getInstance(SolrQueryRequest request,
                                             SolrQueryResponse response,
                                             UpdateRequestProcessor next) {
-    return valueMutator(getSelector(), next, request, response, src -> {
+    return valueMutator(getSelector(), next, src -> {
       if (src instanceof CharSequence) {
         CharSequence txt = (CharSequence) src;
         return pattern.matcher(txt).replaceAll(replacement);

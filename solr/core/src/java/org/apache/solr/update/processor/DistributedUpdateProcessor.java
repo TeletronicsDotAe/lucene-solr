@@ -288,7 +288,7 @@ public class DistributedUpdateProcessor extends UpdateRequestProcessor {
    */
   public DistributedUpdateProcessor(SolrQueryRequest req,
       SolrQueryResponse rsp, AtomicUpdateDocumentMerger docMerger, UpdateRequestProcessor next) {
-    super(next, req, rsp);
+    super(next);
     this.rsp = rsp;
     this.next = next;
     this.docMerger = docMerger;

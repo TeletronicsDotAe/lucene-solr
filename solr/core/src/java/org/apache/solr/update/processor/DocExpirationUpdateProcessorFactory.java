@@ -314,7 +314,7 @@ public final class DocExpirationUpdateProcessorFactory
                               final String ttlField,
                               final UpdateRequestProcessor next,
                               SolrQueryRequest req, SolrQueryResponse rsp) {
-      super(next, req, rsp);
+      super(next);
       this.defaultTtl = defaultTtl;
       this.expireField = expireField;
       this.ttlField = ttlField;

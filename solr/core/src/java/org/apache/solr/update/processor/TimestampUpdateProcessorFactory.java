@@ -52,7 +52,7 @@ public class TimestampUpdateProcessorFactory
   public UpdateRequestProcessor getInstance(SolrQueryRequest req, 
                                             SolrQueryResponse rsp, 
                                             UpdateRequestProcessor next ) {
-    return new DefaultValueUpdateProcessor(fieldName, next, req, rsp) {
+    return new DefaultValueUpdateProcessor(fieldName, next) {
       @Override
       public Object getDefaultValue() { 
         return SolrRequestInfo.getRequestInfo().getNOW();

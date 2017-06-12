@@ -58,8 +58,8 @@ public abstract class AllValuesOrNoneFieldMutatingUpdateProcessor extends FieldM
   };
 
 
-  public AllValuesOrNoneFieldMutatingUpdateProcessor(FieldNameSelector selector, UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
-    super(selector, next, req, rsp);
+  public AllValuesOrNoneFieldMutatingUpdateProcessor(FieldNameSelector selector, UpdateRequestProcessor next) {
+    super(selector, next);
   }
 
   /**

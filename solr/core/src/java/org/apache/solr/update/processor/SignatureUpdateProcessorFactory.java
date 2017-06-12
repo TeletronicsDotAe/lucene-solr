@@ -124,7 +124,7 @@ public class SignatureUpdateProcessorFactory
     public SignatureUpdateProcessor(SolrQueryRequest req,
         SolrQueryResponse rsp, SignatureUpdateProcessorFactory factory,
         UpdateRequestProcessor next) {
-      super(next, req, rsp);
+      super(next);
       this.req = req;
     }
 

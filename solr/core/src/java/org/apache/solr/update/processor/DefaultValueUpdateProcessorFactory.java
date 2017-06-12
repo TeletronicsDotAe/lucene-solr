@@ -47,7 +47,7 @@ import org.apache.solr.response.SolrQueryResponse;
  * </pre>
  */
 public class DefaultValueUpdateProcessorFactory
-  extends AbstractDefaultValueUpdateProcessorFactory {
+    extends AbstractDefaultValueUpdateProcessorFactory {
 
   protected Object defaultValue = null;
 
@@ -58,7 +58,7 @@ public class DefaultValueUpdateProcessorFactory
     Object obj = args.remove("value");
     if (null == obj) {
       throw new SolrException
-        (SERVER_ERROR, "'value' init param must be specified and non-null"); 
+          (SERVER_ERROR, "'value' init param must be specified and non-null");
     } else {
       defaultValue = obj;
     }
@@ -67,10 +67,10 @@ public class DefaultValueUpdateProcessorFactory
   }
 
   @Override
-  public UpdateRequestProcessor getInstance(SolrQueryRequest req, 
-                                            SolrQueryResponse rsp, 
+  public UpdateRequestProcessor getInstance(SolrQueryRequest req,
+                                            SolrQueryResponse rsp,
                                             UpdateRequestProcessor next ) {
-    return new DefaultValueUpdateProcessor(fieldName, next, req, rsp) {
+    return new DefaultValueUpdateProcessor(fieldName, next) {
       @Override
       public Object getDefaultValue() { return defaultValue; }
     };

@@ -106,7 +106,7 @@ public class XmlUpdateRequestHandlerTest extends SolrTestCaseJ4 {
 
     SolrQueryRequest req = req("commitWithin","100","overwrite","false");
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
 
     XMLLoader loader = new XMLLoader().init(null);
     loader.load(req, rsp, new ContentStreamBase.StringStream(xml), p);
@@ -134,7 +134,7 @@ public class XmlUpdateRequestHandlerTest extends SolrTestCaseJ4 {
       "</add>";
     SolrQueryRequest req = req();
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     XMLLoader loader = new XMLLoader().init(null);
     loader.load(req, rsp, new ContentStreamBase.StringStream(xml), p);
 
@@ -186,7 +186,7 @@ public class XmlUpdateRequestHandlerTest extends SolrTestCaseJ4 {
 
       SolrQueryRequest req = req();
       SolrQueryResponse rsp = new SolrQueryResponse();
-      MockUpdateRequestProcessor p = new MockUpdateRequestProcessor(null, req, rsp);
+      MockUpdateRequestProcessor p = new MockUpdateRequestProcessor(null);
       p.expectDelete(null, "id:150", -1, 0, null);
       p.expectDelete("150", null, -1, 0, null);
       p.expectDelete("200", null, -1, 0, null);
@@ -207,8 +207,8 @@ public class XmlUpdateRequestHandlerTest extends SolrTestCaseJ4 {
 
       private Queue<DeleteUpdateCommand> deleteCommands = new LinkedList<>();
 
-      public MockUpdateRequestProcessor(UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
-        super(next, req, rsp);
+      public MockUpdateRequestProcessor(UpdateRequestProcessor next) {
+        super(next);
       }
 
       public void expectDelete(String id, String query, int commitWithin, long version, String route) {

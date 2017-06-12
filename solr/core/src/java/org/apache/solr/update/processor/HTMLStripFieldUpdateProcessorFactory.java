@@ -59,7 +59,7 @@ public final class HTMLStripFieldUpdateProcessorFactory extends FieldMutatingUpd
   public UpdateRequestProcessor getInstance(SolrQueryRequest req,
                                             SolrQueryResponse rsp,
                                             UpdateRequestProcessor next) {
-    return valueMutator(getSelector(), next, req, rsp, src -> {
+    return valueMutator(getSelector(), next, src -> {
       if (src instanceof CharSequence) {
         CharSequence s = (CharSequence) src;
         StringWriter result = new StringWriter(s.length());

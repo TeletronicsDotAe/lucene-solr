@@ -34,8 +34,8 @@ public class BufferingRequestProcessor extends UpdateRequestProcessor
   public List<CommitUpdateCommand> commitCommands = new ArrayList<>();
   public List<RollbackUpdateCommand> rollbackCommands = new ArrayList<>();
   
-  public BufferingRequestProcessor(UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
-    super(next, req, rsp);
+  public BufferingRequestProcessor(UpdateRequestProcessor next) {
+    super(next);
   }
   
   @Override

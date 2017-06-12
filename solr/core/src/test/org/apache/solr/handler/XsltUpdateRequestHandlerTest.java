@@ -121,7 +121,7 @@ public class XsltUpdateRequestHandlerTest extends SolrTestCaseJ4 {
       "</random>";
     SolrQueryRequest req = req(CommonParams.TR, "xsl-update-handler-test.xsl");
     SolrQueryResponse rsp = new SolrQueryResponse();
-    BufferingRequestProcessor p = new BufferingRequestProcessor(null, req, rsp);
+    BufferingRequestProcessor p = new BufferingRequestProcessor(null);
     XMLLoader loader = new XMLLoader().init(null);
     loader.load(req, rsp, new ContentStreamBase.StringStream(xml), p);
 

@@ -75,7 +75,7 @@ public class SkipExistingDocumentsProcessorFactoryTest {
     NamedList<Object> initArgs = new NamedList<>();
     factory.init(initArgs);
     SolrQueryResponse rsp = new SolrQueryResponse();
-    UpdateRequestProcessor next = new BufferingRequestProcessor(null, defaultRequest, rsp);
+    UpdateRequestProcessor next = new BufferingRequestProcessor(null);
 
     factory.getInstance(defaultRequest, rsp, next);
   }
@@ -97,7 +97,7 @@ public class SkipExistingDocumentsProcessorFactoryTest {
     factory.init(initArgs);
     UpdateRequestProcessor distProcessor = Mockito.mock(DistributedUpdateProcessor.class);
     SolrQueryResponse rsp = new SolrQueryResponse();
-    UpdateRequestProcessor next = new BufferingRequestProcessor(distProcessor, defaultRequest, rsp);
+    UpdateRequestProcessor next = new BufferingRequestProcessor(distProcessor);
 
     factory.getInstance(defaultRequest, rsp, next);
   }

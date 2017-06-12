@@ -82,7 +82,7 @@ public class UUIDUpdateProcessorFactory extends UpdateRequestProcessorFactory {
       fieldName = schemaField.getName();
     }
 
-    return new AbstractDefaultValueUpdateProcessorFactory.DefaultValueUpdateProcessor(fieldName, next, req, rsp) {
+    return new AbstractDefaultValueUpdateProcessorFactory.DefaultValueUpdateProcessor(fieldName, next) {
       @Override
       public Object getDefaultValue() {
         return UUID.randomUUID().toString().toLowerCase(Locale.ROOT);

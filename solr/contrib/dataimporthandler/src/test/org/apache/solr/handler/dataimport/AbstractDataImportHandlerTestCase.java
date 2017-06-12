@@ -311,7 +311,7 @@ public abstract class AbstractDataImportHandlerTestCase extends
     @Override
     public UpdateRequestProcessor getInstance(SolrQueryRequest req,
         SolrQueryResponse rsp, UpdateRequestProcessor next) {
-      return new TestUpdateRequestProcessor(next, req, rsp);
+      return new TestUpdateRequestProcessor(next);
     }
     
   }
@@ -334,8 +334,8 @@ public abstract class AbstractDataImportHandlerTestCase extends
       rollbackCalled = false;
     }
     
-    public TestUpdateRequestProcessor(UpdateRequestProcessor next, SolrQueryRequest req, SolrQueryResponse rsp) {
-      super(next, req, rsp);
+    public TestUpdateRequestProcessor(UpdateRequestProcessor next) {
+      super(next);
       reset();
     }
 

@@ -52,12 +52,12 @@ public final class RemoveBlankFieldUpdateProcessorFactory extends FieldMutatingU
     // no trim specific init args
     super.init(args);
   }
-  
+
   @Override
   public UpdateRequestProcessor getInstance(SolrQueryRequest req,
                                             SolrQueryResponse rsp,
                                             UpdateRequestProcessor next) {
-    return valueMutator(getSelector(), next, req, rsp, src -> {
+    return valueMutator(getSelector(), next, src -> {
       if (src instanceof CharSequence
           && 0 == ((CharSequence) src).length()) {
         return DELETE_VALUE_SINGLETON;
