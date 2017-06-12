@@ -65,6 +65,7 @@ import org.apache.solr.common.params.CollectionParams.CollectionAction;
 import org.apache.solr.common.params.CoreAdminParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.util.NamedList;
+import org.apache.solr.common.util.SimpleOrderedMap;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.core.SolrInfoMBean.Category;
@@ -114,7 +115,7 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
 
     CollectionAdminRequest.createCollection(collectionName, "conf", 1, 1).process(cluster.getSolrClient());
     assertTrue(CollectionAdminRequest.listCollections(cluster.getSolrClient())
-                  .contains(collectionName));
+        .contains(collectionName));
 
     CollectionAdminRequest.deleteCollection(collectionName).process(cluster.getSolrClient());
     assertFalse(CollectionAdminRequest.listCollections(cluster.getSolrClient())
@@ -127,7 +128,7 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
 
   @Test
   public void deleteCollectionRemovesStaleZkCollectionsNode() throws Exception {
-    
+
     String collectionName = "out_of_sync_collection";
 
     // manually create a collections zknode
@@ -137,8 +138,8 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
         .process(cluster.getSolrClient());
 
     assertFalse(CollectionAdminRequest.listCollections(cluster.getSolrClient())
-                  .contains(collectionName));
-    
+        .contains(collectionName));
+
     assertFalse(cluster.getZkClient().exists(ZkStateReader.COLLECTIONS_ZKNODE + "/" + collectionName, true));
 
   }
@@ -182,7 +183,7 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
     // delete via API - should remove collections node
     CollectionAdminRequest.deleteCollection(collectionName).process(cluster.getSolrClient());
     assertFalse(CollectionAdminRequest.listCollections(cluster.getSolrClient()).contains(collectionName));
-    
+
     // now creating that collection should work
     CollectionAdminRequest.createCollection(collectionName, "conf", 2, 1)
         .process(cluster.getSolrClient());
@@ -273,7 +274,7 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
 
   @Test
   public void testCreateShouldFailOnExistingCore() throws Exception {
-    
+
     // first we make a core with the core name the collections api
     // will try and use - this will cause our mock fail
     Create createCmd = new Create();
@@ -303,27 +304,19 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
     String nn1 = cluster.getJettySolrRunner(0).getNodeName();
     String nn2 = cluster.getJettySolrRunner(1).getNodeName();
 
-    try {
-      CollectionAdminResponse resp = CollectionAdminRequest.createCollection("halfcollection", "conf", 2, 1)
-          .setCreateNodeSet(nn1 + "," + nn2)
-          .process(cluster.getSolrClient());
-      fail("Should have thrown exception");
-    } catch (SolrException e) {
-      //FIXME partial errors - how do we test this now..?
-      /*
-      assertTrue(e.getClass().getCanonicalName(), e instanceof PartialErrors);
-      SolrResponse solrResp = ((PartialErrors)e).getSpecializedResponse();
-      List<String> handledPartsRef = solrResp.getHandledPartsRef();
-      assertEquals(2, handledPartsRef.size());
-      assertTrue(handledPartsRef.get(0).contains("halfcollection_shard1_replica1") || handledPartsRef.get(1).contains("halfcollection_shard1_replica1"));
-      assertTrue(handledPartsRef.get(0).contains("halfcollection_shard2_replica1") || handledPartsRef.get(1).contains("halfcollection_shard2_replica1"));
-      Map<String, SolrException> partsRefToPartialErrorMap = solrResp.getPartialErrors();
-      assertEquals(1, partsRefToPartialErrorMap.size());
-      Map.Entry<String, SolrException> partRefToException = partsRefToPartialErrorMap.entrySet().iterator().next();
-      assertTrue(partRefToException.getKey(), partRefToException.getKey().contains("halfcollection_shard1_replica1"));
-      assertTrue(partRefToException.getValue().getMessage(), partRefToException.getValue().getMessage().contains("Core with name 'halfcollection_shard1_replica1' already exists"));
-      */
-    }
+    CollectionAdminResponse resp = CollectionAdminRequest.createCollection("halfcollection", "conf", 2, 1)
+        .setCreateNodeSet(nn1 + "," + nn2)
+        .process(cluster.getSolrClient());
+
+    SimpleOrderedMap success = (SimpleOrderedMap) resp.getResponse().get("success");
+    SimpleOrderedMap failure = (SimpleOrderedMap) resp.getResponse().get("failure");
+
+    assertNotNull(resp.toString(), success);
+    assertNotNull(resp.toString(), failure);
+
+    String val1 = success.getVal(0).toString();
+    String val2 = failure.getVal(0).toString();
+    assertTrue(val1.contains("SolrException") || val2.contains("SolrException"));
   }
 
   @Test
@@ -333,7 +326,7 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
 
     assertFalse(cluster.getSolrClient().getZkStateReader().getClusterState().hasCollection("corewithnocollection"));
     assertFalse(cluster.getSolrClient().getZkStateReader().getClusterState().hasCollection("corewithnocollection2"));
-    
+
     // try and create a SolrCore with no collection name
     Create createCmd = new Create();
     createCmd.setCoreName("corewithnocollection");
@@ -344,13 +337,13 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
     createCmd.setCollectionConfigName("conf");
 
     cluster.getSolrClient().request(createCmd);
-    
+
     // try and create a SolrCore with no collection name
     createCmd.setCollection(null);
     createCmd.setCoreName("corewithnocollection2");
 
     cluster.getSolrClient().request(createCmd);
-    
+
     // in both cases, the collection should have default to the core name
     cluster.getSolrClient().getZkStateReader().forceUpdateCollection("corewithnocollection");
     cluster.getSolrClient().getZkStateReader().forceUpdateCollection("corewithnocollection2");
@@ -522,7 +515,6 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
     String collectionName = createRequests[random().nextInt(createRequests.length)].getCollectionName();
 
     new UpdateRequest()
-        //FIXME DUPLICATE CHECKING - add the usual -1 thing?
         .add("id", "6")
         .add("id", "7")
         .add("id", "8")
@@ -575,7 +567,7 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
     while (! timeout.hasTimedOut()) {
       Map<String,Long> urlToTimeAfter = new HashMap<>();
       collectStartTimes(collectionName, urlToTimeAfter);
-      
+
       boolean retry = false;
       Set<Entry<String,Long>> entries = urlToTimeBefore.entrySet();
       for (Entry<String,Long> entry : entries) {
@@ -616,10 +608,10 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
       throw new IllegalArgumentException("Could not find collection " + collectionName);
     }
   }
-  
+
   private void checkNoTwoShardsUseTheSameIndexDir() throws Exception {
     Map<String, Set<String>> indexDirToShardNamesMap = new HashMap<>();
-    
+
     List<MBeanServer> servers = new LinkedList<>();
     servers.add(ManagementFactory.getPlatformMBeanServer());
     servers.addAll(MBeanServerFactory.findMBeanServer(null));
@@ -650,7 +642,7 @@ public class CollectionsAPIDistributedZkTest extends SolrCloudTestCase {
         }
       }
     }
-    
+
     assertTrue(
         "Something is broken in the assert for no shards using the same indexDir - probably something was changed in the attributes published in the MBean of "
             + SolrCore.class.getSimpleName() + " : " + indexDirToShardNamesMap,
