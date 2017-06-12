@@ -118,20 +118,12 @@ public class DirectSolrConnection
 
     SolrQueryRequest req = null;
     try {
-      req = parser.buildRequestFrom( core, params, streams);
-      SolrRequestInfo reqInfo;
-    	SolrQueryResponse rsp;
-    	// FIXME-MERGE - Do we still need to have this IF statement..?
-    	if ((reqInfo = SolrRequestInfo.getRequestInfo()) == null) {
-        rsp = new SolrQueryResponse();
-      SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req, rsp));      
-    	} else {
-    		rsp = reqInfo.getRsp();
-    	}
+      req = parser.buildRequestFrom( core, params, streams );
+      SolrQueryResponse rsp = new SolrQueryResponse();
+      SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req, rsp));
       core.execute( handler, req, rsp );
-      Exception e;
-      if( (e = rsp.getException()) != null ) {
-        throw e;
+      if( rsp.getException() != null ) {
+        throw rsp.getException();
       }
 
       // Now write it out
