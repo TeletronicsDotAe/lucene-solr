@@ -1036,6 +1036,7 @@ public class QueryEqualityTest extends SolrTestCaseJ4 {
 
     try {
       SolrQueryResponse rsp = new SolrQueryResponse();
+      SolrRequestInfo.setRequestInfo(new SolrRequestInfo(req,rsp));
       for (int i = 0; i < inputs.length; i++) {
         queries[i] = (QParser.getParser(inputs[i], defType, req).getQuery());
       }

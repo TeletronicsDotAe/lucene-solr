@@ -84,7 +84,7 @@ public class FastVectorHighlighterTest extends SolrTestCaseJ4 {
     assertU(commit());
     assertU(optimize());
     assertQ("Basic summarization",
-            sumLRF.makeRequestInfo("tv_text:vector").getReq(),
+            sumLRF.makeRequest("tv_text:vector"),
             "//lst[@name='highlighting']/lst[@name='1']",
             "//lst[@name='1']/arr[@name='tv_text']/str[.='basic fast <fvpre>vector</em> highlighter test']"
             );

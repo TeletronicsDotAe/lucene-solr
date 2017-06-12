@@ -80,7 +80,7 @@ public class TestFaceting extends SolrTestCaseJ4 {
     //System.out.println("doTermEnum size=" + size);
     close();
     createIndex(size);
-    req = lrf.makeRequestInfo("q","*:*").getReq();
+    req = lrf.makeRequest("q","*:*");
 
     SortedSetDocValues dv = DocValues.getSortedSet(req.getSearcher().getSlowAtomicReader(), proto.field());
 

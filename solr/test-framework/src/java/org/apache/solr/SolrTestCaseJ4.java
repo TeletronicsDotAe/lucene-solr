@@ -1245,7 +1245,7 @@ public abstract class SolrTestCaseJ4 extends LuceneTestCase {
    * @see #lrf
    */
   public static SolrQueryRequest req(String... q) {
-    return lrf.makeRequestInfo(q).getReq();
+    return lrf.makeRequest(q);
   }
 
   /**
@@ -1261,7 +1261,7 @@ public abstract class SolrTestCaseJ4 extends LuceneTestCase {
       System.arraycopy(moreParams,0,allParams,params.length,moreParams.length);
     }
 
-    return lrf.makeRequestInfo(allParams).getReq();
+    return lrf.makeRequest(allParams);
   }
 
   /**

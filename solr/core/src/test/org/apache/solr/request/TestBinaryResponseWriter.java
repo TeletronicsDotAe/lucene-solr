@@ -57,7 +57,7 @@ public class TestBinaryResponseWriter extends AbstractSolrTestCase {
     String s = UUID.randomUUID().toString().toLowerCase(Locale.ROOT);
     assertU(adoc("id", "101", "uuid", s));
     assertU(commit());
-    SolrQueryRequest req = lrf.makeRequestInfo("q", "*:*").getReq();
+    SolrQueryRequest req = lrf.makeRequest("q", "*:*");
     SolrQueryResponse rsp = h.queryAndResponse(req.getParams().get(CommonParams.QT), req);
     BinaryQueryResponseWriter writer = (BinaryQueryResponseWriter) h.getCore().getQueryResponseWriter("javabin");
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -74,8 +74,8 @@ public class TestBinaryResponseWriter extends AbstractSolrTestCase {
   }
 
   public void testResolverSolrDocumentPartialFields() throws Exception {
-    SolrQueryRequest req = lrf.makeRequestInfo("q", "*:*",
-                                                "fl", "id,xxx,ddd_s").getReq(); 
+    SolrQueryRequest req = lrf.makeRequest("q", "*:*",
+                                                "fl", "id,xxx,ddd_s");
     SolrDocument in = new SolrDocument();
     in.addField("id", 345);
     in.addField("aaa_s", "aaa");
